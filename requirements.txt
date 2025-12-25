@@ -1,0 +1,4 @@
+telethon
+telebot
+Pillow
+schedule
