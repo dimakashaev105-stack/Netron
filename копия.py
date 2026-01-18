@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import threading
 
 # Замените на свой токен
-BOT_TOKEN = "8287060486:AAE6k-v85LSBuxCzNx2o5-zcS_iyD9tgEcU"
+BOT_TOKEN = "8287060486:AAH0tRlAnM2s4rYXKQRDlIB-XMZOhTcMuyI"
 
 # ID администраторов (замените на свои)
 ADMIN_IDS = [8139807344, 5255608302]  # Пример ID администраторов
