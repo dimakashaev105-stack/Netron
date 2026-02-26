@@ -1,0 +1,12 @@
+{
+  "name": "gamezone-miniapp",
+  "version": "1.0.0",
+  "description": "Telegram Mini App + Bot",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  }
+}
