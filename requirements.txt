@@ -2,3 +2,4 @@ telethon
 telebot
 Pillow
 schedule
+flask-cors
