@@ -15,7 +15,7 @@ from contextlib import contextmanager
 
 
 # Замените на свой токен
-BOT_TOKEN = "7885520897:AAFw9SBKB8eC0NWXkXbtlieN4M87Cc61TDE" 
+BOT_TOKEN = "7885520897:AAFHUFcO7ZEEOGMUWRPgJSbc5Ot4gGArlsg" 
 # Глобальные переменные для пагинации (добавь после других глобальных переменных)
 shop_pages = {}
 wardrobe_pages = {}
