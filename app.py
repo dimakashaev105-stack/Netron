@@ -438,7 +438,31 @@ def mini():
     except FileNotFoundError:
         return 'Place index.html next to app.py', 404
 
+def run_bot():
+    """Запускаем bot.py в отдельном потоке"""
+    try:
+        import importlib.util, sys, os
+        # Путь к bot.py рядом с app.py
+        bot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot.py')
+        if not os.path.exists(bot_path):
+            print("⚠️  bot.py не найден, бот не запущен")
+            return
+        spec = importlib.util.spec_from_file_location("bot", bot_path)
+        bot_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bot_module)
+        # Запускаем polling
+        print("🤖 Запускаем бота...")
+        bot_module.cleanup_expired_challenges()
+        bot_module.bot.infinity_polling()
+    except Exception as e:
+        print(f"❌ Ошибка запуска бота: {e}")
+
 if __name__ == '__main__':
+    import threading
+    # Запускаем бота в фоновом потоке
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    print("✅ Flask запущен, бот запущен в фоне")
     app.run(host='0.0.0.0', port=3001, debug=False)
 
 
@@ -717,3 +741,4 @@ def leaderboard_exp():
             d['level'] = get_level_from_exp(d.get('exp', 0))
             result.append(d)
         return jsonify(result)
+
