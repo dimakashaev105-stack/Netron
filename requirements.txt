@@ -2,4 +2,4 @@ telethon
 telebot
 Pillow
 schedule
-flask-cors
+flask>=2.3.0
