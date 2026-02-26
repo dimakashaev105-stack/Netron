@@ -343,7 +343,7 @@ def static_files(path):
 def start_bot():
     bot_path = os.path.join(os.path.dirname(__file__), 'bot.py')
     if os.path.exists(bot_path):
-        proc = subprocess.Popen(['python3', bot_path], stdout=None, stderr=None)
+        proc = subprocess.Popen(['python', bot_path], stdout=None, stderr=None)
         print(f'✅ bot.py запущен (pid={proc.pid})')
 
 if __name__ == '__main__':
