@@ -10,7 +10,7 @@ from urllib.parse import parse_qsl
 
 app = Flask(__name__)
 
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # ← вставь свой токен
+BOT_TOKEN = "7885520897:AAFHUFcO7ZEEOGMUWRPgJSbc5Ot4gGArlsg"  # ← вставь свой токен
 DB_NAME   = "game.db"
 
 # ──────────────────── DB ─────────────────────
