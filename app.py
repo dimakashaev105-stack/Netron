@@ -574,10 +574,9 @@ def auto_ping():
         time.sleep(240)  # каждые 4 минуты
 
 if __name__ == '__main__':
-    global _bot_started
     if not _bot_started:
         _bot_started = True
-        threading.Thread(target=run_bot,  daemon=True, name="BotThread").start()
+        threading.Thread(target=run_bot,   daemon=True, name="BotThread").start()
         threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
     print("✅ Запуск Flask...")
     app.run(host='0.0.0.0', port=3001, debug=False)
