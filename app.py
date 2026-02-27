@@ -239,6 +239,7 @@ def slots_spin():
     won=reels[0]==reels[1]==reels[2]
     mult_map={'🍒':2,'🍋':3,'🍊':4,'⭐':5,'💎':10,'🎰':20}
     win_amount=bet*mult_map.get(reels[0],2) if won else 0
+    win_type=('jackpot' if reels[0] in ['💎','🎰'] else 'pair') if won else None
     delta=win_amount-bet if won else -bet; xp=bet//10+(10 if won else 5)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
@@ -246,12 +247,16 @@ def slots_spin():
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0,0 if won else 1,user_id))
         res=apply_game_result(conn,user_id,delta,xp)
-    return jsonify({'ok':True,'reels':reels,'won':won,'win_amount':win_amount,**res})
+    return jsonify({'ok':True,'reels':reels,'won':won,
+                    'win':win_amount,'win_amount':win_amount,'win_type':win_type,
+                    'bet':bet,'new_balance':res['balance'],**res})
 
 @app.route('/api/roulette/spin', methods=['POST'])
 def roulette_spin():
     data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
-    bet_type=data.get('bet_type','red'); number=data.get('number')
+    bet_type=data.get('bet_type','red')
+    # фронтенд шлёт bet_number
+    number=data.get('number') or data.get('bet_number')
     if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
     result_num=random.randint(0,36)
     reds={1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
@@ -268,7 +273,11 @@ def roulette_spin():
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0,0 if won else 1,user_id))
         res=apply_game_result(conn,user_id,delta,xp)
-    return jsonify({'ok':True,'result_number':result_num,'result_color':color,'won':won,'win_amount':win_amount,**res})
+    return jsonify({'ok':True,
+                    'number':result_num,'result_number':result_num,
+                    'color':color,'result_color':color,
+                    'won':won,'win':win_amount,'win_amount':win_amount,
+                    'bet':bet,'new_balance':res['balance'],**res})
 
 bj_sessions={}
 
@@ -306,10 +315,17 @@ def bj_deal():
             conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?',(user_id,))
             res=apply_game_result(conn,user_id,int(bet*1.5),15)
         del bj_sessions[user_id]
-        return jsonify({'ok':True,'player':player,'dealer':dealer,'player_value':pv,
-                        'dealer_value':dv,'status':'blackjack','win_amount':win_amount,**res})
-    return jsonify({'ok':True,'player':player,'dealer':[dealer[0],'🂠'],
-                    'player_value':pv,'dealer_value':card_value(dealer[0]),'status':'playing'})
+        return jsonify({'ok':True,'player':player,'dealer':dealer,
+                        'player_value':pv,'player_total':pv,
+                        'dealer_value':dv,'dealer_total':dv,
+                        'dealer_visible':dealer[0],
+                        'status':'blackjack','blackjack':True,
+                        'win':win_amount,'win_amount':win_amount,
+                        'new_balance':res['balance'],**res})
+    return jsonify({'ok':True,'player':player,
+                    'dealer':[dealer[0],'🂠'],'dealer_visible':dealer[0],
+                    'player_value':pv,'player_total':pv,
+                    'dealer_value':card_value(dealer[0]),'status':'playing','blackjack':False})
 
 @app.route('/api/blackjack/hit', methods=['POST'])
 def bj_hit():
@@ -322,9 +338,13 @@ def bj_hit():
             res=apply_game_result(conn,user_id,-sess['bet'],5)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
-                        'player_value':pv,'dealer_value':hand_value(sess['dealer']),'status':'bust','win_amount':0,**res})
-    return jsonify({'ok':True,'player':sess['player'],'dealer':[sess['dealer'][0],'🂠'],
-                    'player_value':pv,'status':'playing'})
+                        'player_value':pv,'player_total':pv,
+                        'dealer_value':hand_value(sess['dealer']),
+                        'status':'bust','result':'lose',
+                        'win':0,'win_amount':0,'new_balance':res['balance'],**res})
+    return jsonify({'ok':True,'player':sess['player'],
+                    'dealer':[sess['dealer'][0],'🂠'],'dealer_visible':sess['dealer'][0],
+                    'player_value':pv,'player_total':pv,'status':'playing'})
 
 @app.route('/api/blackjack/stand', methods=['POST'])
 def bj_stand():
@@ -341,13 +361,18 @@ def bj_stand():
         res=apply_game_result(conn,user_id,delta,xp)
     del bj_sessions[user_id]
     return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
-                    'player_value':pv,'dealer_value':dv,'status':status,'win_amount':win_amount,**res})
+                    'player_value':pv,'player_total':pv,
+                    'dealer_value':dv,'dealer_total':dv,
+                    'status':status,'result':status,
+                    'win':win_amount,'win_amount':win_amount,
+                    'bet':bet,'new_balance':res['balance'],**res})
 
 @app.route('/api/coin/flip', methods=['POST'])
 def coin_flip():
     data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0)); choice=data.get('choice','heads')
     if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
     result=random.choice(['heads','tails']); won=result==choice
+    result_emoji='👑' if result=='heads' else '🦅'
     delta=bet if won else -bet; xp=bet//10+(10 if won else 5)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
@@ -355,7 +380,10 @@ def coin_flip():
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0,0 if won else 1,user_id))
         res=apply_game_result(conn,user_id,delta,xp)
-    return jsonify({'ok':True,'result':result,'won':won,'win_amount':bet*2 if won else 0,**res})
+    win_amount=bet*2 if won else 0
+    return jsonify({'ok':True,'result':result,'result_emoji':result_emoji,'won':won,
+                    'win':win_amount,'win_amount':win_amount,
+                    'bet':bet,'new_balance':res['balance'],**res})
 
 # ══════════════════════════════════════════════
 #  LEADERBOARD
