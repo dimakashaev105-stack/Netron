@@ -2,7 +2,6 @@
 Flask API для Telegram Mini App Casino + Taxi
 """
 
-
 from flask import Flask, request, jsonify
 import sqlite3, json, hmac, hashlib, time, random, threading, os
 from contextlib import contextmanager
@@ -10,7 +9,7 @@ from urllib.parse import parse_qsl
 
 app = Flask(__name__)
 
-BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg" # ← вставь свой токен
+BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"  # ← вставь свой токен
 DB_NAME   = "game.db"
 
 # ──────────────────── DB ─────────────────────
@@ -226,9 +225,11 @@ def send_level_up_notify(user_id, new_level):
 def apply_game_result(conn, user_id, delta, xp):
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     old_lv  = get_level_from_exp(old_row['experience']) if old_row else 1
-    conn.execute('''UPDATE users SET
-        balance=MAX(0,balance+?), experience=MIN(experience+?,999999),
-        last_activity=CURRENT_TIMESTAMP WHERE user_id=''', (delta, xp, user_id))
+    conn.execute(
+        'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
+        'last_activity=CURRENT_TIMESTAMP WHERE user_id=?',
+        (delta, xp, user_id)
+    )
     row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     new_lv = get_level_from_exp(row['experience'])
     emoji, tname, tcolor = build_user_title(new_lv)
