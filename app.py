@@ -1,18 +1,27 @@
 """
-Flask API для Telegram Mini App Casino + Taxi
+Flask API — Casino Mini App
+- Rate limiting
+- Leaderboard caching
+- Profile endpoint
+- No taxi
 """
 
 from flask import Flask, request, jsonify
 import sqlite3, json, hmac, hashlib, time, random, threading, os
 from contextlib import contextmanager
 from urllib.parse import parse_qsl
+from functools import wraps
+from collections import defaultdict
 
 app = Flask(__name__)
 
 BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"  # ← вставь свой токен
 DB_NAME   = "game.db"
 
-# ──────────────────── DB ─────────────────────
+# ══════════════════════════════════════════════
+#  DB
+# ══════════════════════════════════════════════
+
 @contextmanager
 def get_db():
     conn = sqlite3.connect(DB_NAME, timeout=30)
@@ -47,22 +56,76 @@ def init_db():
             )
         ''')
         conn.execute('''
-            CREATE TABLE IF NOT EXISTS driver_stats (
-                user_id INTEGER PRIMARY KEY, trips_completed INTEGER DEFAULT 0,
-                total_earned INTEGER DEFAULT 0, driver_class TEXT DEFAULT "economy",
-                last_trip_time INTEGER DEFAULT 0
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS active_trips (
-                user_id INTEGER PRIMARY KEY, trip_data TEXT NOT NULL,
-                start_time INTEGER NOT NULL, finish_time INTEGER
+            CREATE TABLE IF NOT EXISTS game_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                game TEXT NOT NULL,
+                bet INTEGER NOT NULL,
+                result TEXT NOT NULL,
+                win_amount INTEGER DEFAULT 0,
+                created_at INTEGER DEFAULT 0
             )
         ''')
 
 init_db()
 
-# ──────────────────── AUTH ───────────────────
+# ══════════════════════════════════════════════
+#  RATE LIMITING
+# ══════════════════════════════════════════════
+
+_rate_data = defaultdict(list)  # user_id/ip -> [timestamps]
+_rate_lock = threading.Lock()
+
+def rate_limit(max_calls=10, window=10):
+    """Декоратор: max_calls запросов за window секунд на пользователя"""
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # Ключ — user_id из тела или IP
+            try:
+                body = request.get_json(silent=True) or {}
+                key = str(body.get('user_id') or request.args.get('user_id') or request.remote_addr)
+            except:
+                key = request.remote_addr
+
+            now = time.time()
+            with _rate_lock:
+                calls = _rate_data[key]
+                # Убираем старые записи
+                calls[:] = [t for t in calls if now - t < window]
+                if len(calls) >= max_calls:
+                    return jsonify({'error': 'Слишком много запросов, подожди немного'}), 429
+                calls.append(now)
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# ══════════════════════════════════════════════
+#  CACHE (для лидерборда)
+# ══════════════════════════════════════════════
+
+_cache = {}
+_cache_lock = threading.Lock()
+
+def cache_get(key):
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and time.time() < entry['expires']:
+            return entry['data']
+    return None
+
+def cache_set(key, data, ttl=30):
+    with _cache_lock:
+        _cache[key] = {'data': data, 'expires': time.time() + ttl}
+
+def cache_clear(key):
+    with _cache_lock:
+        _cache.pop(key, None)
+
+# ══════════════════════════════════════════════
+#  AUTH
+# ══════════════════════════════════════════════
+
 def verify_tg(init_data):
     if not init_data: return None
     try:
@@ -76,7 +139,10 @@ def verify_tg(init_data):
     except: pass
     return None
 
-# ──────────────────── LEVELS ─────────────────
+# ══════════════════════════════════════════════
+#  LEVELS
+# ══════════════════════════════════════════════
+
 LEVEL_TITLES = {
     1:('🥉','Bronze I'),    2:('🥉','Bronze II'),   3:('🥉','Bronze III'),
     4:('🥉','Bronze IV'),   5:('🥉','Bronze V'),    6:('🥉','Bronze VI'),
@@ -119,40 +185,10 @@ def build_user_title(lv):
     emoji, name = LEVEL_TITLES.get(lv, LEVEL_TITLES[50])
     return emoji, name, TITLE_COLORS.get(emoji, '#5b7fa6')
 
-# ──────────────────── TAXI CONFIG ────────────
-DRIVER_CLASSES = {
-    'economy': {'mult':1.3,  'min_rides':0,   'emoji':'🚕'},
-    'comfort': {'mult':1.55, 'min_rides':100,  'emoji':'🚙'},
-    'business':{'mult':1.8,  'min_rides':150,  'emoji':'🏎️'},
-    'vip':     {'mult':2.3,  'min_rides':300,  'emoji':'👑'},
-}
-TAXI_ROUTES = [
-    {"id":1,"name":"📍 Центр -> Аэропорт","distance":"25 км","time":"5 мин","base_price":1500,"variation":0.2,"min_time":5},
-    {"id":2,"name":"🏠 Жилой район -> Офисный центр","distance":"15 км","time":"4 мин","base_price":1000,"variation":0.15,"min_time":4},
-    {"id":3,"name":"🎓 Университет -> Торговый центр","distance":"12 км","time":"3 мин","base_price":800,"variation":0.1,"min_time":3},
-    {"id":4,"name":"🏥 Больница -> Ж/Д вокзал","distance":"18 км","time":"4 мин","base_price":1200,"variation":0.18,"min_time":4},
-    {"id":5,"name":"🏢 Бизнес-центр -> Ресторан","distance":"10 км","time":"3 мин","base_price":600,"variation":0.12,"min_time":3},
-    {"id":6,"name":"🛍️ Торговый центр -> Кинотеатр","distance":"8 км","time":"3 мин","base_price":500,"variation":0.1,"min_time":3},
-    {"id":7,"name":"🌃 Ночной рейс","distance":"30 км","time":"6 мин","base_price":2000,"variation":0.25,"min_time":6},
-    {"id":8,"name":"🚄 Вокзал -> Гостиница","distance":"7 км","time":"3 мин","base_price":400,"variation":0.08,"min_time":3},
-]
+# ══════════════════════════════════════════════
+#  CORS
+# ══════════════════════════════════════════════
 
-def get_driver_class(trips):
-    if trips >= 300: return 'vip'
-    if trips >= 150: return 'business'
-    if trips >= 100: return 'comfort'
-    return 'economy'
-
-def get_or_create_driver(conn, user_id):
-    row = conn.execute(
-        'SELECT trips_completed,total_earned,driver_class FROM driver_stats WHERE user_id=?',
-        (user_id,)
-    ).fetchone()
-    if row: return dict(row)
-    conn.execute('INSERT INTO driver_stats(user_id) VALUES(?)', (user_id,))
-    return {'trips_completed':0,'total_earned':0,'driver_class':'economy'}
-
-# ──────────────────── CORS ───────────────────
 @app.after_request
 def cors(resp):
     resp.headers['Access-Control-Allow-Origin']  = '*'
@@ -163,58 +199,26 @@ def cors(resp):
 @app.route('/api/<path:p>', methods=['OPTIONS'])
 def options(p): return '', 204
 
-# ──────────────────── PING ───────────────────
 @app.route('/ping')
-def ping():
-    return 'ok', 200
+def ping(): return 'ok', 200
 
 # ══════════════════════════════════════════════
-#  USER
-# ══════════════════════════════════════════════
-
-@app.route('/api/user/<int:user_id>')
-def get_user(user_id):
-    with get_db() as conn:
-        row = conn.execute(
-            '''SELECT user_id,username,first_name,custom_name,balance,experience,
-                      games_won,games_lost,total_won_amount,total_lost_amount
-               FROM users WHERE user_id=?''', (user_id,)
-        ).fetchone()
-        if not row: return jsonify({'error':'not found'}), 404
-        d = dict(row)
-        lv = get_level_from_exp(d.get('experience',0))
-        emoji, tname, tcolor = build_user_title(lv)
-        d['level']       = lv
-        d['title']       = f"{emoji} {tname}"
-        d['title_emoji'] = emoji
-        d['title_name']  = tname
-        d['title_color'] = tcolor
-        d['name']        = d.get('custom_name') or d.get('first_name') or d.get('username') or 'Аноним'
-        lv_xp_start      = sum(1000+i*500 for i in range(lv-1))
-        d['exp_current'] = max(0, d['experience'] - lv_xp_start)
-        d['exp_needed']  = 1000 + (lv-1)*500
-        d['total_won']   = d.get('total_won_amount',0)
-        d['total_lost']  = d.get('total_lost_amount',0)
-        return jsonify(d)
-
-# ══════════════════════════════════════════════
-#  CASINO
+#  LEVEL UP NOTIFY + GAME RESULT
 # ══════════════════════════════════════════════
 
 def send_level_up_notify(user_id, new_level):
-    """Уведомление об апе уровня через бота"""
     try:
         mod = _load_bot()
         if not mod: return
         emoji, tname = LEVEL_TITLES.get(new_level, LEVEL_TITLES[50])
-        level_up_bonus = new_level * 200
+        bonus = new_level * 200
         click_b = int((1 + new_level * 0.02) * 100 - 100)
         daily_b = int((1 + new_level * 0.05) * 100 - 100)
         mod.bot.send_message(
             user_id,
             f"🎉 <b>НОВЫЙ УРОВЕНЬ!</b>\n\n"
             f"{emoji} <b>{new_level} — {tname}</b>\n\n"
-            f"💵 Бонус: +{level_up_bonus:,}\n"
+            f"💵 Бонус: +{bonus:,}\n"
             f"⚡ Бонус к кликам: +{click_b}%\n"
             f"🎁 Бонус к ежедневке: +{daily_b}%",
             parse_mode='HTML'
@@ -222,125 +226,252 @@ def send_level_up_notify(user_id, new_level):
     except Exception as e:
         print(f"Level up notify error: {e}")
 
-def apply_game_result(conn, user_id, delta, xp):
+def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win_amount=0):
+    xp = max(1, xp)
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     old_lv  = get_level_from_exp(old_row['experience']) if old_row else 1
+
     conn.execute(
         'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
         'last_activity=CURRENT_TIMESTAMP WHERE user_id=?',
         (delta, xp, user_id)
     )
+
+    # Сохраняем в историю
+    if game:
+        conn.execute(
+            'INSERT INTO game_history(user_id,game,bet,result,win_amount,created_at) VALUES(?,?,?,?,?,?)',
+            (user_id, game, bet, result, win_amount, int(time.time()))
+        )
+
     row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     new_lv = get_level_from_exp(row['experience'])
     emoji, tname, tcolor = build_user_title(new_lv)
+
     if new_lv > old_lv:
         threading.Thread(target=send_level_up_notify, args=(user_id, new_lv), daemon=True).start()
-    return {'balance':row['balance'],'experience':row['experience'],'level':new_lv,
-            'title':f"{emoji} {tname}",'title_emoji':emoji,'title_name':tname,'title_color':tcolor}
 
-@app.route('/api/game', methods=['POST'])
-def record_game():
-    data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
-    won=bool(data.get('won',False)); win_amount=int(data.get('win_amount',0))
-    if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
-    xp=max(1, bet//1000)
+    return {
+        'balance': row['balance'], 'experience': row['experience'], 'level': new_lv,
+        'title': f"{emoji} {tname}", 'title_emoji': emoji, 'title_name': tname, 'title_color': tcolor
+    }
+
+# ══════════════════════════════════════════════
+#  USER + PROFILE
+# ══════════════════════════════════════════════
+
+@app.route('/api/user/<int:user_id>')
+def get_user(user_id):
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
-            return jsonify({'error':'not found'}),404
-        delta=win_amount-bet if won else -bet
-        conn.execute('''UPDATE users SET balance=MAX(0,balance+?),
-            games_won=games_won+?,games_lost=games_lost+?,
-            total_won_amount=total_won_amount+?,total_lost_amount=total_lost_amount+?,
-            experience=MIN(experience+?,999999),last_activity=CURRENT_TIMESTAMP WHERE user_id=?''',
-            (delta,1 if won else 0,0 if won else 1,
-             win_amount if won else 0,bet if not won else 0,xp,user_id))
-        res=apply_game_result(conn,user_id,0,0)
-        return jsonify({'ok':True,**res})
+        row = conn.execute(
+            '''SELECT user_id,username,first_name,custom_name,balance,experience,
+                      games_won,games_lost,total_won_amount,total_lost_amount,
+                      last_activity,total_clicks,daily_streak
+               FROM users WHERE user_id=?''', (user_id,)
+        ).fetchone()
+        if not row: return jsonify({'error': 'not found'}), 404
+        d = dict(row)
+        lv = get_level_from_exp(d.get('experience', 0))
+        emoji, tname, tcolor = build_user_title(lv)
+        d['level']       = lv
+        d['title']       = f"{emoji} {tname}"
+        d['title_emoji'] = emoji
+        d['title_name']  = tname
+        d['title_color'] = tcolor
+        d['name']        = d.get('custom_name') or d.get('first_name') or d.get('username') or 'Аноним'
+        lv_xp_start      = sum(1000 + i*500 for i in range(lv-1))
+        d['exp_current'] = max(0, d['experience'] - lv_xp_start)
+        d['exp_needed']  = 1000 + (lv-1)*500
+        d['total_won']   = d.get('total_won_amount', 0)
+        d['total_lost']  = d.get('total_lost_amount', 0)
+        return jsonify(d)
 
+@app.route('/api/profile/<int:user_id>')
+def get_profile(user_id):
+    """Расширенный профиль: статистика + история игр + ранг"""
+    with get_db() as conn:
+        row = conn.execute(
+            '''SELECT user_id,username,first_name,custom_name,balance,experience,
+                      games_won,games_lost,total_won_amount,total_lost_amount,
+                      last_activity,total_clicks,daily_streak,clan_id
+               FROM users WHERE user_id=?''', (user_id,)
+        ).fetchone()
+        if not row: return jsonify({'error': 'not found'}), 404
+        d = dict(row)
+
+        # Уровень и титул
+        lv = get_level_from_exp(d.get('experience', 0))
+        emoji, tname, tcolor = build_user_title(lv)
+        d['level']       = lv
+        d['title']       = f"{emoji} {tname}"
+        d['title_emoji'] = emoji
+        d['title_name']  = tname
+        d['title_color'] = tcolor
+        d['name']        = d.get('custom_name') or d.get('first_name') or d.get('username') or 'Аноним'
+
+        # XP прогресс
+        lv_xp_start      = sum(1000 + i*500 for i in range(lv-1))
+        d['exp_current'] = max(0, d['experience'] - lv_xp_start)
+        d['exp_needed']  = 1000 + (lv-1)*500 if lv < 50 else 0
+        d['exp_pct']     = round(d['exp_current'] / d['exp_needed'] * 100, 1) if d['exp_needed'] > 0 else 100
+
+        # Статистика
+        total_games = d['games_won'] + d['games_lost']
+        d['total_games']  = total_games
+        d['win_rate']     = round(d['games_won'] / total_games * 100, 1) if total_games > 0 else 0
+        d['total_won']    = d.get('total_won_amount', 0)
+        d['total_lost']   = d.get('total_lost_amount', 0)
+        d['net_profit']   = d['total_won'] - d['total_lost']
+
+        # Ранг по балансу
+        rank_row = conn.execute(
+            'SELECT COUNT(*)+1 as rank FROM users WHERE balance > (SELECT balance FROM users WHERE user_id=?)',
+            (user_id,)
+        ).fetchone()
+        d['rank'] = rank_row['rank'] if rank_row else 0
+
+        # Последние 10 игр
+        history = conn.execute(
+            'SELECT game,bet,result,win_amount,created_at FROM game_history '
+            'WHERE user_id=? ORDER BY created_at DESC LIMIT 10',
+            (user_id,)
+        ).fetchall()
+        d['history'] = [dict(h) for h in history]
+
+        # Следующий уровень
+        if lv < 50:
+            next_emoji, next_name = LEVEL_TITLES.get(lv+1, LEVEL_TITLES[50])
+            d['next_title'] = f"{next_emoji} {next_name}"
+        else:
+            d['next_title'] = None
+
+        return jsonify(d)
+
+# ══════════════════════════════════════════════
+#  CASINO GAMES
+# ══════════════════════════════════════════════
+
+# ── SLOTS ──
 @app.route('/api/slots/spin', methods=['POST'])
+@rate_limit(max_calls=15, window=10)
 def slots_spin():
-    data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
-    if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
-    symbols=['🍒','🍋','🍊','⭐','💎','🎰']; weights=[30,25,20,15,8,2]
-    reels=random.choices(symbols,weights=weights,k=3)
-    won=reels[0]==reels[1]==reels[2]
-    mult_map={'🍒':2,'🍋':3,'🍊':4,'⭐':5,'💎':10,'🎰':20}
-    win_amount=bet*mult_map.get(reels[0],2) if won else 0
-    win_type=('jackpot' if reels[0] in ['💎','🎰'] else 'pair') if won else None
-    delta=win_amount-bet if won else -bet; xp=max(1, bet//1000)
+    data    = request.json
+    user_id = data.get('user_id')
+    bet     = int(data.get('bet', 0))
+    if not user_id or bet <= 0: return jsonify({'error': 'bad data'}), 400
+    if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
+
+    symbols = ['🍒','🍋','🍊','⭐','💎','🎰']
+    weights = [30,25,20,15,8,2]
+    reels   = random.choices(symbols, weights=weights, k=3)
+    won     = reels[0] == reels[1] == reels[2]
+    mult_map = {'🍒':2,'🍋':3,'🍊':4,'⭐':5,'💎':10,'🎰':20}
+    win_amount = bet * mult_map.get(reels[0], 2) if won else 0
+    win_type   = ('jackpot' if reels[0] in ['💎','🎰'] else 'pair') if won else None
+    delta = win_amount - bet if won else -bet
+    xp    = max(1, bet // 1000)
+
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
-            return jsonify({'error':'user not found'}),404
+        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
+            return jsonify({'error': 'user not found'}), 404
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
-                     (1 if won else 0,0 if won else 1,user_id))
-        res=apply_game_result(conn,user_id,delta,xp)
+                     (1 if won else 0, 0 if won else 1, user_id))
+        res = apply_game_result(conn, user_id, delta, xp,
+                                game='slots', bet=bet,
+                                result='win' if won else 'lose',
+                                win_amount=win_amount)
     return jsonify({'ok':True,'reels':reels,'won':won,
                     'win':win_amount,'win_amount':win_amount,'win_type':win_type,
                     'bet':bet,'new_balance':res['balance'],**res})
 
+# ── ROULETTE ──
 @app.route('/api/roulette/spin', methods=['POST'])
+@rate_limit(max_calls=15, window=10)
 def roulette_spin():
-    data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
-    bet_type=data.get('bet_type','red')
-    # фронтенд шлёт bet_number
-    number=data.get('number') or data.get('bet_number')
-    if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
-    result_num=random.randint(0,36)
-    reds={1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
-    color='green' if result_num==0 else('red' if result_num in reds else 'black')
-    won,win_mult=False,0
-    if   bet_type=='red'    and color=='red':   won,win_mult=True,2
-    elif bet_type=='black'  and color=='black': won,win_mult=True,2
-    elif bet_type=='green'  and color=='green': won,win_mult=True,14
-    elif bet_type=='number' and number is not None and int(number)==result_num: won,win_mult=True,36
-    win_amount=bet*win_mult if won else 0; delta=win_amount-bet if won else -bet; xp=max(1, bet//1000)
+    data     = request.json
+    user_id  = data.get('user_id')
+    bet      = int(data.get('bet', 0))
+    bet_type = data.get('bet_type', 'red')
+    number   = data.get('number') or data.get('bet_number')
+    if not user_id or bet <= 0: return jsonify({'error': 'bad data'}), 400
+    if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
+
+    result_num = random.randint(0, 36)
+    reds = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
+    color = 'green' if result_num == 0 else ('red' if result_num in reds else 'black')
+    won, win_mult = False, 0
+    if   bet_type == 'red'    and color == 'red':   won,win_mult = True,2
+    elif bet_type == 'black'  and color == 'black': won,win_mult = True,2
+    elif bet_type == 'green'  and color == 'green': won,win_mult = True,14
+    elif bet_type == 'number' and number is not None and int(number) == result_num: won,win_mult = True,36
+    win_amount = bet * win_mult if won else 0
+    delta = win_amount - bet if won else -bet
+    xp    = max(1, bet // 1000)
+
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
-            return jsonify({'error':'user not found'}),404
+        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
+            return jsonify({'error': 'user not found'}), 404
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
-                     (1 if won else 0,0 if won else 1,user_id))
-        res=apply_game_result(conn,user_id,delta,xp)
+                     (1 if won else 0, 0 if won else 1, user_id))
+        res = apply_game_result(conn, user_id, delta, xp,
+                                game='roulette', bet=bet,
+                                result='win' if won else 'lose',
+                                win_amount=win_amount)
     return jsonify({'ok':True,
                     'number':result_num,'result_number':result_num,
                     'color':color,'result_color':color,
                     'won':won,'win':win_amount,'win_amount':win_amount,
                     'bet':bet,'new_balance':res['balance'],**res})
 
-bj_sessions={}
+# ── BLACKJACK ──
+bj_sessions = {}
 
 def card_value(card):
-    rank=card[:-1]
-    if rank in('J','Q','K'): return 10
-    if rank=='A': return 11
+    rank = card[:-1]
+    if rank in ('J','Q','K'): return 10
+    if rank == 'A': return 11
     try: return int(rank)
     except: return 0
 
 def hand_value(hand):
-    val=sum(card_value(c) for c in hand); aces=sum(1 for c in hand if c[:-1]=='A')
-    while val>21 and aces: val-=10; aces-=1
+    val  = sum(card_value(c) for c in hand)
+    aces = sum(1 for c in hand if c[:-1] == 'A')
+    while val > 21 and aces: val -= 10; aces -= 1
     return val
 
 def make_deck():
-    ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A']
-    suits=['♠','♥','♦','♣']; deck=[r+s for r in ranks for s in suits]
+    ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']
+    suits = ['♠','♥','♦','♣']
+    deck  = [r+s for r in ranks for s in suits]
     random.shuffle(deck); return deck
 
 @app.route('/api/blackjack/deal', methods=['POST'])
+@rate_limit(max_calls=10, window=10)
 def bj_deal():
-    data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
-    if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
+    data    = request.json
+    user_id = data.get('user_id')
+    bet     = int(data.get('bet', 0))
+    if not user_id or bet <= 0: return jsonify({'error': 'bad data'}), 400
+    if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
+
     with get_db() as conn:
-        row=conn.execute('SELECT balance FROM users WHERE user_id=?',(user_id,)).fetchone()
-        if not row: return jsonify({'error':'user not found'}),404
-        if row['balance']<bet: return jsonify({'error':'недостаточно средств'}),400
-    deck=make_deck(); player=[deck.pop(),deck.pop()]; dealer=[deck.pop(),deck.pop()]
-    bj_sessions[user_id]={'deck':deck,'player':player,'dealer':dealer,'bet':bet}
-    pv=hand_value(player); dv=hand_value(dealer)
-    if pv==21:
-        win_amount=int(bet*2.5)
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row: return jsonify({'error': 'user not found'}), 404
+        if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств'}), 400
+
+    deck   = make_deck()
+    player = [deck.pop(), deck.pop()]
+    dealer = [deck.pop(), deck.pop()]
+    bj_sessions[user_id] = {'deck': deck, 'player': player, 'dealer': dealer, 'bet': bet}
+    pv = hand_value(player)
+    dv = hand_value(dealer)
+
+    if pv == 21:
+        win_amount = int(bet * 2.5)
         with get_db() as conn:
-            conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?',(user_id,))
-            res=apply_game_result(conn,user_id,int(bet*1.5),15)
+            conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
+            res = apply_game_result(conn, user_id, int(bet*1.5), max(1,bet//1000),
+                                    game='blackjack', bet=bet, result='blackjack', win_amount=win_amount)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':player,'dealer':dealer,
                         'player_value':pv,'player_total':pv,
@@ -349,43 +480,64 @@ def bj_deal():
                         'status':'blackjack','blackjack':True,
                         'win':win_amount,'win_amount':win_amount,
                         'new_balance':res['balance'],**res})
+
     return jsonify({'ok':True,'player':player,
                     'dealer':[dealer[0],'🂠'],'dealer_visible':dealer[0],
                     'player_value':pv,'player_total':pv,
                     'dealer_value':card_value(dealer[0]),'status':'playing','blackjack':False})
 
 @app.route('/api/blackjack/hit', methods=['POST'])
+@rate_limit(max_calls=20, window=10)
 def bj_hit():
-    data=request.json; user_id=data.get('user_id'); sess=bj_sessions.get(user_id)
-    if not sess: return jsonify({'error':'no active game'}),400
-    sess['player'].append(sess['deck'].pop()); pv=hand_value(sess['player'])
-    if pv>21:
+    data    = request.json
+    user_id = data.get('user_id')
+    sess    = bj_sessions.get(user_id)
+    if not sess: return jsonify({'error': 'no active game'}), 400
+
+    sess['player'].append(sess['deck'].pop())
+    pv = hand_value(sess['player'])
+
+    if pv > 21:
         with get_db() as conn:
-            conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?',(user_id,))
-            res=apply_game_result(conn,user_id,-sess['bet'],5)
+            conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
+            res = apply_game_result(conn, user_id, -sess['bet'], max(1,sess['bet']//1000),
+                                    game='blackjack', bet=sess['bet'], result='bust', win_amount=0)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
                         'player_value':pv,'player_total':pv,
                         'dealer_value':hand_value(sess['dealer']),
                         'status':'bust','result':'lose',
                         'win':0,'win_amount':0,'new_balance':res['balance'],**res})
+
     return jsonify({'ok':True,'player':sess['player'],
                     'dealer':[sess['dealer'][0],'🂠'],'dealer_visible':sess['dealer'][0],
                     'player_value':pv,'player_total':pv,'status':'playing'})
 
 @app.route('/api/blackjack/stand', methods=['POST'])
+@rate_limit(max_calls=10, window=10)
 def bj_stand():
-    data=request.json; user_id=data.get('user_id'); sess=bj_sessions.get(user_id)
-    if not sess: return jsonify({'error':'no active game'}),400
-    while hand_value(sess['dealer'])<17: sess['dealer'].append(sess['deck'].pop())
-    pv=hand_value(sess['player']); dv=hand_value(sess['dealer']); bet=sess['bet']
-    if dv>21 or pv>dv:  status,delta,xp,win_amount='win',  bet,  15,bet*2
-    elif pv==dv:         status,delta,xp,win_amount='push', 0,   10,bet
-    else:                status,delta,xp,win_amount='lose', -bet, 5, 0
+    data    = request.json
+    user_id = data.get('user_id')
+    sess    = bj_sessions.get(user_id)
+    if not sess: return jsonify({'error': 'no active game'}), 400
+
+    while hand_value(sess['dealer']) < 17:
+        sess['dealer'].append(sess['deck'].pop())
+    pv  = hand_value(sess['player'])
+    dv  = hand_value(sess['dealer'])
+    bet = sess['bet']
+
+    if dv > 21 or pv > dv:  status,delta,win_amount = 'win',  bet,   bet*2
+    elif pv == dv:           status,delta,win_amount = 'push', 0,     bet
+    else:                    status,delta,win_amount = 'lose', -bet,  0
+
     with get_db() as conn:
-        if status=='win':  conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?',(user_id,))
-        elif status=='lose': conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?',(user_id,))
-        res=apply_game_result(conn,user_id,delta,xp)
+        if status == 'win':
+            conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
+        elif status == 'lose':
+            conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
+        res = apply_game_result(conn, user_id, delta, max(1,bet//1000),
+                                game='blackjack', bet=bet, result=status, win_amount=win_amount)
     del bj_sessions[user_id]
     return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
                     'player_value':pv,'player_total':pv,
@@ -394,214 +546,135 @@ def bj_stand():
                     'win':win_amount,'win_amount':win_amount,
                     'bet':bet,'new_balance':res['balance'],**res})
 
+# ── COIN FLIP ──
 @app.route('/api/coin/flip', methods=['POST'])
+@rate_limit(max_calls=15, window=10)
 def coin_flip():
-    data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0)); choice=data.get('choice','heads')
-    if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
-    result=random.choice(['heads','tails']); won=result==choice
-    result_emoji='👑' if result=='heads' else '🦅'
-    delta=bet if won else -bet; xp=max(1, bet//1000)
+    data    = request.json
+    user_id = data.get('user_id')
+    bet     = int(data.get('bet', 0))
+    choice  = data.get('choice', 'heads')
+    if not user_id or bet <= 0: return jsonify({'error': 'bad data'}), 400
+    if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
+
+    result       = random.choice(['heads', 'tails'])
+    won          = result == choice
+    result_emoji = '👑' if result == 'heads' else '🦅'
+    delta        = bet if won else -bet
+    xp           = max(1, bet // 1000)
+    win_amount   = bet * 2 if won else 0
+
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
-            return jsonify({'error':'user not found'}),404
+        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
+            return jsonify({'error': 'user not found'}), 404
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
-                     (1 if won else 0,0 if won else 1,user_id))
-        res=apply_game_result(conn,user_id,delta,xp)
-    win_amount=bet*2 if won else 0
+                     (1 if won else 0, 0 if won else 1, user_id))
+        res = apply_game_result(conn, user_id, delta, xp,
+                                game='coin', bet=bet,
+                                result='win' if won else 'lose',
+                                win_amount=win_amount)
     return jsonify({'ok':True,'result':result,'result_emoji':result_emoji,'won':won,
                     'win':win_amount,'win_amount':win_amount,
                     'bet':bet,'new_balance':res['balance'],**res})
 
 # ══════════════════════════════════════════════
-#  LEADERBOARD
+#  LEADERBOARD (с кешем 30 сек)
 # ══════════════════════════════════════════════
 
 def build_lb(rows):
-    result=[]
-    for i,r in enumerate(rows):
-        d=dict(r); lv=get_level_from_exp(d.get('exp',0))
-        emoji,tname,tcolor=build_user_title(lv)
-        d['level']=lv; d['title']=f"{emoji} {tname}"
-        d['title_emoji']=emoji; d['title_name']=tname; d['title_color']=tcolor
-        d['rank']=i+1; result.append(d)
+    result = []
+    for i, r in enumerate(rows):
+        d = dict(r)
+        lv = get_level_from_exp(d.get('exp', 0))
+        emoji, tname, tcolor = build_user_title(lv)
+        d['level'] = lv; d['title'] = f"{emoji} {tname}"
+        d['title_emoji'] = emoji; d['title_name'] = tname; d['title_color'] = tcolor
+        d['rank'] = i + 1
+        result.append(d)
     return result
 
 @app.route('/api/leaderboard')
 def leaderboard():
-    tab=request.args.get('type','balance')
-    col={'balance':'balance','exp':'experience','wins':'games_won'}.get(tab,'balance')
+    tab = request.args.get('type', 'balance')
+    col = {'balance':'balance','exp':'experience','wins':'games_won'}.get(tab, 'balance')
+    cache_key = f'lb_{col}'
+    cached = cache_get(cache_key)
+    if cached: return jsonify(cached)
     with get_db() as conn:
-        rows=conn.execute(f'''SELECT user_id,COALESCE(custom_name,first_name,username,'Аноним') as name,
-            balance,experience as exp,games_won as wins FROM users ORDER BY {col} DESC LIMIT 50''').fetchall()
-        return jsonify(build_lb(rows))
+        rows = conn.execute(f'''
+            SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                   balance, experience as exp, games_won as wins
+            FROM users ORDER BY {col} DESC LIMIT 50''').fetchall()
+        result = build_lb(rows)
+    cache_set(cache_key, result, ttl=30)
+    return jsonify(result)
 
 @app.route('/api/leaderboard/exp')
 def leaderboard_exp():
+    cached = cache_get('lb_exp')
+    if cached: return jsonify(cached)
     with get_db() as conn:
-        rows=conn.execute('''SELECT user_id,COALESCE(custom_name,first_name,username,'Аноним') as name,
-            balance,experience as exp,games_won as wins FROM users ORDER BY experience DESC LIMIT 50''').fetchall()
-        return jsonify(build_lb(rows))
+        rows = conn.execute('''
+            SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                   balance, experience as exp, games_won as wins
+            FROM users ORDER BY experience DESC LIMIT 50''').fetchall()
+        result = build_lb(rows)
+    cache_set('lb_exp', result, ttl=30)
+    return jsonify(result)
+
+# ── Быстрый баланс (для синхронизации frontend) ──
+@app.route('/api/balance/<int:user_id>')
+def get_balance(user_id):
+    with get_db() as conn:
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row: return jsonify({'error': 'not found'}), 404
+        return jsonify({'balance': row['balance'], 'user_id': user_id})
+
+# ── Счётчик онлайн игроков (активных за последние 5 минут) ──
+@app.route('/api/online')
+def online_count():
+    cached = cache_get('online_count')
+    if cached: return jsonify(cached)
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM users WHERE last_activity >= datetime('now', '-5 minutes')"
+        ).fetchone()
+        total = conn.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
+        result = {'online': row['cnt'] if row else 0, 'total': total}
+    cache_set('online_count', result, ttl=30)
+    return jsonify(result)
 
 @app.route('/api/my_rank/<int:user_id>')
 def my_rank(user_id):
     with get_db() as conn:
-        r=conn.execute('SELECT COUNT(*) as rank FROM users WHERE balance>(SELECT balance FROM users WHERE user_id=?)',
-                       (user_id,)).fetchone()
-        return jsonify({'rank':(r['rank'] or 0)+1})
+        r = conn.execute(
+            'SELECT COUNT(*)+1 as rank FROM users WHERE balance>(SELECT balance FROM users WHERE user_id=?)',
+            (user_id,)
+        ).fetchone()
+        return jsonify({'rank': r['rank'] if r else 0})
 
 # ══════════════════════════════════════════════
-#  TAXI
+#  SERVE HTML
 # ══════════════════════════════════════════════
 
-@app.route('/api/taxi/routes')
-def taxi_routes():
-    user_id=request.args.get('user_id',type=int); result=[]
-    for r in TAXI_ROUTES:
-        mult=1.3
-        if user_id:
-            try:
-                with get_db() as conn:
-                    stats=get_or_create_driver(conn,user_id)
-                    mult=DRIVER_CLASSES.get(stats.get('driver_class','economy'),{}).get('mult',1.3)
-            except: pass
-        price=int(r['base_price']*mult*(1+random.uniform(-r['variation'],r['variation'])))
-        result.append({'id':r['id'],'name':r['name'],'distance':r['distance'],
-                       'time':r['time'],'price':price,'min_time':r['min_time']})
-    return jsonify(result)
-
-@app.route('/api/taxi/stats', defaults={'user_id':None})
-@app.route('/api/taxi/stats/<int:user_id>')
-def taxi_stats(user_id):
-    if user_id is None: user_id=request.args.get('user_id',type=int)
-    if not user_id: return jsonify({'error':'user_id required'}),400
-    with get_db() as conn:
-        stats=get_or_create_driver(conn,user_id); trips=stats['trips_completed']
-        correct_class=get_driver_class(trips)
-        if stats['driver_class']!=correct_class:
-            conn.execute('UPDATE driver_stats SET driver_class=? WHERE user_id=?',(correct_class,user_id))
-        stats['driver_class']=correct_class; stats['next_class']=get_driver_class(trips+1)
-        stats['class_emoji']=DRIVER_CLASSES[correct_class]['emoji']
-        stats['class_mult']=DRIVER_CLASSES[correct_class]['mult']
-        return jsonify(stats)
-
-@app.route('/api/taxi/status')
-def taxi_status():
-    user_id=request.args.get('user_id',type=int)
-    if not user_id: return jsonify({'error':'user_id required'}),400
-    with get_db() as conn:
-        row=conn.execute('SELECT trip_data,start_time FROM active_trips WHERE user_id=? AND finish_time IS NULL',
-                         (user_id,)).fetchone()
-        if row:
-            order=json.loads(row['trip_data']); elapsed=int(time.time())-row['start_time']
-            required=order.get('timeMinutes',order.get('min_time',3))*60
-            return jsonify({'active':True,'trip':order,'elapsed':elapsed,'required':required})
-        return jsonify({'active':False})
-
-@app.route('/api/taxi/start', methods=['POST'])
-def taxi_start():
-    data=request.json; user_id=data.get('user_id'); route_id=data.get('route_id'); order=data.get('order')
-    if not user_id: return jsonify({'error':'bad data'}),400
-    if route_id and not order:
-        route=next((r for r in TAXI_ROUTES if r['id']==route_id),None)
-        if not route: return jsonify({'error':'route not found'}),404
-        with get_db() as conn:
-            stats=get_or_create_driver(conn,user_id)
-            mult=DRIVER_CLASSES.get(stats.get('driver_class','economy'),{}).get('mult',1.3)
-        price=int(route['base_price']*mult*(1+random.uniform(-route['variation'],route['variation'])))
-        duration_sec=route['min_time']*60
-        order={'id':route['id'],'name':route['name'],'distance':route['distance'],
-               'time':route['time'],'price':price,'min_time':route['min_time'],
-               'timeMinutes':route['min_time'],'experience':250}
-    elif order:
-        duration_sec=order.get('timeMinutes',order.get('min_time',3))*60
-    else:
-        return jsonify({'error':'bad data'}),400
-    with get_db() as conn:
-        conn.execute('DELETE FROM active_trips WHERE user_id=?',(user_id,))
-        conn.execute('INSERT INTO active_trips(user_id,trip_data,start_time) VALUES(?,?,?)',
-                     (user_id,json.dumps(order),int(time.time())))
-    return jsonify({'ok':True,'trip':order,'duration_seconds':duration_sec})
-
-@app.route('/api/taxi/complete', methods=['POST'])
-def taxi_complete():
-    data=request.json; user_id=data.get('user_id'); order=data.get('order')
-    if not user_id: return jsonify({'error':'bad data'}),400
-    if not order:
-        with get_db() as conn:
-            row=conn.execute('SELECT trip_data FROM active_trips WHERE user_id=? AND finish_time IS NULL',
-                             (user_id,)).fetchone()
-            if row: order=json.loads(row['trip_data'])
-            else: return jsonify({'error':'no active trip'}),404
-    price=int(order.get('price',0)); experience=int(order.get('experience',250))
-    with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
-            return jsonify({'error':'user not found'}),404
-        conn.execute('''UPDATE users SET balance=balance+?,
-            experience=MIN(experience+?,999999),last_activity=CURRENT_TIMESTAMP
-            WHERE user_id=?''',(price,experience,user_id))
-        stats=get_or_create_driver(conn,user_id)
-        new_trips=stats['trips_completed']+1; new_earned=stats['total_earned']+price
-        new_class=get_driver_class(new_trips)
-        conn.execute('''UPDATE driver_stats SET trips_completed=trips_completed+1,
-            total_earned=total_earned+?,driver_class=?,last_trip_time=? WHERE user_id=?''',
-            (price,new_class,int(time.time()),user_id))
-        conn.execute('UPDATE active_trips SET finish_time=? WHERE user_id=? AND finish_time IS NULL',
-                     (int(time.time()),user_id))
-        upd=conn.execute('SELECT balance,experience FROM users WHERE user_id=?',(user_id,)).fetchone()
-        new_lv=get_level_from_exp(upd['experience'])
-        return jsonify({'ok':True,'balance':upd['balance'],'new_balance':upd['balance'],
-                        'earned':price,'exp_gain':experience,'experience':upd['experience'],
-                        'level':new_lv,'title':get_title(new_lv),
-                        'trips_completed':new_trips,'total_earned':new_earned,
-                        'driver_class':new_class,'class_emoji':DRIVER_CLASSES[new_class]['emoji'],
-                        'class_up':new_class!=stats['driver_class']})
-
-@app.route('/api/taxi/leaderboard')
-def taxi_leaderboard():
-    with get_db() as conn:
-        rows=conn.execute('''SELECT ds.user_id,ds.trips_completed,ds.total_earned,ds.driver_class,
-            COALESCE(u.custom_name,u.first_name,u.username,'Аноним') as name
-            FROM driver_stats ds LEFT JOIN users u ON ds.user_id=u.user_id
-            WHERE ds.trips_completed>0 ORDER BY ds.trips_completed DESC,ds.total_earned DESC LIMIT 10''').fetchall()
-        result=[]
-        for r in rows:
-            d=dict(r); cls=d.get('driver_class','economy')
-            d['class_emoji']=DRIVER_CLASSES.get(cls,{}).get('emoji','🚕'); result.append(d)
-        return jsonify(result)
-
-@app.route('/api/taxi/active/<int:user_id>')
-def taxi_active(user_id):
-    with get_db() as conn:
-        row=conn.execute('SELECT trip_data,start_time FROM active_trips WHERE user_id=? AND finish_time IS NULL',
-                         (user_id,)).fetchone()
-        if row:
-            order=json.loads(row['trip_data']); elapsed=int(time.time())-row['start_time']
-            remaining=max(0,order['timeMinutes']*60-elapsed)
-            return jsonify({'active':True,'order':order,'remaining_seconds':remaining})
-        return jsonify({'active':False})
-
-# ──────────────────── Serve HTML ─────────────
 @app.route('/')
 @app.route('/mini')
 def mini():
     try:
-        return open('index.html','r',encoding='utf-8').read(),200,{'Content-Type':'text/html'}
+        return open('index.html','r',encoding='utf-8').read(), 200, {'Content-Type':'text/html'}
     except FileNotFoundError:
-        return 'Place index.html next to app.py',404
+        return 'Place index.html next to app.py', 404
 
 # ══════════════════════════════════════════════
-#  БОТ ЧЕРЕЗ ВЕБХУК — нет конфликтов при деплое
+#  БОТ ЧЕРЕЗ ВЕБХУК
 # ══════════════════════════════════════════════
 
 import importlib.util as _ilu
-
-# Загружаем bot.py один раз при старте
 _bot_module = None
 
 def _load_bot():
     global _bot_module
-    if _bot_module is not None:
-        return _bot_module
+    if _bot_module is not None: return _bot_module
     bot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot.py')
     if not os.path.exists(bot_path):
         print("⚠️  bot.py не найден"); return None
@@ -612,44 +685,39 @@ def _load_bot():
     return mod
 
 def setup_webhook():
-    """Устанавливаем вебхук при старте — без polling, без конфликтов 409"""
     mod = _load_bot()
     if not mod: return
     url = os.environ.get('RENDER_EXTERNAL_URL', '').rstrip('/')
     if not url:
-        print("⚠️  RENDER_EXTERNAL_URL не задан, вебхук не установлен")
-        return
+        print("⚠️  RENDER_EXTERNAL_URL не задан"); return
     webhook_url = f"{url}/webhook/{BOT_TOKEN}"
     try:
         mod.bot.remove_webhook()
         time.sleep(1)
         mod.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
-        print(f"✅ Вебхук установлен: {webhook_url}")
+        print(f"✅ Вебхук: {webhook_url}")
         try: mod.cleanup_expired_challenges()
         except: pass
     except Exception as e:
-        print(f"❌ Ошибка вебхука: {e}")
+        print(f"❌ Вебхук ошибка: {e}")
 
-# Маршрут для получения обновлений от Telegram
 @app.route(f'/webhook/{BOT_TOKEN}', methods=['POST'])
 def webhook():
     mod = _load_bot()
-    if not mod:
-        return 'bot not loaded', 500
+    if not mod: return 'bot not loaded', 500
     import telebot
     update = telebot.types.Update.de_json(request.get_data(as_text=True))
     mod.bot.process_new_updates([update])
     return 'ok', 200
 
 def auto_ping():
-    """Пингуем себя каждые 4 минуты — Render не засыпает"""
     import urllib.request
     time.sleep(60)
     url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:3001')
     while True:
         try:
             urllib.request.urlopen(f"{url}/ping", timeout=10)
-            print(f"🏓 Ping OK")
+            print("🏓 Ping OK")
         except Exception as e:
             print(f"🏓 Ping error: {e}")
         time.sleep(240)
@@ -657,5 +725,5 @@ def auto_ping():
 if __name__ == '__main__':
     threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
     setup_webhook()
-    print("✅ Flask запущен (вебхук режим)")
+    print("✅ Flask запущен (webhook mode)")
     app.run(host='0.0.0.0', port=3001, debug=False)
