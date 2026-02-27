@@ -181,7 +181,8 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .bet-btn{width:44px;height:44px;border-radius:13px;flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text);font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .bet-btn:active{transform:scale(.84);background:rgba(255,255,255,.12)}
 .bet-center{flex:1;text-align:center}
-.bet-val{font-size:21px;font-weight:900;letter-spacing:-.8px;font-family:'JetBrains Mono',monospace;color:var(--acc3);line-height:1}
+.bet-val{font-size:21px;font-weight:900;letter-spacing:-.8px;font-family:'JetBrains Mono',monospace;color:var(--acc3);line-height:1;background:none;border:none;outline:none;text-align:center;width:100%;cursor:text;caret-color:var(--acc2);}
+.bet-val:focus{color:#fff;}
 .bet-lbl{font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.1em;margin-top:2px;text-transform:uppercase}
 .bet-presets{display:flex;gap:6px;margin-bottom:14px;justify-content:center;flex-wrap:wrap}
 .bp{padding:7px 14px;border-radius:10px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--sub);cursor:pointer;transition:all .16s}
@@ -375,7 +376,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
           <div class="bet-row">
             <button class="bet-btn" onclick="chgBet('slots',-1)">−</button>
-            <div class="bet-center"><div class="bet-val" id="slots-bet-val">100</div><div class="bet-lbl">Ставка 🌸</div></div>
+            <div class="bet-center"><input class="bet-val" id="slots-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('slots',this)" onblur="onBetBlur('slots',this)"><div class="bet-lbl">Ставка 🌸</div></div>
             <button class="bet-btn" onclick="chgBet('slots',1)">+</button>
           </div>
           <div class="bet-presets">
@@ -427,7 +428,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
           <div class="bet-row">
             <button class="bet-btn" onclick="chgBet('rou',-1)">−</button>
-            <div class="bet-center"><div class="bet-val" id="rou-bet-val">100</div><div class="bet-lbl">Ставка 🌸</div></div>
+            <div class="bet-center"><input class="bet-val" id="rou-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('rou',this)" onblur="onBetBlur('rou',this)"><div class="bet-lbl">Ставка 🌸</div></div>
             <button class="bet-btn" onclick="chgBet('rou',1)">+</button>
           </div>
           <div class="bet-presets">
@@ -460,7 +461,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="card ci ci-2" style="padding:16px;margin-bottom:10px" id="bj-bet-block">
           <div class="bet-row">
             <button class="bet-btn" onclick="chgBet('bj',-1)">−</button>
-            <div class="bet-center"><div class="bet-val" id="bj-bet-val">100</div><div class="bet-lbl">Ставка 🌸</div></div>
+            <div class="bet-center"><input class="bet-val" id="bj-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('bj',this)" onblur="onBetBlur('bj',this)"><div class="bet-lbl">Ставка 🌸</div></div>
             <button class="bet-btn" onclick="chgBet('bj',1)">+</button>
           </div>
           <div class="bet-presets">
@@ -498,7 +499,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
           <div class="bet-row">
             <button class="bet-btn" onclick="chgBet('coin',-1)">−</button>
-            <div class="bet-center"><div class="bet-val" id="coin-bet-val">100</div><div class="bet-lbl">Ставка 🌸</div></div>
+            <div class="bet-center"><input class="bet-val" id="coin-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('coin',this)" onblur="onBetBlur('coin',this)"><div class="bet-lbl">Ставка 🌸</div></div>
             <button class="bet-btn" onclick="chgBet('coin',1)">+</button>
           </div>
           <div class="bet-presets">
@@ -695,6 +696,8 @@ function spawnCoins(){
 }
 function shimmerBtn(btn){btn.classList.add('shimmer');setTimeout(()=>btn.classList.remove('shimmer'),800);}
 function syncBal(n){
+  if(n===undefined||n===null)return;
+  n=parseInt(n)||0;
   if(userData)userData.balance=n;
   document.getElementById('h-bal').textContent=fmt(n);
   updateBadge(cur);
@@ -797,19 +800,41 @@ function renderHome(d){
 // ═══════════════════════════════
 // BET CONTROLS
 // ═══════════════════════════════
-const STEPS=[50,100,200,500,1000,2000,5000,10000,25000,50000];
+const STEPS=[100,200,500,1000,2000,5000,10000,25000,50000,100000];
 function betId(g){return g==='rou'?'rou-bet-val':g+'-bet-val';}
+function getBetEl(g){return document.getElementById(betId(g));}
+function setBetVal(g,v){
+  const el=getBetEl(g);
+  bets[g]=v;
+  if(el.tagName==='INPUT') el.value=v;
+  else el.textContent=fmt(v);
+}
 function chgBet(g,dir){
   const max=userData?.balance||9999999;
   let idx=STEPS.findIndex(s=>s>=bets[g]);
   if(idx<0)idx=STEPS.length-1;
   idx=Math.max(0,Math.min(STEPS.length-1,idx+dir));
-  bets[g]=Math.min(STEPS[idx],max);
-  document.getElementById(betId(g)).textContent=fmt(bets[g]);
+  setBetVal(g,Math.min(STEPS[idx],max));
   haptic('light');
 }
-function setBet(g,v){bets[g]=Math.min(v,userData?.balance||v);document.getElementById(betId(g)).textContent=fmt(bets[g]);haptic('light');}
-function setBetMax(g){bets[g]=userData?.balance||1000;document.getElementById(betId(g)).textContent=fmt(bets[g]);haptic('medium');}
+function setBet(g,v){setBetVal(g,Math.min(v,userData?.balance||v));haptic('light');}
+function setBetMax(g){setBetVal(g,userData?.balance||1000);haptic('medium');}
+function onBetInput(g,el){
+  let v=parseInt(el.value)||100;
+  v=Math.max(100,v);
+  const max=userData?.balance||9999999;
+  v=Math.min(v,max);
+  bets[g]=v;
+}
+function onBetBlur(g,el){
+  let v=parseInt(el.value)||100;
+  v=Math.max(100,v);
+  const max=userData?.balance||9999999;
+  v=Math.min(v,max);
+  bets[g]=v;
+  el.value=v;
+  haptic('light');
+}
 
 // ═══════════════════════════════
 // SLOTS — animated drum strips
@@ -840,7 +865,14 @@ async function spinSlots(){
   if(btn.disabled)return;
   btn.disabled=true;
   const bet=bets.slots;
-  if(!(await checkBalance(bet))){btn.disabled=false;return;}
+
+  // 1. Сначала получаем реальный баланс с сервера
+  const curBal=await fetchFreshBalance();
+  if(curBal<bet){
+    toast(`❌ Недостаточно средств (баланс: ${fmt(curBal)} 🌸)`);
+    btn.disabled=false;return;
+  }
+
   const flash=document.getElementById('slot-flash');
   const res=document.getElementById('slot-res');
   res.className='result-chip';
@@ -848,45 +880,34 @@ async function spinSlots(){
   ['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.remove('win-reel'));
   haptic('medium');
 
-  let syms=[SYMS[~~(Math.random()*SYMS.length)],SYMS[~~(Math.random()*SYMS.length)],SYMS[~~(Math.random()*SYMS.length)]];
-  let won=false,mult=1,winAmt=0;
+  // 2. Запрос к API ДО анимации — получаем реальный результат
+  let apiData=null;
+  try{
+    apiData=await apireq('/api/slots/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
+  }catch(err){
+    toast('❌ '+(err.message||'Ошибка сервера'));
+    btn.disabled=false;return;
+  }
 
-  // Fire API, but don't wait — animate drums while waiting
-  let apiDone=false, apiData=null;
-  apireq('/api/slots/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet})})
-    .then(d=>{apiData=d;apiDone=true;}).catch(()=>{apiDone=true;});
-
-  // Start all three drums simultaneously with staggered durations
+  // 3. Анимация барабанов с реальными символами
+  const syms=apiData.reels;
   const p0=spinDrum(0,syms[0],1000);
   const p1=spinDrum(1,syms[1],1300);
   const p2=spinDrum(2,syms[2],1600);
   await Promise.all([p0,p1,p2]);
 
-  // If API finished, use real result; else use random
-  if(apiData){
-    syms=apiData.result;
-    won=apiData.won;
-    mult=apiData.multiplier||1;
-    winAmt=apiData.win||0;
-    syncBal(apiData.new_balance);
-    // Update drums to real result instantly (no anim)
-    [0,1,2].forEach(i=>{
-      const strip=document.getElementById('rs'+(i+1));
-      if(strip.lastElementChild) strip.lastElementChild.textContent=syms[i];
-    });
-  }else{
-    // demo: 15% win
-    if(Math.random()<.15){const s=SYMS[~~(Math.random()*SYMS.length)];syms=[s,s,s];won=true;mult=3;winAmt=bet*3;}
-  }
+  // 4. Синхронизируем баланс
+  syncBal(apiData.new_balance);
 
-  won=syms[0]===syms[1]&&syms[1]===syms[2]||won;
+  const won=apiData.won;
+  const winAmt=apiData.win_amount||apiData.win||0;
 
   if(won){
     ['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.add('win-reel'));
     flash.classList.add('show');
-    const cls=mult>=10?'jackpot':'win';
-    res.className=`result-chip ${cls} show`;
-    res.textContent=`${mult>=10?'🎉 ДЖЕКПОТ!':'✅'} +${fmt(winAmt||bet*mult)} 🌸`;
+    const isJackpot=apiData.win_type==='jackpot';
+    res.className=`result-chip ${isJackpot?'jackpot':'win'} show`;
+    res.textContent=`${isJackpot?'🎉 ДЖЕКПОТ!':'✅'} +${fmt(winAmt)} 🌸`;
     spawnCoins();haptic('success');
     setTimeout(()=>flash.classList.remove('show'),1800);
   }else{
@@ -958,14 +979,15 @@ async function spinRoule(){
 
   let resColor='red',won=false,winAmt=0;
   try{
-    const d=await apireq('/api/roulette/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.rou,choice:rouChoice})});
-    resColor=d.result;won=d.won;winAmt=d.win||0;
+    const d=await apireq('/api/roulette/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.rou,bet_type:rouChoice})});
+    resColor=d.color||d.result_color||d.result||'red';
+    won=d.won;
+    winAmt=d.win_amount||d.win||0;
+    // syncBal после анимации
     setTimeout(()=>syncBal(d.new_balance),3500);
   }catch(e){
-    const r=Math.random();
-    resColor=r<.486?'red':r<.972?'black':'green';
-    won=resColor===rouChoice;
-    winAmt=won?(resColor==='green'?bets.rou*14:bets.rou*2):0;
+    toast('❌ '+(e.message||'Ошибка сервера'));
+    btn.disabled=false;return;
   }
 
   // Find landing sector
@@ -993,13 +1015,27 @@ async function spinRoule(){
 }
 
 // ═══════════════════════════════
-// BLACKJACK
+// BLACKJACK — полностью через API
 // ═══════════════════════════════
 const DECK=['2','3','4','5','6','7','8','9','10','J','Q','K','A'],STS=['♠','♥','♦','♣'];
 let bjG={d:[],p:[],state:'idle'};
 function mkC(){return{v:DECK[~~(Math.random()*13)],s:STS[~~(Math.random()*4)]};}
 function cVal(v){return['J','Q','K'].includes(v)?10:v==='A'?11:+v;}
-function hScore(h){return h.filter(c=>!c.hidden).reduce((a,c)=>a+cVal(c.v),0);}
+function hScore(h){
+  let val=h.filter(c=>!c.hidden).reduce((a,c)=>a+cVal(c.v),0);
+  let aces=h.filter(c=>!c.hidden&&c.v==='A').length;
+  while(val>21&&aces){val-=10;aces--;}
+  return val;
+}
+function parseCard(str){
+  // '10♠' → {v:'10',s:'♠'} or 'A♥' → {v:'A',s:'♥'}
+  if(!str||str==='🂠') return {v:'?',s:'',hidden:true};
+  const suits=['♠','♥','♦','♣'];
+  for(const s of suits){
+    if(str.endsWith(s)) return {v:str.slice(0,-s.length)||str.slice(0,-1),s};
+  }
+  return {v:str.slice(0,-1),s:str.slice(-1)};
+}
 function renderCards(id,hand){
   const el=document.getElementById(id);el.innerHTML='';
   hand.forEach(c=>{
@@ -1011,44 +1047,87 @@ function renderCards(id,hand){
     el.appendChild(d);
   });
 }
-function bjSc(id,h){document.getElementById(id).textContent=hScore(h)||'—';}
+function bjSc(id,h){
+  const el=document.getElementById(id);
+  if(el) el.textContent=hScore(h)||'—';
+}
+function bjShowStatus(status,win,bet){
+  const res=document.getElementById('bj-res');
+  const map={
+    blackjack:{cls:'win',txt:`🎉 БЛЭКДЖЕК! +${fmt(Math.floor(bet*1.5))} 🌸`},
+    win:       {cls:'win',txt:`✅ Победа! +${fmt(win||bet)} 🌸`},
+    bust:      {cls:'loss',txt:`💥 Перебор! −${fmt(bet)} 🌸`},
+    lose:      {cls:'loss',txt:`😔 Поражение −${fmt(bet)} 🌸`},
+    push:      {cls:'',txt:'🤝 Ничья — ставка возвращена'},
+  };
+  const m=map[status]||{cls:'loss',txt:'Игра окончена'};
+  res.className=`result-chip ${m.cls} show`;
+  res.textContent=m.txt;
+  if(m.cls==='win'){spawnCoins();haptic('success');}
+  else haptic('light');
+  setTimeout(()=>res.classList.remove('show'),4000);
+}
+function bjSetActions(playing){
+  document.getElementById('bj-actions').style.display=playing?'grid':'none';
+  document.getElementById('bj-bet-block').style.display=playing?'none':'block';
+  document.getElementById('bj-deal-btn').disabled=playing;
+}
 async function bjDeal(){
   const btn=document.getElementById('bj-deal-btn');
   if(btn.disabled)return;
   btn.disabled=true;
   if(!(await checkBalance(bets.bj))){btn.disabled=false;return;}
-  bjG={d:[mkC(),{...mkC(),hidden:true}],p:[mkC(),mkC()],state:'playing'};
-  renderCards('bj-dealer-cards',bjG.d);renderCards('bj-player-cards',bjG.p);
-  bjSc('bj-dealer-score',bjG.d);bjSc('bj-player-score',bjG.p);
-  document.getElementById('bj-actions').style.display='grid';
-  document.getElementById('bj-bet-block').style.display='none';
   document.getElementById('bj-res').className='result-chip';
   haptic('medium');
   try{
     const d=await apireq('/api/blackjack/deal',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.bj})});
-    if(d.new_balance!==undefined) syncBal(d.new_balance);
-  }catch(e){}
+    // Парсим карты из строк API
+    const player=d.player.map(parseCard);
+    const dealer=d.dealer.map((c,i)=>i===1&&c==='🂠'?{v:'?',s:'',hidden:true}:parseCard(c));
+    bjG={d:dealer,p:player,state:'playing',bet:bets.bj};
+    renderCards('bj-dealer-cards',bjG.d);
+    renderCards('bj-player-cards',bjG.p);
+    bjSc('bj-dealer-score',bjG.d);
+    bjSc('bj-player-score',bjG.p);
+    if(d.status==='blackjack'){
+      bjG.state='idle';
+      if(d.new_balance!==undefined)syncBal(d.new_balance);
+      bjShowStatus('blackjack',d.win_amount,bets.bj);
+      bjSetActions(false);
+    }else{
+      bjSetActions(true);
+    }
+  }catch(e){
+    toast('❌ Ошибка соединения');
+    btn.disabled=false;
+  }
 }
 async function bjAction(a){
-  if(bjG.state!=='playing')return;haptic('light');
-  if(a==='hit'){bjG.p.push(mkC());renderCards('bj-player-cards',bjG.p);bjSc('bj-player-score',bjG.p);if(hScore(bjG.p)>21)bjEnd('bust');}
-  else bjEnd('stand');
-}
-function bjEnd(reason){
-  bjG.state='idle';bjG.d[1].hidden=false;
-  renderCards('bj-dealer-cards',bjG.d);bjSc('bj-dealer-score',bjG.d);
-  const ps=hScore(bjG.p),ds=hScore(bjG.d);
-  const res=document.getElementById('bj-res');
-  if(reason==='bust'||ps>21){res.className='result-chip loss show';res.textContent='💥 Перебор! −'+fmt(bets.bj)+' 🌸';haptic('light');}
-  else if(ds>21||ps>ds){res.className='result-chip win show';res.textContent='✅ Победа! +'+fmt(bets.bj)+' 🌸';spawnCoins();haptic('success');}
-  else if(ps===ds){res.className='result-chip show';res.textContent='🤝 Ничья';res.style.background='rgba(255,255,255,.06)';res.style.borderColor='rgba(255,255,255,.12)';}
-  else{res.className='result-chip loss show';res.textContent='😔 Поражение −'+fmt(bets.bj)+' 🌸';haptic('light');}
-  setTimeout(()=>res.classList.remove('show'),3500);
-  document.getElementById('bj-actions').style.display='none';
-  document.getElementById('bj-bet-block').style.display='block';
-  document.getElementById('bj-deal-btn').disabled=false;
-  // Синхронизируем баланс после игры
-  setTimeout(()=>fetchFreshBalance(),500);
+  if(bjG.state!=='playing')return;
+  haptic('light');
+  try{
+    if(a==='hit'){
+      const d=await apireq('/api/blackjack/hit',{method:'POST',body:JSON.stringify({user_id:UID})});
+      bjG.p=d.player.map(parseCard);
+      renderCards('bj-player-cards',bjG.p);
+      bjSc('bj-player-score',bjG.p);
+      if(d.status==='bust'){
+        bjG.state='idle';
+        if(d.new_balance!==undefined)syncBal(d.new_balance);
+        bjShowStatus('bust',0,bjG.bet||bets.bj);
+        bjSetActions(false);
+      }
+    }else{
+      const d=await apireq('/api/blackjack/stand',{method:'POST',body:JSON.stringify({user_id:UID})});
+      bjG.d=d.dealer.map(parseCard);
+      renderCards('bj-dealer-cards',bjG.d);
+      bjSc('bj-dealer-score',bjG.d);
+      bjG.state='idle';
+      if(d.new_balance!==undefined)syncBal(d.new_balance);
+      bjShowStatus(d.status||d.result,d.win_amount,bjG.bet||bets.bj);
+      bjSetActions(false);
+    }
+  }catch(e){toast('❌ Ошибка соединения');}
 }
 
 // ═══════════════════════════════
@@ -1064,7 +1143,8 @@ async function flipCoin(){
   if(!coinChoice){toast('❗ Выберите орёл или решку');return;}
   const btn=document.getElementById('coin-flip-btn');
   if(btn.disabled)return;btn.disabled=true;
-  if(!(await checkBalance(bets.coin))){btn.disabled=false;return;}
+  const curBal=await fetchFreshBalance();
+  if(curBal<bets.coin){toast(`❌ Недостаточно средств (баланс: ${fmt(curBal)} 🌸)`);btn.disabled=false;return;}
   const ce=document.getElementById('coin-el');
   const chip=document.getElementById('coin-res');
   const resB=document.getElementById('coin-res-big');
@@ -1073,11 +1153,12 @@ async function flipCoin(){
   let result='heads',won=false,winAmt=0;
   try{
     const d=await apireq('/api/coin/flip',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.coin,choice:coinChoice})});
-    result=d.result;won=d.won;winAmt=d.win||0;
+    result=d.result;won=d.won;winAmt=d.win_amount||d.win||0;
     setTimeout(()=>syncBal(d.new_balance),1100);
   }catch(e){
-    result=Math.random()>.5?'heads':'tails';
-    won=result===coinChoice;winAmt=won?bets.coin*2:0;
+    toast('❌ '+(e.message||'Ошибка сервера'));
+    ce.classList.remove('flipping');
+    btn.disabled=false;return;
   }
   setTimeout(()=>{
     ce.classList.remove('flipping');
@@ -1298,4 +1379,4 @@ window.addEventListener('load',()=>{movePill();init();});
 window.addEventListener('resize',movePill);
 </script>
 </body>
-              </html>
+          </html>
