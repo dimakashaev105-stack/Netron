@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl
 
 app = Flask(__name__)
 
-BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"  # ← вставь свой токен
+BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg" # ← вставь свой токен
 DB_NAME   = "game.db"
 
 # ──────────────────── DB ─────────────────────
@@ -201,14 +201,39 @@ def get_user(user_id):
 #  CASINO
 # ══════════════════════════════════════════════
 
+def send_level_up_notify(user_id, new_level):
+    """Уведомление об апе уровня через бота"""
+    try:
+        mod = _load_bot()
+        if not mod: return
+        emoji, tname = LEVEL_TITLES.get(new_level, LEVEL_TITLES[50])
+        level_up_bonus = new_level * 200
+        click_b = int((1 + new_level * 0.02) * 100 - 100)
+        daily_b = int((1 + new_level * 0.05) * 100 - 100)
+        mod.bot.send_message(
+            user_id,
+            f"🎉 <b>НОВЫЙ УРОВЕНЬ!</b>\n\n"
+            f"{emoji} <b>{new_level} — {tname}</b>\n\n"
+            f"💵 Бонус: +{level_up_bonus:,}\n"
+            f"⚡ Бонус к кликам: +{click_b}%\n"
+            f"🎁 Бонус к ежедневке: +{daily_b}%",
+            parse_mode='HTML'
+        )
+    except Exception as e:
+        print(f"Level up notify error: {e}")
+
 def apply_game_result(conn, user_id, delta, xp):
+    old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
+    old_lv  = get_level_from_exp(old_row['experience']) if old_row else 1
     conn.execute('''UPDATE users SET
         balance=MAX(0,balance+?), experience=MIN(experience+?,999999),
-        last_activity=CURRENT_TIMESTAMP WHERE user_id=?''', (delta, xp, user_id))
-    row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?',(user_id,)).fetchone()
-    lv = get_level_from_exp(row['experience'])
-    emoji, tname, tcolor = build_user_title(lv)
-    return {'balance':row['balance'],'experience':row['experience'],'level':lv,
+        last_activity=CURRENT_TIMESTAMP WHERE user_id=''', (delta, xp, user_id))
+    row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?', (user_id,)).fetchone()
+    new_lv = get_level_from_exp(row['experience'])
+    emoji, tname, tcolor = build_user_title(new_lv)
+    if new_lv > old_lv:
+        threading.Thread(target=send_level_up_notify, args=(user_id, new_lv), daemon=True).start()
+    return {'balance':row['balance'],'experience':row['experience'],'level':new_lv,
             'title':f"{emoji} {tname}",'title_emoji':emoji,'title_name':tname,'title_color':tcolor}
 
 @app.route('/api/game', methods=['POST'])
@@ -216,7 +241,7 @@ def record_game():
     data=request.json; user_id=data.get('user_id'); bet=int(data.get('bet',0))
     won=bool(data.get('won',False)); win_amount=int(data.get('win_amount',0))
     if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
-    xp=bet//10+(10 if won else 5)
+    xp=max(1, bet//1000)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
             return jsonify({'error':'not found'}),404
@@ -240,7 +265,7 @@ def slots_spin():
     mult_map={'🍒':2,'🍋':3,'🍊':4,'⭐':5,'💎':10,'🎰':20}
     win_amount=bet*mult_map.get(reels[0],2) if won else 0
     win_type=('jackpot' if reels[0] in ['💎','🎰'] else 'pair') if won else None
-    delta=win_amount-bet if won else -bet; xp=bet//10+(10 if won else 5)
+    delta=win_amount-bet if won else -bet; xp=max(1, bet//1000)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
             return jsonify({'error':'user not found'}),404
@@ -266,7 +291,7 @@ def roulette_spin():
     elif bet_type=='black'  and color=='black': won,win_mult=True,2
     elif bet_type=='green'  and color=='green': won,win_mult=True,14
     elif bet_type=='number' and number is not None and int(number)==result_num: won,win_mult=True,36
-    win_amount=bet*win_mult if won else 0; delta=win_amount-bet if won else -bet; xp=bet//10+(10 if won else 5)
+    win_amount=bet*win_mult if won else 0; delta=win_amount-bet if won else -bet; xp=max(1, bet//1000)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
             return jsonify({'error':'user not found'}),404
@@ -373,7 +398,7 @@ def coin_flip():
     if not user_id or bet<=0: return jsonify({'error':'bad data'}),400
     result=random.choice(['heads','tails']); won=result==choice
     result_emoji='👑' if result=='heads' else '🦅'
-    delta=bet if won else -bet; xp=bet//10+(10 if won else 5)
+    delta=bet if won else -bet; xp=max(1, bet//1000)
     with get_db() as conn:
         if not conn.execute('SELECT 1 FROM users WHERE user_id=?',(user_id,)).fetchone():
             return jsonify({'error':'user not found'}),404
