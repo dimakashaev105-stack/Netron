@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl
 
 app = Flask(__name__)
 
-BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"  # ← вставь свой токен
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # ← вставь свой токен
 DB_NAME   = "game.db"
 
 # ──────────────────── DB ─────────────────────
@@ -535,48 +535,72 @@ def mini():
         return 'Place index.html next to app.py',404
 
 # ══════════════════════════════════════════════
-#  ЗАПУСК: БОТ + АВТОПИНГ
+#  БОТ ЧЕРЕЗ ВЕБХУК — нет конфликтов при деплое
 # ══════════════════════════════════════════════
 
-_bot_started = False
+import importlib.util as _ilu
 
-def run_bot():
+# Загружаем bot.py один раз при старте
+_bot_module = None
+
+def _load_bot():
+    global _bot_module
+    if _bot_module is not None:
+        return _bot_module
+    bot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot.py')
+    if not os.path.exists(bot_path):
+        print("⚠️  bot.py не найден"); return None
+    spec = _ilu.spec_from_file_location("bot_module", bot_path)
+    mod  = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _bot_module = mod
+    return mod
+
+def setup_webhook():
+    """Устанавливаем вебхук при старте — без polling, без конфликтов 409"""
+    mod = _load_bot()
+    if not mod: return
+    url = os.environ.get('RENDER_EXTERNAL_URL', '').rstrip('/')
+    if not url:
+        print("⚠️  RENDER_EXTERNAL_URL не задан, вебхук не установлен")
+        return
+    webhook_url = f"{url}/webhook/{BOT_TOKEN}"
     try:
-        import importlib.util
-        bot_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot.py')
-        if not os.path.exists(bot_path):
-            print("⚠️  bot.py не найден"); return
-        spec = importlib.util.spec_from_file_location("bot", bot_path)
-        bot_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(bot_module)
-        print("🤖 Бот запускается...")
-        # Сброс вебхука и старых соединений — устраняет ошибку 409
-        try:
-            bot_module.bot.delete_webhook(drop_pending_updates=True)
-            time.sleep(3)
+        mod.bot.remove_webhook()
+        time.sleep(1)
+        mod.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+        print(f"✅ Вебхук установлен: {webhook_url}")
+        try: mod.cleanup_expired_challenges()
         except: pass
-        bot_module.cleanup_expired_challenges()
-        bot_module.bot.infinity_polling(timeout=30, long_polling_timeout=30)
     except Exception as e:
-        print(f"❌ Ошибка бота: {e}")
+        print(f"❌ Ошибка вебхука: {e}")
+
+# Маршрут для получения обновлений от Telegram
+@app.route(f'/webhook/{BOT_TOKEN}', methods=['POST'])
+def webhook():
+    mod = _load_bot()
+    if not mod:
+        return 'bot not loaded', 500
+    import telebot
+    update = telebot.types.Update.de_json(request.get_data(as_text=True))
+    mod.bot.process_new_updates([update])
+    return 'ok', 200
 
 def auto_ping():
     """Пингуем себя каждые 4 минуты — Render не засыпает"""
     import urllib.request
-    time.sleep(40)  # ждём пока Flask запустится
+    time.sleep(60)
     url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:3001')
     while True:
         try:
             urllib.request.urlopen(f"{url}/ping", timeout=10)
-            print(f"🏓 Ping OK → {url}/ping")
+            print(f"🏓 Ping OK")
         except Exception as e:
             print(f"🏓 Ping error: {e}")
-        time.sleep(240)  # каждые 4 минуты
+        time.sleep(240)
 
 if __name__ == '__main__':
-    if not _bot_started:
-        _bot_started = True
-        threading.Thread(target=run_bot,   daemon=True, name="BotThread").start()
-        threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
-    print("✅ Запуск Flask...")
+    threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
+    setup_webhook()
+    print("✅ Flask запущен (вебхук режим)")
     app.run(host='0.0.0.0', port=3001, debug=False)
