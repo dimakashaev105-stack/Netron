@@ -15,7 +15,7 @@ from collections import defaultdict
 
 app = Flask(__name__)
 
-BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"  # ← вставь свой токен
+BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"
 DB_NAME   = "game.db"
 
 # ══════════════════════════════════════════════
@@ -66,8 +66,30 @@ def init_db():
                 created_at INTEGER DEFAULT 0
             )
         ''')
+        # Индекс для быстрого поиска истории по юзеру
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
+        print("✅ БД инициализирована (users + game_history)")
 
 init_db()
+
+def migrate_db():
+    """Безопасная миграция — добавляет недостающие таблицы не трогая старые данные"""
+    with get_db() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS game_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                game TEXT NOT NULL,
+                bet INTEGER NOT NULL,
+                result TEXT NOT NULL,
+                win_amount INTEGER DEFAULT 0,
+                created_at INTEGER DEFAULT 0
+            )
+        ''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
+        print("✅ Миграция: game_history готова (старые данные не тронуты)")
+
+migrate_db()
 
 # ══════════════════════════════════════════════
 #  RATE LIMITING
@@ -231,18 +253,22 @@ def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     old_lv  = get_level_from_exp(old_row['experience']) if old_row else 1
 
+    # Обновляем баланс и опыт — главная операция
     conn.execute(
         'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
         'last_activity=CURRENT_TIMESTAMP WHERE user_id=?',
         (delta, xp, user_id)
     )
 
-    # Сохраняем в историю
+    # Сохраняем в историю (некритично — не ломаем транзакцию при ошибке)
     if game:
-        conn.execute(
-            'INSERT INTO game_history(user_id,game,bet,result,win_amount,created_at) VALUES(?,?,?,?,?,?)',
-            (user_id, game, bet, result, win_amount, int(time.time()))
-        )
+        try:
+            conn.execute(
+                'INSERT INTO game_history(user_id,game,bet,result,win_amount,created_at) VALUES(?,?,?,?,?,?)',
+                (user_id, game, bet, result, win_amount, int(time.time()))
+            )
+        except Exception as e:
+            print(f"⚠️ game_history insert error (ignored): {e}")
 
     row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     new_lv = get_level_from_exp(row['experience'])
@@ -372,8 +398,9 @@ def slots_spin():
     xp    = max(1, bet // 1000)
 
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
-            return jsonify({'error': 'user not found'}), 404
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row: return jsonify({'error': 'user not found'}), 404
+        if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0, 0 if won else 1, user_id))
         res = apply_game_result(conn, user_id, delta, xp,
@@ -409,8 +436,9 @@ def roulette_spin():
     xp    = max(1, bet // 1000)
 
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
-            return jsonify({'error': 'user not found'}), 404
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row: return jsonify({'error': 'user not found'}), 404
+        if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0, 0 if won else 1, user_id))
         res = apply_game_result(conn, user_id, delta, xp,
@@ -565,8 +593,9 @@ def coin_flip():
     win_amount   = bet * 2 if won else 0
 
     with get_db() as conn:
-        if not conn.execute('SELECT 1 FROM users WHERE user_id=?', (user_id,)).fetchone():
-            return jsonify({'error': 'user not found'}), 404
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row: return jsonify({'error': 'user not found'}), 404
+        if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
         conn.execute('UPDATE users SET games_won=games_won+?,games_lost=games_lost+? WHERE user_id=?',
                      (1 if won else 0, 0 if won else 1, user_id))
         res = apply_game_result(conn, user_id, delta, xp,
