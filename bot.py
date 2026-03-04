@@ -16,7 +16,7 @@ import requests as _requests
 
 
 # Замените на свой токен
-BOT_TOKEN = "8481160193:AAGmO_CE9FiWAXSx8ZNmIzZTz3GIwxi2apI"
+BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"
 # Глобальные переменные для пагинации (добавь после других глобальных переменных)
 shop_pages = {}
 wardrobe_pages = {}
