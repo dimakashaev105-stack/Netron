@@ -101,13 +101,13 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .t-roulette{background:linear-gradient(145deg,rgba(239,68,68,.1),rgba(239,68,68,.04));border:1px solid rgba(239,68,68,.22)}
 .t-bj{background:linear-gradient(145deg,rgba(16,185,129,.1),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.22)}
 .t-coin{background:linear-gradient(145deg,rgba(59,130,246,.1),rgba(59,130,246,.04));border:1px solid rgba(59,130,246,.22)}
-.t-taxi{background:linear-gradient(145deg,rgba(249,115,22,.1),rgba(249,115,22,.04));border:1px solid rgba(249,115,22,.22)}
+
 .game-tile::before{content:'';position:absolute;top:-24px;right:-24px;width:96px;height:96px;border-radius:50%;opacity:.22;filter:blur(16px)}
-.t-slots::before{background:#f59e0b}.t-roulette::before{background:#ef4444}.t-bj::before{background:#10b981}.t-coin::before{background:#3b82f6}.t-taxi::before{background:#f97316}
+.t-slots::before{background:#f59e0b}.t-roulette::before{background:#ef4444}.t-bj::before{background:#10b981}.t-coin::before{background:#3b82f6}
 .gt-ico{font-size:32px;margin-bottom:12px;line-height:1;display:block}
 .gt-name{font-size:13.5px;font-weight:800;color:var(--text)}
 .gt-sub{font-size:10.5px;margin-top:3px;font-weight:500;opacity:.7}
-.t-slots .gt-sub{color:#f59e0b}.t-roulette .gt-sub{color:#ef4444}.t-bj .gt-sub{color:#10b981}.t-coin .gt-sub{color:#3b82f6}.t-taxi .gt-sub{color:#f97316}
+.t-slots .gt-sub{color:#f59e0b}.t-roulette .gt-sub{color:#ef4444}.t-bj .gt-sub{color:#10b981}.t-coin .gt-sub{color:#3b82f6}
 /* GAME HEADER */
 .game-header{display:flex;align-items:center;gap:12px;padding:16px 14px 12px;position:sticky;top:0;z-index:20;background:rgba(13,15,20,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .back-btn{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0}
@@ -195,7 +195,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .act-btn.roulette-btn{background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 6px 28px rgba(239,68,68,.28)}
 .act-btn.bj-btn{background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 6px 28px rgba(16,185,129,.28)}
 .act-btn.coin-btn{background:linear-gradient(135deg,#1d4ed8,#3b82f6);box-shadow:0 6px 28px rgba(59,130,246,.28)}
-.act-btn.taxi-btn{background:linear-gradient(135deg,#ea580c,#f97316);box-shadow:0 6px 28px rgba(249,115,22,.28)}
+
 .act-btn .ripple{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%) skewX(-18deg)}
 .act-btn.shimmer .ripple{animation:btnShimmer .7s ease forwards}
 @keyframes btnShimmer{to{transform:translateX(220%) skewX(-18deg)}}
@@ -206,41 +206,6 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .result-chip.win{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.28);color:var(--green)}
 .result-chip.jackpot{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.32);color:var(--gold)}
 .result-chip.loss{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:var(--red)}
-/* TAXI */
-.taxi-class-card{border-radius:var(--r2);padding:18px;margin-bottom:10px;background:var(--s2);border:1px solid rgba(249,115,22,.15);position:relative;overflow:hidden}
-.taxi-class-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.4),transparent)}
-.tc-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.tc-badge{width:50px;height:50px;border-radius:15px;flex-shrink:0;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.22);display:flex;align-items:center;justify-content:center;font-size:26px}
-.tc-name{font-size:15px;font-weight:800}
-.tc-trips{font-size:12px;color:var(--sub);margin-top:2px}
-.tc-mult{margin-left:auto;padding:5px 12px;border-radius:10px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);font-size:12px;font-weight:800;color:#f97316;font-family:'JetBrains Mono',monospace}
-.prog-track{height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin-bottom:5px}
-.prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#ea580c,#f97316);transition:width 1s ease}
-.prog-label{font-size:10.5px;color:var(--sub);font-weight:500}
-.route-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.rc{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--r2);background:var(--s2);border:1.5px solid var(--border);cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1)}
-.rc:active{transform:scale(.97)}
-.rc.sel{border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.06);box-shadow:0 4px 20px rgba(249,115,22,.08)}
-.rc-ico{width:42px;height:42px;border-radius:13px;flex-shrink:0;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.18);display:flex;align-items:center;justify-content:center;font-size:20px}
-.rc-info{flex:1;min-width:0}
-.rc-name{font-size:13px;font-weight:700;margin-bottom:2px}
-.rc-meta{font-size:10.5px;color:var(--sub)}
-.rc-price{font-size:13px;font-weight:900;color:#f97316;flex-shrink:0;font-family:'JetBrains Mono',monospace}
-.trip-card{background:var(--s2);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:22px;text-align:center;margin-bottom:12px;position:relative;overflow:hidden}
-.trip-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.4),transparent)}
-.ring-wrap{width:130px;height:130px;margin:0 auto 16px;position:relative}
-.ring-wrap svg{transform:rotate(-90deg)}
-circle.ring-bg{stroke:rgba(255,255,255,.06)}
-circle.ring-fg{stroke:var(--green);stroke-linecap:round;stroke-dasharray:351.86;stroke-dashoffset:351.86;transition:stroke-dashoffset .5s linear;filter:drop-shadow(0 0 4px rgba(16,185,129,.4))}
-circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,36,.5))}
-.ring-time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ring-time .t{font-size:28px;font-weight:900;letter-spacing:-1.5px;font-family:'JetBrains Mono',monospace}
-.ring-time .ts{font-size:10px;color:var(--sub);font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.1em}
-.earn-num{font-size:22px;font-weight:900;color:#f97316;font-family:'JetBrains Mono',monospace}
-.finish-btn{width:100%;height:52px;border-radius:16px;border:none;background:linear-gradient(135deg,#059669,var(--green));color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 24px rgba(16,185,129,.28);transition:all .2s;font-family:'Outfit',sans-serif}
-.finish-btn:disabled{opacity:.35;cursor:not-allowed}
-.finish-btn.ready{animation:finishPulse 1.1s ease infinite}
-@keyframes finishPulse{0%,100%{box-shadow:0 6px 24px rgba(16,185,129,.28)}50%{box-shadow:0 6px 36px rgba(16,185,129,.5)}}
 /* LB */
 .lb-tabs{display:flex;gap:6px;margin-bottom:14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:4px}
 .lbt{flex:1;padding:8px;border-radius:11px;text-align:center;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1)}
@@ -346,12 +311,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="game-tile t-bj" onclick="goGame('bj')"><span class="gt-ico">🃏</span><div class="gt-name">Блэкджек</div><div class="gt-sub">×2 за BJ</div></div>
         <div class="game-tile t-coin" onclick="goGame('coin')"><span class="gt-ico">🪙</span><div class="gt-name">Монетка</div><div class="gt-sub">50/50 · ×2</div></div>
       </div>
-      <div class="game-grid ci ci-5" style="grid-template-columns:1fr">
-        <div class="game-tile t-taxi" onclick="nav('taxi')" style="display:flex;align-items:center;gap:16px;padding:16px 20px">
-          <span class="gt-ico" style="margin-bottom:0;font-size:36px">🚕</span>
-          <div><div class="gt-name" style="font-size:15px">Такси</div><div class="gt-sub" style="color:#f97316">Реальные поездки · XP бонус</div></div>
-          <div style="margin-left:auto;text-align:right"><div style="font-size:11px;color:var(--sub)">Заработай</div><div id="h-taxi-earn" style="font-size:15px;font-weight:900;color:#f97316;font-family:'JetBrains Mono',monospace">—</div></div>
-        </div>
+      </div>
       </div>
     </div>
 
@@ -513,49 +473,6 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
       </div>
     </div>
 
-    <!-- TAXI -->
-    <div class="screen sp" id="s-taxi">
-      <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
-        <div class="game-title">🚕 Такси</div>
-        <div class="game-badge" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);color:#f97316" id="taxi-bal-badge">0 🌸</div>
-      </div>
-      <div style="padding:12px 14px 100px">
-        <div class="taxi-class-card ci ci-1">
-          <div class="tc-top">
-            <div class="tc-badge" id="tc-badge">🚕</div>
-            <div><div class="tc-name" id="tc-name">Стандарт</div><div class="tc-trips" id="tc-trips">Поездок: 0</div></div>
-            <div class="tc-mult" id="tc-mult">×1.3</div>
-          </div>
-          <div class="prog-track"><div class="prog-fill" id="tc-prog" style="width:0%"></div></div>
-          <div class="prog-label" id="tc-plabel">До следующего уровня</div>
-        </div>
-        <div id="v-routes">
-          <div class="sec-lbl ci ci-2">🗺 Маршруты</div>
-          <div class="route-cards" id="route-cards"></div>
-          <button class="act-btn taxi-btn" id="go-btn" disabled onclick="startTrip()" style="margin-bottom:16px"><div class="ripple"></div>Выберите маршрут</button>
-        </div>
-        <div id="v-trip" style="display:none">
-          <div class="trip-card ci">
-            <div style="font-size:15px;font-weight:800;margin-bottom:3px" id="tr-name">Маршрут</div>
-            <div style="font-size:12px;color:var(--sub);margin-bottom:20px" id="tr-dist"></div>
-            <div class="ring-wrap">
-              <svg width="130" height="130">
-                <circle class="ring-bg" cx="65" cy="65" r="56" fill="none" stroke-width="6"/>
-                <circle class="ring-fg" id="ring-fg" cx="65" cy="65" r="56" fill="none" stroke-width="6"/>
-              </svg>
-              <div class="ring-time"><div class="t" id="tr-time">0:00</div><div class="ts">В пути</div></div>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px">
-              <span style="font-size:13px;color:var(--sub)">Заработок:</span>
-              <span class="earn-num" id="tr-earn">0 🌸</span>
-            </div>
-            <button class="finish-btn" id="finish-btn" disabled onclick="completeTrip()">Поездка в процессе...</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- LB -->
     <div class="screen sp" id="s-lb">
       <div class="game-header"><div class="game-title" style="margin-left:4px">🏆 Топ игроков</div></div>
@@ -582,10 +499,6 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="nav-ico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
         <div class="nav-lbl">Игры</div>
       </div>
-      <div class="nav-item" id="ni-taxi" onclick="nav('taxi')">
-        <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v9a2 2 0 01-2 2h-2"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/></svg></div>
-        <div class="nav-lbl">Такси</div>
-      </div>
       <div class="nav-item" id="ni-lb" onclick="nav('lb')">
         <div class="nav-ico"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
         <div class="nav-lbl">Топ</div>
@@ -605,15 +518,8 @@ const API = ''; // your backend URL
 let UID = TG?.initDataUnsafe?.user?.id || 'demo';
 let userData = null;
 let bets = {slots:100,rou:100,bj:100,coin:100};
-let rouChoice=null, coinChoice=null, selRoute=null, lbMode='balance';
+let rouChoice=null, coinChoice=null, lbMode='balance';
 
-// ═══════════════════════════════
-// TAXI STATE — persists across nav
-// ═══════════════════════════════
-const taxi = {
-  active:false, startTs:0, durationMs:0,
-  trip:null, rafId:null, notifiedDone:false
-};
 
 // ═══════════════════════════════
 // FORMAT — "5 000" style
@@ -635,8 +541,8 @@ async function apireq(path,opts={}){
 // ═══════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════
-const smap={home:'s-home',slots:'s-slots',roulette:'s-roulette',bj:'s-bj',coin:'s-coin',taxi:'s-taxi',lb:'s-lb'};
-const nmap={home:'ni-home',slots:'ni-games',roulette:'ni-games',bj:'ni-games',coin:'ni-games',taxi:'ni-taxi',lb:'ni-lb'};
+const smap={home:'s-home',slots:'s-slots',roulette:'s-roulette',bj:'s-bj',coin:'s-coin',lb:'s-lb'};
+const nmap={home:'ni-home',slots:'ni-games',roulette:'ni-games',bj:'ni-games',coin:'ni-games',lb:'ni-lb'};
 let cur='home';
 
 function nav(to){
@@ -653,7 +559,6 @@ function nav(to){
   updateBadge(to);
   haptic('light');
   if(to==='lb') loadLb();
-  if(to==='taxi') onTaxiOpen();
   if(['slots','roulette','bj','coin'].includes(to)) fetchFreshBalance();
 }
 function goGame(g){nav(g);}
@@ -705,7 +610,7 @@ function syncBal(n){
 function updateBadge(s){
   if(!userData)return;
   const b=fmt(userData.balance)+' 🌸';
-  const m={slots:'slot-bal-badge',roulette:'rou-bal-badge',bj:'bj-bal-badge',coin:'coin-bal-badge',taxi:'taxi-bal-badge'};
+  const m={slots:'slot-bal-badge',roulette:'rou-bal-badge',bj:'bj-bal-badge',coin:'coin-bal-badge'};
   if(m[s]){const el=document.getElementById(m[s]);if(el)el.textContent=b;}
 }
 
@@ -735,18 +640,7 @@ async function init(){
     userData={balance:0,experience:0,level:1,games_won:0,games_lost:0,total_won_amount:0,total_lost_amount:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'};
     renderHome(userData);
   }
-  // Check active taxi trip at startup
   try{
-    const s=await apireq(`/api/taxi/status?user_id=${UID}`);
-    if(s.stats) renderTaxiClass(s.stats);
-    if(s.active&&s.trip){
-      taxi.active=true;
-      taxi.startTs=Date.now()-(s.elapsed||0)*1000;
-      taxi.durationMs=(s.required||60)*1000;
-      taxi.trip=s.trip;
-      taxi.notifiedDone=false;
-      startTaxiRAF();
-    }
   }catch(e){}
   hideLdr();
   updateOnlineCount();
@@ -1169,145 +1063,6 @@ async function flipCoin(){
     setTimeout(()=>chip.classList.remove('show'),3200);
     btn.disabled=false;shimmerBtn(btn);
   },1000);
-}
-
-// ═══════════════════════════════
-// TAXI — Date.now() based, RAF tick, no reset on nav
-// ═══════════════════════════════
-const demoRoutes=[
-  {id:'r1',name:'Аэропорт Шереметьево',distance:'42 км',time:'3 мин',price:850,duration_seconds:180},
-  {id:'r2',name:'Деловой центр',distance:'18 км',time:'2 мин',price:420,duration_seconds:120},
-  {id:'r3',name:'Университет МГТУ',distance:'12 км',time:'1.5 мин',price:280,duration_seconds:90},
-  {id:'r4',name:'Торговый центр',distance:'8 км',time:'1 мин',price:190,duration_seconds:60},
-  {id:'r5',name:'Ресторан «Москва»',distance:'5 км',time:'30 сек',price:130,duration_seconds:30},
-];
-
-async function onTaxiOpen(){
-  updateBadge('taxi');
-  if(taxi.active){
-    showTripUI();
-    startTaxiRAF();
-    return;
-  }
-  try{
-    const s=await apireq(`/api/taxi/status?user_id=${UID}`);
-    if(s.stats)renderTaxiClass(s.stats);
-    if(s.active&&s.trip){
-      taxi.active=true;taxi.notifiedDone=false;
-      taxi.startTs=Date.now()-(s.elapsed||0)*1000;
-      taxi.durationMs=(s.required||60)*1000;
-      taxi.trip=s.trip;
-      showTripUI();startTaxiRAF();
-      return;
-    }
-    await loadRoutes();
-  }catch(e){
-    renderTaxiClass({driver_class:'economy',trips_completed:0,next_threshold:10});
-    renderRoutes(demoRoutes);
-  }
-}
-function renderTaxiClass(s){
-  const cl={economy:{name:'Стандарт',emoji:'🚕',mult:1.3},comfort:{name:'Комфорт+',emoji:'🚙',mult:1.55},business:{name:'Бизнес',emoji:'🏎️',mult:1.8},vip:{name:'Премиум',emoji:'👑',mult:2.3}}[s.driver_class]||{name:'Стандарт',emoji:'🚕',mult:1.3};
-  document.getElementById('tc-badge').textContent=cl.emoji;
-  document.getElementById('tc-name').textContent=cl.name;
-  document.getElementById('tc-trips').textContent='Поездок: '+s.trips_completed;
-  document.getElementById('tc-mult').textContent='×'+cl.mult;
-  if(s.next_threshold){document.getElementById('tc-prog').style.width=Math.min(100,~~(s.trips_completed/s.next_threshold*100))+'%';document.getElementById('tc-plabel').textContent=`До следующего: ${s.trips_completed}/${s.next_threshold}`;}
-  else{document.getElementById('tc-prog').style.width='100%';document.getElementById('tc-plabel').textContent='🏆 Максимальный класс!';}
-}
-async function loadRoutes(){
-  let routes=demoRoutes;
-  try{const d=await apireq(`/api/taxi/routes?user_id=${UID}`);routes=d.routes||demoRoutes;}catch(e){}
-  renderRoutes(routes);
-}
-function renderRoutes(routes){
-  const c=document.getElementById('route-cards');c.innerHTML='';
-  const icons=['✈️','🏢','🎓','🏥','🍽️','🎬','🌃','🏨'];
-  routes.forEach((r,i)=>{
-    const div=document.createElement('div');div.className='rc ci';div.style.animationDelay=(i*.06)+'s';
-    const t=r.time||(r.min_time?r.min_time+' мин':'');
-    div.innerHTML=`<div class="rc-ico">${icons[i%icons.length]}</div><div class="rc-info"><div class="rc-name">${r.name}</div><div class="rc-meta">${r.distance} · ${t}</div></div><div class="rc-price">${fmt(r.price)} 🌸</div>`;
-    div.onclick=()=>selR(r,div);c.appendChild(div);
-  });
-}
-function selR(r,el){
-  selRoute=r;
-  document.querySelectorAll('.rc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');
-  const btn=document.getElementById('go-btn');btn.disabled=false;btn.textContent=`🚕 Взять заказ · ${fmt(r.price)} 🌸`;
-  haptic('light');
-}
-async function startTrip(){
-  if(!selRoute)return;
-  try{
-    const d=await apireq('/api/taxi/start',{method:'POST',body:JSON.stringify({user_id:UID,route_id:selRoute.id})});
-    taxi.active=true;taxi.notifiedDone=false;
-    taxi.startTs=Date.now();
-    taxi.durationMs=(d.duration_seconds||selRoute.duration_seconds||60)*1000;
-    taxi.trip=d.trip||selRoute;
-  }catch(e){
-    taxi.active=true;taxi.notifiedDone=false;
-    taxi.startTs=Date.now();
-    taxi.durationMs=(selRoute.duration_seconds||60)*1000;
-    taxi.trip=selRoute;
-  }
-  showTripUI();startTaxiRAF();
-  toast('🚕 Поехали!');haptic('medium');
-}
-function showTripUI(){
-  document.getElementById('v-routes').style.display='none';
-  document.getElementById('v-trip').style.display='block';
-  const t=taxi.trip||{};
-  document.getElementById('tr-name').textContent=t.name||t.route_name||'Маршрут';
-  document.getElementById('tr-dist').textContent=t.distance||'';
-  document.getElementById('tr-earn').textContent=fmt(t.price||0)+' 🌸';
-}
-function startTaxiRAF(){
-  cancelAnimationFrame(taxi.rafId);
-  taxi.rafId=null;
-  taxiTick();
-}
-function taxiTick(){
-  const now=Date.now();
-  const elapsed=now-taxi.startTs;
-  const dur=taxi.durationMs;
-  const prog=Math.min(1,elapsed/dur);
-  const remMs=Math.max(0,dur-elapsed);
-  const ring=document.getElementById('ring-fg');
-  if(ring) ring.style.strokeDashoffset=(351.86*(1-prog)).toFixed(3);
-  const remSec=Math.ceil(remMs/1000);
-  const timeEl=document.getElementById('tr-time');
-  if(timeEl) timeEl.textContent=Math.floor(remSec/60)+':'+String(remSec%60).padStart(2,'0');
-  if(prog>=1){
-    if(ring) ring.classList.add('done');
-    const finBtn=document.getElementById('finish-btn');
-    if(finBtn){finBtn.disabled=false;finBtn.textContent='✅ Завершить рейс!';finBtn.classList.add('ready');}
-    if(!taxi.notifiedDone){taxi.notifiedDone=true;haptic('success');toast('✅ Рейс завершён!');}
-    return; // stop RAF
-  }
-  taxi.rafId=requestAnimationFrame(taxiTick);
-}
-async function completeTrip(){
-  cancelAnimationFrame(taxi.rafId);taxi.rafId=null;
-  const t=taxi.trip||{};
-  taxi.active=false;taxi.notifiedDone=false;
-  try{
-    const d=await apireq('/api/taxi/complete',{method:'POST',body:JSON.stringify({user_id:UID})});
-    doFinishTaxi(d.earned||t.price||0,d.new_balance||(userData?.balance||0)+(t.price||0),d.exp_gain||50);
-  }catch(e){doFinishTaxi(t.price||250,(userData?.balance||0)+(t.price||250),50);}
-}
-function doFinishTaxi(earned,newBal,xp){
-  document.getElementById('v-trip').style.display='none';
-  document.getElementById('v-routes').style.display='block';
-  const ring=document.getElementById('ring-fg');
-  ring.classList.remove('done');ring.style.strokeDashoffset='351.86';
-  const fb=document.getElementById('finish-btn');
-  fb.classList.remove('ready');fb.disabled=true;fb.textContent='Поездка в процессе...';
-  syncBal(newBal);
-  toast(`💰 +${fmt(earned)} 🌸 · +${xp} XP`);haptic('success');spawnCoins();
-  selRoute=null;
-  const gb=document.getElementById('go-btn');gb.disabled=true;gb.textContent='Выберите маршрут';
-  document.getElementById('h-taxi-earn').textContent=fmt(earned)+' 🌸';
-  loadRoutes();
 }
 
 // ═══════════════════════════════
