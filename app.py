@@ -607,6 +607,69 @@ def coin_flip():
                     'bet':bet,'new_balance':res['balance'],**res})
 
 # ══════════════════════════════════════════════
+#  ВЫСОКАЯ КАРТА — vs Бот
+# ══════════════════════════════════════════════
+
+CARD_RANKS  = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']
+CARD_SUITS  = ['♠','♥','♦','♣']
+CARD_VALUES = {r: i for i, r in enumerate(CARD_RANKS)}
+
+@app.route('/api/highcard/play', methods=['POST'])
+@rate_limit(max_calls=10, window=10)
+def hc_play():
+    data    = request.json
+    user_id = data.get('user_id')
+    bet     = int(data.get('bet', 0))
+    if not user_id or bet < 100:
+        return jsonify({'error': 'bad data'}), 400
+
+    with get_db() as conn:
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'user not found'}), 404
+        if row['balance'] < bet:
+            return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
+
+        pr, ps = random.choice(CARD_RANKS), random.choice(CARD_SUITS)
+        br, bs = random.choice(CARD_RANKS), random.choice(CARD_SUITS)
+        pv, bv = CARD_VALUES[pr], CARD_VALUES[br]
+
+        # Переигрываем ничью
+        attempts = 0
+        while pv == bv and attempts < 10:
+            br, bs = random.choice(CARD_RANKS), random.choice(CARD_SUITS)
+            bv = CARD_VALUES[br]
+            attempts += 1
+
+        won  = pv > bv
+        draw = pv == bv
+        delta      = bet if won else (0 if draw else -bet)
+        win_amount = bet * 2 if won else (bet if draw else 0)
+        xp = min(5, max(1, bet // 500000))
+
+        if won:
+            conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
+        elif not draw:
+            conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
+
+        res = apply_game_result(conn, user_id, delta, xp,
+                                game='highcard', bet=bet,
+                                result='win' if won else ('draw' if draw else 'lose'),
+                                win_amount=win_amount)
+
+    return jsonify({
+        'ok': True,
+        'player_card': pr + ps, 'bot_card': br + bs,
+        'player_rank': pr, 'player_suit': ps,
+        'bot_rank': br,    'bot_suit': bs,
+        'won': won, 'draw': draw,
+        'win_amount': win_amount,
+        'bet': bet,
+        'new_balance': res['balance'],
+        **res
+    })
+
+# ══════════════════════════════════════════════
 #  LEADERBOARD (с кешем 30 сек)
 # ══════════════════════════════════════════════
 
