@@ -200,12 +200,34 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .act-btn.shimmer .ripple{animation:btnShimmer .7s ease forwards}
 @keyframes btnShimmer{to{transform:translateX(220%) skewX(-18deg)}}
 /* RESULT */
-.result-chip{padding:12px 18px;border-radius:14px;text-align:center;font-size:14px;font-weight:800;margin-bottom:16px;display:none}
-.result-chip.show{display:block;animation:chipPop .4s cubic-bezier(.34,1.56,.64,1)}
-@keyframes chipPop{from{opacity:0;transform:scale(.75) translateY(8px)}to{opacity:1;transform:none}}
-.result-chip.win{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.28);color:var(--green)}
-.result-chip.jackpot{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.32);color:var(--gold)}
-.result-chip.loss{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);color:var(--red)}
+.result-chip{display:none;margin-bottom:0}
+#game-toast{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-100px);
+  z-index:9999;pointer-events:none;
+  min-width:200px;max-width:300px;
+  padding:12px 24px;border-radius:50px;
+  text-align:center;font-size:15px;font-weight:800;
+  font-family:'Outfit',sans-serif;
+  white-space:nowrap;
+  opacity:0;
+  transition:transform .38s cubic-bezier(.34,1.4,.64,1),opacity .3s ease;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 8px 32px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+}
+#game-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#game-toast.t-win{background:rgba(16,185,129,.25);border:1.5px solid rgba(16,185,129,.55);color:#34d399;box-shadow:0 8px 32px rgba(16,185,129,.2),inset 0 1px 0 rgba(255,255,255,.1)}
+#game-toast.t-jackpot{background:rgba(251,191,36,.22);border:1.5px solid rgba(251,191,36,.6);color:#fbbf24;box-shadow:0 8px 32px rgba(251,191,36,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+#game-toast.t-loss{background:rgba(239,68,68,.18);border:1.5px solid rgba(239,68,68,.45);color:#f87171;box-shadow:0 8px 32px rgba(239,68,68,.18),inset 0 1px 0 rgba(255,255,255,.08)}
+#game-toast.t-draw{background:rgba(148,163,184,.14);border:1.5px solid rgba(148,163,184,.3);color:#94a3b8}
+/* Подсветка экрана */
+#screen-flash{
+  position:fixed;inset:0;z-index:9998;pointer-events:none;
+  opacity:0;transition:opacity .18s ease;
+}
+#screen-flash.fl-win{background:radial-gradient(ellipse at center,rgba(16,185,129,.18) 0%,transparent 70%)}
+#screen-flash.fl-loss{background:radial-gradient(ellipse at center,rgba(239,68,68,.16) 0%,transparent 70%)}
+#screen-flash.fl-jackpot{background:radial-gradient(ellipse at center,rgba(251,191,36,.2) 0%,transparent 70%)}
+#screen-flash.show{opacity:1}
 /* TAXI */
 .taxi-class-card{border-radius:var(--r2);padding:18px;margin-bottom:10px;background:var(--s2);border:1px solid rgba(249,115,22,.15);position:relative;overflow:hidden}
 .taxi-class-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.4),transparent)}
@@ -326,6 +348,8 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 </style>
 </head>
 <body>
+<div id="game-toast"></div>
+<div id="screen-flash"></div>
 <div id="bg-mesh">
   <div class="mesh-orb orb-a"></div>
   <div class="mesh-orb orb-b"></div>
@@ -821,6 +845,45 @@ function hideLdr(){
   setTimeout(()=>{l.style.display='none';document.getElementById('app').style.display='flex';},500);
 }
 
+
+// ═══════════════════════════════
+// GAME TOAST
+// ═══════════════════════════════
+let _toastTimer=null,_flashTimer=null;
+function showGameToast(txt,type,duration){
+  duration=duration||2600;
+  const el=document.getElementById('game-toast');
+  const fl=document.getElementById('screen-flash');
+  if(!el)return;
+  clearTimeout(_toastTimer);clearTimeout(_flashTimer);
+  // Toast
+  el.className='';
+  void el.offsetWidth; // reflow
+  el.textContent=txt;
+  el.classList.add('show','t-'+type);
+  // Подсветка
+  if(fl){
+    fl.className='';
+    void fl.offsetWidth;
+    fl.classList.add('fl-'+type,'show');
+    _flashTimer=setTimeout(()=>{
+      fl.style.transition='opacity .5s ease';
+      fl.classList.remove('show');
+      setTimeout(()=>{fl.className='';fl.style.transition='';},550);
+    },400);
+  }
+  // Скрываем toast
+  _toastTimer=setTimeout(()=>{
+    el.style.transition='transform .3s ease,opacity .3s ease';
+    el.style.transform='translateX(-50%) translateY(-80px)';
+    el.style.opacity='0';
+    setTimeout(()=>{
+      el.className='';
+      el.style.cssText='';
+    },320);
+  },duration);
+}
+
 // ═══════════════════════════════
 // HOME RENDER
 // ═══════════════════════════════
@@ -972,16 +1035,14 @@ async function spinSlots(){
     ['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.add('win-reel'));
     flash.classList.add('show');
     const isJackpot=apiData.win_type==='jackpot';
-    res.className=`result-chip ${isJackpot?'jackpot':'win'} show`;
-    res.textContent=`${isJackpot?'🎉 ДЖЕКПОТ!':'✅'} +${fmt(winAmt)} 🌸`;
+    showGameToast(isJackpot?`🎉 ДЖЕКПОТ! +${fmt(winAmt)} 🌸`:`✅ +${fmt(winAmt)} 🌸`,isJackpot?'jackpot':'win');
     spawnCoins();haptic('success');
     setTimeout(()=>flash.classList.remove('show'),1800);
   }else{
-    res.className='result-chip loss show';
-    res.textContent=`😔 −${fmt(bet)} 🌸`;
+    showGameToast(`😔 −${fmt(bet)} 🌸`,'loss');
     haptic('light');
   }
-  setTimeout(()=>{res.classList.remove('show');['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.remove('win-reel'));},3500);
+  setTimeout(()=>{['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.remove('win-reel'));},3500);
   shimmerBtn(btn);
   btn.disabled=false;
 }
@@ -1120,12 +1181,10 @@ async function playHighCard(){
     hcRenderCard('hc-bot-card',d.bot_card,botState);
     const res=document.getElementById('hc-res');
     let txt,cls;
-    if(d.draw){txt='🤝 Ничья — ставка возвращена';cls='';}
-    else if(d.won){txt=`✅ Победа! +${fmt(d.bet)} 🌸`;cls='win';spawnCoins();haptic('success');}
-    else{txt=`😔 Поражение −${fmt(d.bet)} 🌸`;cls='loss';haptic('light');}
-    res.className=`result-chip ${cls} show`;res.textContent=txt;
+    if(d.draw){showGameToast('🤝 Ничья — ставка возвращена','draw');}
+    else if(d.won){showGameToast(`✅ Победа! +${fmt(d.bet)} 🌸`,'win');spawnCoins();haptic('success');}
+    else{showGameToast(`😔 Поражение −${fmt(d.bet)} 🌸`,'loss');haptic('light');}
     if(d.new_balance!==undefined)syncBal(d.new_balance);
-    setTimeout(()=>res.classList.remove('show'),3500);
     btn.disabled=false;
   },500);
 }
@@ -1379,4 +1438,4 @@ window.addEventListener('load',()=>{movePill();init();});
 window.addEventListener('resize',movePill);
 </script>
 </body>
-  </html>
+          </html>
