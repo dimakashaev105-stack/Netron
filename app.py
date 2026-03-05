@@ -395,7 +395,7 @@ def slots_spin():
     win_amount = bet * mult_map.get(reels[0], 2) if won else 0
     win_type   = ('jackpot' if reels[0] in ['💎','🎰'] else 'pair') if won else None
     delta = win_amount - bet if won else -bet
-    xp    = max(1, bet // 1000)
+    xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
@@ -433,7 +433,7 @@ def roulette_spin():
     elif bet_type == 'number' and number is not None and int(number) == result_num: won,win_mult = True,36
     win_amount = bet * win_mult if won else 0
     delta = win_amount - bet if won else -bet
-    xp    = max(1, bet // 1000)
+    xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
@@ -486,6 +486,9 @@ def bj_deal():
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств'}), 400
+        # Списываем ставку сразу при раздаче
+        conn.execute('UPDATE users SET balance=balance-? WHERE user_id=?', (bet, user_id))
+        balance_after_deal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
 
     deck   = make_deck()
     player = [deck.pop(), deck.pop()]
@@ -498,7 +501,8 @@ def bj_deal():
         win_amount = int(bet * 2.5)
         with get_db() as conn:
             conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
-            res = apply_game_result(conn, user_id, int(bet*1.5), max(1,bet//1000),
+            # Ставка уже списана, возвращаем ставку + выигрыш (x1.5 от ставки)
+            res = apply_game_result(conn, user_id, win_amount, min(5, max(1, bet//500000)),
                                     game='blackjack', bet=bet, result='blackjack', win_amount=win_amount)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':player,'dealer':dealer,
@@ -528,7 +532,7 @@ def bj_hit():
     if pv > 21:
         with get_db() as conn:
             conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
-            res = apply_game_result(conn, user_id, -sess['bet'], max(1,sess['bet']//1000),
+            res = apply_game_result(conn, user_id, 0, min(5, max(1, sess['bet']//500000)),
                                     game='blackjack', bet=sess['bet'], result='bust', win_amount=0)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
@@ -555,16 +559,16 @@ def bj_stand():
     dv  = hand_value(sess['dealer'])
     bet = sess['bet']
 
-    if dv > 21 or pv > dv:  status,delta,win_amount = 'win',  bet,   bet*2
-    elif pv == dv:           status,delta,win_amount = 'push', 0,     bet
-    else:                    status,delta,win_amount = 'lose', -bet,  0
+    if dv > 21 or pv > dv:  status,delta,win_amount = 'win',  bet*2, bet*2
+    elif pv == dv:           status,delta,win_amount = 'push', bet,   bet
+    else:                    status,delta,win_amount = 'lose', 0,     0
 
     with get_db() as conn:
         if status == 'win':
             conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
         elif status == 'lose':
             conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
-        res = apply_game_result(conn, user_id, delta, max(1,bet//1000),
+        res = apply_game_result(conn, user_id, delta, min(5, max(1, bet//500000)),
                                 game='blackjack', bet=bet, result=status, win_amount=win_amount)
     del bj_sessions[user_id]
     return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
@@ -589,7 +593,7 @@ def coin_flip():
     won          = result == choice
     result_emoji = '👑' if result == 'heads' else '🦅'
     delta        = bet if won else -bet
-    xp           = max(1, bet // 1000)
+    xp           = min(5, max(1, bet // 500000))
     win_amount   = bet * 2 if won else 0
 
     with get_db() as conn:
