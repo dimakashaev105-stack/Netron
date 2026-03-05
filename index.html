@@ -305,6 +305,24 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 .hc-card.win-card{box-shadow:0 0 28px rgba(251,191,36,.6);border-color:#fbbf24 !important;transform:translateY(-6px) scale(1.05)}
 .hc-card.lose-card{opacity:.4;transform:scale(.9)}
 .hc-vs{font-size:20px;font-weight:900;color:var(--sub);flex-shrink:0;width:32px;text-align:center}
+
+/* ── СЛОТЫ 3D эффект ── */
+.reel{perspective:200px;perspective-origin:50% 50%}
+.reel-strip{transform-style:preserve-3d}
+/* Символы по позициям получают rotateX — имитация цилиндра */
+.reel-sym{height:90px;display:flex;align-items:center;justify-content:center;font-size:42px}
+/* Маски сверху/снизу — глубина */
+.reel::before{top:0;background:linear-gradient(to bottom,rgba(0,0,0,.92) 0%,rgba(0,0,0,.5) 45%,transparent 100%) !important}
+.reel::after{bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.5) 45%,transparent 100%) !important}
+/* XP попап */
+.xp-popup{position:fixed;pointer-events:none;z-index:9999;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:15px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);animation:xpFly 1.4s cubic-bezier(.2,.8,.4,1) forwards}
+@keyframes xpFly{0%{opacity:0;transform:translateY(0) scale(.7)}15%{opacity:1;transform:translateY(-8px) scale(1.15)}80%{opacity:1;transform:translateY(-52px) scale(1)}100%{opacity:0;transform:translateY(-70px) scale(.85)}}
+/* Авто-спин */
+.auto-toggle{display:flex;align-items:center;gap:7px;padding:5px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);transition:all .2s}
+.auto-toggle.on{background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.4);color:#a78bfa}
+.auto-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.auto-toggle.on .auto-dot{box-shadow:0 0 6px currentColor}
+.machine-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -380,7 +398,10 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
       </div>
       <div style="padding:12px 14px 100px">
         <div class="machine ci ci-1">
-          <div class="machine-title">✦ SLOT MACHINE ✦</div>
+          <div class="machine-hdr">
+            <div class="machine-title" style="margin-bottom:0">✦ SLOT MACHINE ✦</div>
+            <div class="auto-toggle" id="auto-toggle" onclick="toggleAutoSpin()"><div class="auto-dot"></div><span id="auto-lbl">АВТО</span></div>
+          </div>
           <div class="reels">
             <div class="reel" id="r1"><div class="reel-strip" id="rs1"><div class="reel-sym">🍒</div></div></div>
             <div class="reel" id="r2"><div class="reel-strip" id="rs2"><div class="reel-sym">🍋</div></div></div>
@@ -882,6 +903,28 @@ function spinDrum(idx, finalSym, totalTime){
   });
 }
 
+let autoSpinOn=false,autoSpinTimer=null;
+function toggleAutoSpin(){
+  autoSpinOn=!autoSpinOn;
+  document.getElementById('auto-toggle').classList.toggle('on',autoSpinOn);
+  document.getElementById('auto-lbl').textContent=autoSpinOn?'СТОП':'АВТО';
+  haptic('medium');
+  if(autoSpinOn)runAutoSpin();
+  else{clearTimeout(autoSpinTimer);autoSpinTimer=null;}
+}
+function runAutoSpin(){
+  if(!autoSpinOn)return;
+  spinSlots().then(()=>{if(autoSpinOn)autoSpinTimer=setTimeout(runAutoSpin,250);});
+}
+function showXpAnim(xp){
+  if(!xp||xp<=0)return;
+  const popup=document.createElement('div');
+  popup.className='xp-popup';popup.textContent='+'+xp+' XP';
+  popup.style.left=(window.innerWidth/2-30)+'px';
+  popup.style.top=(window.innerHeight*0.55)+'px';
+  document.body.appendChild(popup);
+  setTimeout(()=>popup.remove(),1500);
+}
 async function spinSlots(){
   const btn=document.getElementById('slot-spin-btn');
   if(btn.disabled)return;
@@ -908,7 +951,7 @@ async function spinSlots(){
     apiData=await apireq('/api/slots/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
   }catch(err){
     toast('❌ '+(err.message||'Ошибка сервера'));
-    btn.disabled=false;return;
+    btn.disabled=false;if(autoSpinOn)toggleAutoSpin();return;
   }
 
   // 3. Анимация барабанов с реальными символами
@@ -920,6 +963,7 @@ async function spinSlots(){
 
   // 4. Синхронизируем баланс
   syncBal(apiData.new_balance);
+  showXpAnim(apiData.xp||1);
 
   const won=apiData.won;
   const winAmt=apiData.win_amount||apiData.win||0;
@@ -1043,7 +1087,7 @@ const DECK=['2','3','4','5','6','7','8','9','10','J','Q','K','A'],STS=['♠','�
 // ═══════════════════════════════
 // ВЫСОКАЯ КАРТА
 // ═══════════════════════════════
-const HC_SUITS_RED = ['♥','♦'];
+const HC_SUITS_RED=['♥','♦'];
 function hcParseCard(str){
   for(const s of ['♠','♥','♦','♣']){if(str.endsWith(s))return{rank:str.slice(0,-s.length),suit:s};}
   return{rank:str.slice(0,-1),suit:str.slice(-1)};
@@ -1068,20 +1112,17 @@ async function playHighCard(){
   let d;
   try{
     d=await apireq('/api/highcard/play',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.hc})});
-  }catch(e){
-    toast('❌ '+(e.message||'Ошибка сервера'));
-    btn.disabled=false;return;
-  }
+  }catch(e){toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;return;}
   setTimeout(()=>{
-    const myState =d.draw?'show':d.won?'win':'lose';
+    const myState=d.draw?'show':d.won?'win':'lose';
     const botState=d.draw?'show':d.won?'lose':'win';
-    hcRenderCard('hc-my-card', d.player_card,myState);
-    hcRenderCard('hc-bot-card',d.bot_card,   botState);
+    hcRenderCard('hc-my-card',d.player_card,myState);
+    hcRenderCard('hc-bot-card',d.bot_card,botState);
     const res=document.getElementById('hc-res');
     let txt,cls;
-    if(d.draw)     {txt=`🤝 Ничья — ставка возвращена`;cls='';}
-    else if(d.won) {txt=`✅ Победа! +${fmt(d.bet)} 🌸`;cls='win';spawnCoins();haptic('success');}
-    else           {txt=`😔 Поражение −${fmt(d.bet)} 🌸`;cls='loss';haptic('light');}
+    if(d.draw){txt='🤝 Ничья — ставка возвращена';cls='';}
+    else if(d.won){txt=`✅ Победа! +${fmt(d.bet)} 🌸`;cls='win';spawnCoins();haptic('success');}
+    else{txt=`😔 Поражение −${fmt(d.bet)} 🌸`;cls='loss';haptic('light');}
     res.className=`result-chip ${cls} show`;res.textContent=txt;
     if(d.new_balance!==undefined)syncBal(d.new_balance);
     setTimeout(()=>res.classList.remove('show'),3500);
@@ -1338,4 +1379,4 @@ window.addEventListener('load',()=>{movePill();init();});
 window.addEventListener('resize',movePill);
 </script>
 </body>
-          </html>
+  </html>
