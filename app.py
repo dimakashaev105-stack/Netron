@@ -248,28 +248,6 @@ def send_level_up_notify(user_id, new_level):
     except Exception as e:
         print(f"Level up notify error: {e}")
 
-def ensure_user(conn, user_id):
-    """Создаёт пользователя если не существует."""
-    row = conn.execute('SELECT user_id FROM users WHERE user_id=?', (user_id,)).fetchone()
-    if row:
-        return True
-    try:
-        ref = 'ref' + str(user_id)
-        conn.execute(
-            '''INSERT OR IGNORE INTO users
-               (user_id, username, first_name, balance, referral_code,
-                video_cards, deposit, last_mining_collect, click_streak,
-                total_clicks, bank_deposit, daily_streak, last_daily_bonus,
-                last_interest_calc, business_id, business_progress,
-                business_start_time, business_raw_materials, clan_id)
-               VALUES (?,?,?,?,?,0,0,0,0,0,0,0,0,?,0,0,0,0,0)''',
-            (user_id, None, 'Игрок', 1000, ref, int(time.time()))
-        )
-        return True
-    except Exception as e:
-        print(f"⚠️ ensure_user error: {e}")
-        return False
-
 def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win_amount=0):
     xp = max(1, xp)
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
@@ -317,30 +295,7 @@ def get_user(user_id):
                       last_activity,total_clicks,daily_streak
                FROM users WHERE user_id=?''', (user_id,)
         ).fetchone()
-        # Если пользователь не найден — создаём с начальным балансом 1000
-        if not row:
-            try:
-                import random, string
-                ref = 'ref' + str(user_id)
-                conn.execute(
-                    '''INSERT OR IGNORE INTO users
-                       (user_id, username, first_name, balance, referral_code,
-                        video_cards, deposit, last_mining_collect, click_streak,
-                        total_clicks, bank_deposit, daily_streak, last_daily_bonus,
-                        last_interest_calc, business_id, business_progress,
-                        business_start_time, business_raw_materials, clan_id)
-                       VALUES (?,?,?,?,?,0,0,0,0,0,0,0,0,?,0,0,0,0,0)''',
-                    (user_id, None, 'Игрок', 1000, ref, int(time.time()))
-                )
-                row = conn.execute(
-                    '''SELECT user_id,username,first_name,custom_name,balance,experience,
-                              games_won,games_lost,total_won_amount,total_lost_amount,
-                              last_activity,total_clicks,daily_streak
-                       FROM users WHERE user_id=?''', (user_id,)
-                ).fetchone()
-            except Exception as e:
-                print(f"⚠️ Auto-create user error: {e}")
-                return jsonify({'error': 'not found'}), 404
+        if not row: return jsonify({'error': 'not found'}), 404
         d = dict(row)
         lv = get_level_from_exp(d.get('experience', 0))
         emoji, tname, tcolor = build_user_title(lv)
@@ -443,7 +398,6 @@ def slots_spin():
     xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
-        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
@@ -482,7 +436,6 @@ def roulette_spin():
     xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
-        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
@@ -530,13 +483,9 @@ def bj_deal():
     if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
 
     with get_db() as conn:
-        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств'}), 400
-        # Списываем ставку сразу при раздаче
-        conn.execute('UPDATE users SET balance=balance-? WHERE user_id=?', (bet, user_id))
-        balance_after_deal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
 
     deck   = make_deck()
     player = [deck.pop(), deck.pop()]
@@ -549,8 +498,7 @@ def bj_deal():
         win_amount = int(bet * 2.5)
         with get_db() as conn:
             conn.execute('UPDATE users SET games_won=games_won+1 WHERE user_id=?', (user_id,))
-            # Ставка уже списана, возвращаем ставку + выигрыш (x1.5 от ставки)
-            res = apply_game_result(conn, user_id, win_amount, min(5, max(1, bet//500000)),
+            res = apply_game_result(conn, user_id, int(bet*1.5), min(5, max(1, bet//500000)),
                                     game='blackjack', bet=bet, result='blackjack', win_amount=win_amount)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':player,'dealer':dealer,
@@ -580,7 +528,7 @@ def bj_hit():
     if pv > 21:
         with get_db() as conn:
             conn.execute('UPDATE users SET games_lost=games_lost+1 WHERE user_id=?', (user_id,))
-            res = apply_game_result(conn, user_id, 0, min(5, max(1, sess['bet']//500000)),
+            res = apply_game_result(conn, user_id, -sess['bet'], min(5, max(1, sess['bet']//500000)),
                                     game='blackjack', bet=sess['bet'], result='bust', win_amount=0)
         del bj_sessions[user_id]
         return jsonify({'ok':True,'player':sess['player'],'dealer':sess['dealer'],
@@ -607,9 +555,9 @@ def bj_stand():
     dv  = hand_value(sess['dealer'])
     bet = sess['bet']
 
-    if dv > 21 or pv > dv:  status,delta,win_amount = 'win',  bet*2, bet*2
-    elif pv == dv:           status,delta,win_amount = 'push', bet,   bet
-    else:                    status,delta,win_amount = 'lose', 0,     0
+    if dv > 21 or pv > dv:  status,delta,win_amount = 'win',  bet,   bet*2
+    elif pv == dv:           status,delta,win_amount = 'push', 0,     bet
+    else:                    status,delta,win_amount = 'lose', -bet,  0
 
     with get_db() as conn:
         if status == 'win':
@@ -645,7 +593,6 @@ def coin_flip():
     win_amount   = bet * 2 if won else 0
 
     with get_db() as conn:
-        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
