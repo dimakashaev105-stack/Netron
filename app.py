@@ -248,6 +248,28 @@ def send_level_up_notify(user_id, new_level):
     except Exception as e:
         print(f"Level up notify error: {e}")
 
+def ensure_user(conn, user_id):
+    """Создаёт пользователя если не существует."""
+    row = conn.execute('SELECT user_id FROM users WHERE user_id=?', (user_id,)).fetchone()
+    if row:
+        return True
+    try:
+        ref = 'ref' + str(user_id)
+        conn.execute(
+            '''INSERT OR IGNORE INTO users
+               (user_id, username, first_name, balance, referral_code,
+                video_cards, deposit, last_mining_collect, click_streak,
+                total_clicks, bank_deposit, daily_streak, last_daily_bonus,
+                last_interest_calc, business_id, business_progress,
+                business_start_time, business_raw_materials, clan_id)
+               VALUES (?,?,?,?,?,0,0,0,0,0,0,0,0,?,0,0,0,0,0)''',
+            (user_id, None, 'Игрок', 1000, ref, int(time.time()))
+        )
+        return True
+    except Exception as e:
+        print(f"⚠️ ensure_user error: {e}")
+        return False
+
 def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win_amount=0):
     xp = max(1, xp)
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
@@ -295,7 +317,30 @@ def get_user(user_id):
                       last_activity,total_clicks,daily_streak
                FROM users WHERE user_id=?''', (user_id,)
         ).fetchone()
-        if not row: return jsonify({'error': 'not found'}), 404
+        # Если пользователь не найден — создаём с начальным балансом 1000
+        if not row:
+            try:
+                import random, string
+                ref = 'ref' + str(user_id)
+                conn.execute(
+                    '''INSERT OR IGNORE INTO users
+                       (user_id, username, first_name, balance, referral_code,
+                        video_cards, deposit, last_mining_collect, click_streak,
+                        total_clicks, bank_deposit, daily_streak, last_daily_bonus,
+                        last_interest_calc, business_id, business_progress,
+                        business_start_time, business_raw_materials, clan_id)
+                       VALUES (?,?,?,?,?,0,0,0,0,0,0,0,0,?,0,0,0,0,0)''',
+                    (user_id, None, 'Игрок', 1000, ref, int(time.time()))
+                )
+                row = conn.execute(
+                    '''SELECT user_id,username,first_name,custom_name,balance,experience,
+                              games_won,games_lost,total_won_amount,total_lost_amount,
+                              last_activity,total_clicks,daily_streak
+                       FROM users WHERE user_id=?''', (user_id,)
+                ).fetchone()
+            except Exception as e:
+                print(f"⚠️ Auto-create user error: {e}")
+                return jsonify({'error': 'not found'}), 404
         d = dict(row)
         lv = get_level_from_exp(d.get('experience', 0))
         emoji, tname, tcolor = build_user_title(lv)
@@ -398,6 +443,7 @@ def slots_spin():
     xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
+        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
@@ -436,6 +482,7 @@ def roulette_spin():
     xp    = min(5, max(1, bet // 500000))
 
     with get_db() as conn:
+        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
@@ -483,6 +530,7 @@ def bj_deal():
     if bet < 100: return jsonify({'error': 'Минимальная ставка 100'}), 400
 
     with get_db() as conn:
+        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств'}), 400
@@ -597,6 +645,7 @@ def coin_flip():
     win_amount   = bet * 2 if won else 0
 
     with get_db() as conn:
+        ensure_user(conn, user_id)
         row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
         if not row: return jsonify({'error': 'user not found'}), 404
         if row['balance'] < bet: return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
