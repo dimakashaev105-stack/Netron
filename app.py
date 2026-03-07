@@ -15,7 +15,9 @@ from collections import defaultdict
 
 app = Flask(__name__)
 
-BOT_TOKEN = "7885520897:AAFd-yM3VjOLDCYVqwVdobKJ_K0LWOhh8Xg"
+from dotenv import load_dotenv
+load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_NAME   = "game.db"
 
 # ══════════════════════════════════════════════
