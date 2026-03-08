@@ -166,6 +166,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 
 .crash-hist-item{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
 .crash-hist-item.hi{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981}
+.crash-admin-hint{display:none;margin-bottom:8px;padding:8px 14px;border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:.05em}
 .crash-hist-item.lo{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444}
 .crash-hist-item.mid{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
 
@@ -727,6 +728,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
           </div>
         </div>
         <div class="crash-history" id="crash-history"></div>
+        <div class="crash-admin-hint" id="crash-admin-hint">🔴 КРАШ: —</div>
         <div class="crash-players card ci ci-2" style="padding:12px 12px 8px">
           <div class="crash-players-hdr">
             <div class="crash-players-title">Игроки раунда</div>
@@ -2182,6 +2184,16 @@ function handleCrashState(d){
   }
   if(d.history) renderCrashHistory(d.history);
   if(d.players !== undefined) renderCrashPlayers(d.players);
+  // Админская плашка с будущим краш-значением
+  const adminHint = document.getElementById('crash-admin-hint');
+  if(adminHint){
+    if(d.crash_at !== null && d.crash_at !== undefined && d.phase !== 'crashed'){
+      adminHint.style.display = 'block';
+      adminHint.textContent = `🔴 КРАШ: ${parseFloat(d.crash_at).toFixed(2)}×`;
+    } else {
+      adminHint.style.display = 'none';
+    }
+  }
 }
 
 function handleCrashCrashed(crashMult){
