@@ -294,7 +294,7 @@ def get_user(user_id):
         row = conn.execute(
             '''SELECT user_id,username,first_name,custom_name,balance,experience,
                       games_won,games_lost,total_won_amount,total_lost_amount,
-                      last_activity,total_clicks,daily_streak
+                      last_activity,total_clicks,daily_streak,last_daily_bonus
                FROM users WHERE user_id=?''', (user_id,)
         ).fetchone()
         if not row: return jsonify({'error': 'not found'}), 404
@@ -821,3 +821,184 @@ if __name__ == '__main__':
     setup_webhook()
     print("✅ Flask запущен (webhook mode)")
     app.run(host='0.0.0.0', port=3001, debug=False)
+
+
+# ══════════════════════════════════════════════
+#  BONUS
+# ══════════════════════════════════════════════
+
+@app.route('/api/bonus/claim', methods=['POST'])
+def claim_bonus():
+    data = request.get_json() or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'user_id required'}), 400
+    with get_db() as conn:
+        row = conn.execute('SELECT last_daily_bonus, experience FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'not found'}), 404
+        last_bonus = row['last_daily_bonus'] or 0
+        current_time = time.time()
+        cooldown = 900  # 15 min
+        if last_bonus > 0 and (current_time - last_bonus) < cooldown:
+            time_left = int(cooldown - (current_time - last_bonus))
+            return jsonify({'error': 'Too soon', 'time_left': time_left}), 429
+        lv = get_level_from_exp(row['experience'] or 0)
+        bonus_amount = int(5000 * (1 + (lv - 1) * 0.05))
+        bonus_xp = 500
+        conn.execute('UPDATE users SET balance=balance+?, experience=experience+?, last_daily_bonus=? WHERE user_id=?',
+                     (bonus_amount, bonus_xp, current_time, user_id))
+        new_row = conn.execute('SELECT balance, experience FROM users WHERE user_id=?', (user_id,)).fetchone()
+        new_level = get_level_from_exp(new_row['experience'])
+        emoji, tname, tcolor = build_user_title(new_level)
+        return jsonify({
+            'success': True,
+            'bonus_amount': bonus_amount,
+            'bonus_xp': bonus_xp,
+            'new_balance': new_row['balance'],
+            'new_level': new_level,
+            'title_emoji': emoji,
+            'title_name': tname,
+            'last_daily_bonus': current_time
+        })
+
+
+# ══════════════════════════════════════════════
+#  CRASH GAME
+# ══════════════════════════════════════════════
+
+import threading as _threading
+import random as _random
+
+_crash_state = {
+    'phase': 'betting',
+    'game_id': 0,
+    'start_time': 0.0,
+    'crash_at': 2.0,
+    'bets': {},
+    'cashed_out': {},
+    'history': [],
+    'betting_ends': 0.0,
+    'lock': _threading.Lock(),
+}
+
+def _crash_gen_point():
+    r = _random.random()
+    if r < 0.05:
+        return 1.0
+    return round(min(0.95 / (1 - r), 100.0), 2)
+
+def _crash_current_mult():
+    if _crash_state['phase'] != 'flying':
+        return 1.0
+    elapsed = time.time() - _crash_state['start_time']
+    return round(min(pow(2.718281828, 0.06 * elapsed), _crash_state['crash_at']), 2)
+
+def _crash_loop():
+    import time as _t
+    while True:
+        with _crash_state['lock']:
+            _crash_state['phase'] = 'betting'
+            _crash_state['game_id'] += 1
+            _crash_state['bets'] = {}
+            _crash_state['cashed_out'] = {}
+            _crash_state['crash_at'] = _crash_gen_point()
+            _crash_state['betting_ends'] = _t.time() + 8
+        _t.sleep(8)
+
+        with _crash_state['lock']:
+            _crash_state['phase'] = 'flying'
+            _crash_state['start_time'] = _t.time()
+
+        crash_at = _crash_state['crash_at']
+        while True:
+            mult = _crash_current_mult()
+            if mult >= crash_at:
+                break
+            _t.sleep(0.1)
+
+        with _crash_state['lock']:
+            _crash_state['phase'] = 'crashed'
+            final_mult = _crash_state['crash_at']
+            _crash_state['history'].insert(0, final_mult)
+            _crash_state['history'] = _crash_state['history'][:20]
+
+        _t.sleep(3)
+
+_threading.Thread(target=_crash_loop, daemon=True, name='CrashLoop').start()
+
+
+@app.route('/api/crash/state')
+def crash_state():
+    user_id = request.args.get('user_id')
+    with _crash_state['lock']:
+        phase = _crash_state['phase']
+        mult = _crash_current_mult() if phase == 'flying' else 1.0
+        elapsed = (time.time() - _crash_state['start_time']) if phase == 'flying' else 0
+        has_bet = str(user_id) in _crash_state['bets'] if user_id else False
+        cashed = str(user_id) in _crash_state['cashed_out'] if user_id else False
+        return jsonify({
+            'phase': phase,
+            'game_id': _crash_state['game_id'],
+            'multiplier': mult,
+            'elapsed': round(elapsed, 2),
+            'crash_at': _crash_state['crash_at'] if phase == 'crashed' else None,
+            'last_crash': _crash_state['history'][0] if _crash_state['history'] else None,
+            'history': _crash_state['history'][:10],
+            'has_bet': has_bet,
+            'cashed_out': cashed,
+            'time_to_start': max(0, round(_crash_state['betting_ends'] - time.time(), 1)) if phase == 'betting' else 0,
+        })
+
+
+@app.route('/api/crash/bet', methods=['POST'])
+def crash_bet():
+    data = request.get_json() or {}
+    user_id = str(data.get('user_id', ''))
+    bet = int(data.get('bet', 0))
+    if not user_id or bet < 100:
+        return jsonify({'error': 'invalid params'}), 400
+    with _crash_state['lock']:
+        if _crash_state['phase'] != 'betting':
+            return jsonify({'error': 'Ставки закрыты'}), 400
+        if user_id in _crash_state['bets']:
+            return jsonify({'error': 'Ставка уже сделана'}), 400
+        with get_db() as conn:
+            row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+            if not row or row['balance'] < bet:
+                return jsonify({'error': 'Недостаточно средств'}), 400
+            conn.execute('UPDATE users SET balance=balance-? WHERE user_id=?', (bet, user_id))
+            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
+        _crash_state['bets'][user_id] = bet
+    return jsonify({'success': True, 'new_balance': new_bal, 'bet': bet})
+
+
+@app.route('/api/crash/cashout', methods=['POST'])
+def crash_cashout():
+    data = request.get_json() or {}
+    user_id = str(data.get('user_id', ''))
+    if not user_id:
+        return jsonify({'error': 'user_id required'}), 400
+    with _crash_state['lock']:
+        if _crash_state['phase'] != 'flying':
+            return jsonify({'error': 'Игра не в полёте'}), 400
+        if user_id not in _crash_state['bets']:
+            return jsonify({'error': 'Нет ставки'}), 400
+        if user_id in _crash_state['cashed_out']:
+            return jsonify({'error': 'Уже выведено'}), 400
+        mult = _crash_current_mult()
+        bet = _crash_state['bets'][user_id]
+        win_amount = int(bet * mult)
+        xp_gain = max(10, int(win_amount * 0.01))
+        _crash_state['cashed_out'][user_id] = mult
+        with get_db() as conn:
+            conn.execute(
+                'UPDATE users SET balance=balance+?, experience=experience+?, games_won=games_won+1, total_won_amount=total_won_amount+? WHERE user_id=?',
+                (win_amount, xp_gain, win_amount, user_id)
+            )
+            conn.execute(
+                'INSERT INTO game_history (user_id,game,bet,result,win_amount) VALUES (?,?,?,?,?)',
+                (user_id, 'crash', bet, 'win', win_amount)
+            )
+            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
+    return jsonify({'success': True, 'multiplier': mult, 'win_amount': win_amount, 'new_balance': new_bal})
