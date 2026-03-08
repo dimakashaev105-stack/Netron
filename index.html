@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>GameZone</title>
+<title>Fectiz Game</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -104,6 +104,35 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .t-taxi{background:linear-gradient(145deg,rgba(249,115,22,.1),rgba(249,115,22,.04));border:1px solid rgba(249,115,22,.22)}
 .game-tile::before{content:'';position:absolute;top:-24px;right:-24px;width:96px;height:96px;border-radius:50%;opacity:.22;filter:blur(16px)}
 .t-slots::before{background:#f59e0b}.t-roulette::before{background:#ef4444}.t-hc::before{background:#a855f7}.t-coin::before{background:#3b82f6}.t-taxi::before{background:#f97316}
+.t-crash{background:linear-gradient(145deg,rgba(16,185,129,.1),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.22)}
+.t-crash::before{background:#10b981}
+.t-crash .gt-sub{color:#10b981}
+/* CRASH GAME */
+.crash-arena{background:linear-gradient(160deg,#050f0a,#071a10);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:0;margin-bottom:12px;position:relative;overflow:hidden}
+.crash-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.5),transparent)}
+.crash-canvas-wrap{position:relative;height:200px;width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+.crash-mult{font-size:56px;font-weight:900;font-family:'JetBrains Mono',monospace;letter-spacing:-2px;color:#10b981;text-shadow:0 0 30px rgba(16,185,129,.6);transition:color .3s;line-height:1}
+.crash-mult.crashed{color:#ef4444;text-shadow:0 0 30px rgba(239,68,68,.6);animation:crashShake .35s ease}
+.crash-mult.cashed{color:#fbbf24;text-shadow:0 0 30px rgba(251,191,36,.6)}
+.crash-status{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase}
+.crash-rocket{font-size:40px;line-height:1;filter:drop-shadow(0 0 10px rgba(16,185,129,.8))}
+@keyframes rocketFly{0%,100%{transform:translateY(0) rotate(-45deg)}50%{transform:translateY(-10px) rotate(-45deg)}}
+@keyframes rocketCrash{0%{transform:rotate(-45deg)}100%{transform:rotate(90deg) scale(1.3)}}
+.crash-rocket.flying{animation:rocketFly 1.2s ease-in-out infinite}
+.crash-rocket.crashed{animation:rocketCrash .3s ease forwards}
+@keyframes crashShake{0%,100%{transform:scale(1)}25%{transform:scale(1.08)}75%{transform:scale(0.95)}}
+.crash-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.crash-cashout-btn{height:54px;border-radius:18px;border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .18s cubic-bezier(.34,1.56,.64,1);background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 6px 28px rgba(16,185,129,.3)}
+.crash-cashout-btn:active{transform:scale(.96)}
+.crash-cashout-btn:disabled{opacity:.35;cursor:not-allowed;background:rgba(255,255,255,.08);box-shadow:none}
+@keyframes cashoutPulse{0%,100%{box-shadow:0 6px 28px rgba(16,185,129,.3)}50%{box-shadow:0 6px 40px rgba(16,185,129,.6)}}
+.crash-cashout-btn.active-game{animation:cashoutPulse 1s ease infinite}
+.crash-history{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.crash-hist-item{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.crash-hist-item.hi{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981}
+.crash-hist-item.lo{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444}
+.crash-hist-item.mid{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
+
 .gt-ico{font-size:32px;margin-bottom:12px;line-height:1;display:block}
 .gt-name{font-size:13.5px;font-weight:800;color:var(--text)}
 .gt-sub{font-size:10.5px;margin-top:3px;font-weight:500;opacity:.7}
@@ -312,6 +341,46 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 @keyframes coinFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--cx),var(--cy)) scale(0) rotate(180deg);opacity:0}}
 .coin-particle{position:fixed;pointer-events:none;z-index:9999;font-size:16px;animation:coinFly .8s cubic-bezier(.22,1,.36,1) forwards}
 
+/* BONUS BLOCK */
+.bonus-block{border-radius:var(--r2);padding:14px 16px;background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(245,158,11,.04));border:1px solid rgba(251,191,36,.28);position:relative;overflow:hidden;margin-bottom:0}
+.bonus-block::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent)}
+.bonus-inner{display:flex;align-items:center;gap:12px}
+.bonus-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.bonus-ico{font-size:32px;line-height:1;flex-shrink:0;animation:bonusIcoPulse 2.5s ease-in-out infinite}
+@keyframes bonusIcoPulse{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.15) rotate(-8deg)}60%{transform:scale(1.1) rotate(6deg)}}
+.bonus-title{font-size:13px;font-weight:800;color:var(--text)}
+.bonus-sub{font-size:11px;color:var(--gold);font-weight:600;margin-top:2px;font-family:'JetBrains Mono',monospace}
+.bonus-claim-btn{padding:10px 18px;border-radius:14px;border:none;background:linear-gradient(135deg,#d97706,#fbbf24);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;flex-shrink:0;box-shadow:0 4px 16px rgba(251,191,36,.3)}
+.bonus-claim-btn:active{transform:scale(.92)}
+.bonus-claim-btn:disabled{background:rgba(255,255,255,.08);box-shadow:none;color:var(--sub);cursor:not-allowed}
+.bonus-timer-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.bonus-timer-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.bonus-timer-bar{height:100%;background:linear-gradient(90deg,#d97706,#fbbf24);border-radius:3px;transition:width 1s linear}
+.bonus-timer-lbl{font-size:11px;font-weight:700;color:var(--gold);font-family:'JetBrains Mono',monospace;min-width:38px;text-align:right}
+/* LEVEL UP OVERLAY */
+#levelup-overlay{position:fixed;inset:0;z-index:10001;pointer-events:none;display:flex;align-items:center;justify-content:center}
+#levelup-overlay.show{pointer-events:all}
+.lu-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.75);opacity:0;transition:opacity .4s ease}
+#levelup-overlay.show .lu-backdrop{opacity:1}
+.lu-card{position:relative;z-index:1;background:linear-gradient(160deg,#1a1330,#0f0d1a);border:1.5px solid rgba(124,92,252,.45);border-radius:28px;padding:32px 28px 28px;text-align:center;max-width:310px;width:90%;transform:scale(.5) translateY(60px);opacity:0;transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .4s ease}
+#levelup-overlay.show .lu-card{transform:scale(1) translateY(0);opacity:1}
+.lu-stars{position:absolute;inset:0;border-radius:28px;overflow:hidden;pointer-events:none}
+.lu-star{position:absolute;font-size:14px;animation:luStarFly 2.5s ease-in-out infinite}
+@keyframes luStarFly{0%{transform:translate(0,0) scale(0) rotate(0);opacity:0}20%{opacity:1;transform:translate(var(--sx),var(--sy)) scale(1) rotate(180deg)}80%{opacity:.5}100%{transform:translate(calc(var(--sx)*2),calc(var(--sy)*2 - 80px)) scale(0) rotate(360deg);opacity:0}}
+.lu-badge{display:inline-flex;align-items:center;justify-content:center;width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,rgba(124,92,252,.3),rgba(167,139,250,.15));border:2px solid rgba(124,92,252,.5);font-size:48px;margin:0 auto 16px;position:relative;box-shadow:0 0 40px rgba(124,92,252,.4)}
+.lu-badge::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(124,92,252,.25);animation:luBadgePulse 1.5s ease-in-out infinite}
+@keyframes luBadgePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.5}}
+.lu-title{font-size:13px;font-weight:800;letter-spacing:.2em;color:var(--acc3);text-transform:uppercase;margin-bottom:8px}
+.lu-level{font-size:52px;font-weight:900;letter-spacing:-3px;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,#a78bfa,#7c5cfc,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:4px}
+.lu-rank-name{font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px}
+.lu-rewards{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.lu-reward{padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;color:var(--text2)}
+.lu-reward span{color:#fbbf24}
+.lu-close-btn{width:100%;height:46px;border-radius:14px;border:none;background:linear-gradient(135deg,#7c5cfc,#a78bfa);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:transform .2s;box-shadow:0 6px 24px rgba(124,92,252,.35)}
+.lu-close-btn:active{transform:scale(.96)}
+.lu-confetti-piece{position:fixed;pointer-events:none;z-index:10002;font-size:18px;animation:luConfetti 1.8s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes luConfetti{0%{transform:translate(0,0) scale(0) rotate(0);opacity:1}100%{transform:translate(var(--cx),var(--cy)) scale(1) rotate(var(--cr));opacity:0}}
+
 .hc-arena{background:linear-gradient(160deg,#0f0a1e,#180f2e);border:1px solid rgba(168,85,247,.2);border-radius:var(--r2);padding:20px 16px;margin-bottom:12px;position:relative;overflow:hidden}
 .hc-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(168,85,247,.5),transparent)}
 .hc-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -357,7 +426,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 </div>
 <div id="loader">
   <div class="loader-ico">🎮</div>
-  <div class="loader-txt">Загрузка GameZone</div>
+  <div class="loader-txt">Загрузка Fectiz Game</div>
   <div class="loader-bar"><div class="loader-bar-fill"></div></div>
 </div>
 <div id="app" style="display:none">
@@ -397,18 +466,38 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <span class="online-txt">Онлайн: <b id="online-count">—</b> игроков</span>
         <span class="dev-credit">dev: <a href="https://t.me/Cary_Python" target="_blank">@Cary_Python</a></span>
       </div>
-      <div class="sec-lbl ci ci-3">🎮 Игры</div>
-      <div class="game-grid ci ci-4">
-        <div class="game-tile t-slots" onclick="goGame('slots')"><span class="gt-ico">🎰</span><div class="gt-name">Слоты</div><div class="gt-sub">до ×25</div></div>
-        <div class="game-tile t-roulette" onclick="goGame('roulette')"><span class="gt-ico">🎡</span><div class="gt-name">Рулетка</div><div class="gt-sub">×2 / ×14 / ×35</div></div>
-        <div class="game-tile t-hc" onclick="goGame('hc')"><span class="gt-ico">🎴</span><div class="gt-name">Высокая карта</div><div class="gt-sub">vs Бот · ×2</div></div>
-        <div class="game-tile t-coin" onclick="goGame('coin')"><span class="gt-ico">🪙</span><div class="gt-name">Монетка</div><div class="gt-sub">50/50 · ×2</div></div>
+
+      <!-- BONUS BLOCK -->
+      <div class="bonus-block ci ci-5" id="bonus-block">
+        <div class="bonus-inner">
+          <div class="bonus-left">
+            <div class="bonus-ico" id="bonus-ico">🎁</div>
+            <div>
+              <div class="bonus-title">Ежедневный бонус</div>
+              <div class="bonus-sub" id="bonus-sub">+5 000 🌸 · +500 XP</div>
+            </div>
+          </div>
+          <button class="bonus-claim-btn" id="bonus-btn" onclick="claimBonus()">
+            <span id="bonus-btn-txt">Забрать</span>
+          </button>
+        </div>
+        <div class="bonus-timer-row" id="bonus-timer-row" style="display:none">
+          <div class="bonus-timer-bar-wrap"><div class="bonus-timer-bar" id="bonus-timer-bar" style="width:100%"></div></div>
+          <div class="bonus-timer-lbl" id="bonus-timer-lbl">15:00</div>
+        </div>
       </div>
-      <div class="game-grid ci ci-5" style="grid-template-columns:1fr">
-        <div class="game-tile t-taxi" onclick="nav('taxi')" style="display:flex;align-items:center;gap:16px;padding:16px 20px">
-          <span class="gt-ico" style="margin-bottom:0;font-size:36px">🚕</span>
-          <div><div class="gt-name" style="font-size:15px">Такси</div><div class="gt-sub" style="color:#f97316">Реальные поездки · XP бонус</div></div>
-          <div style="margin-left:auto;text-align:right"><div style="font-size:11px;color:var(--sub)">Заработай</div><div id="h-taxi-earn" style="font-size:15px;font-weight:900;color:#f97316;font-family:'JetBrains Mono',monospace">—</div></div>
+    </div>
+
+    <!-- GAMES -->
+    <div class="screen sp" id="s-games">
+      <div class="game-header"><div class="game-title" style="margin-left:4px">🎮 Игры</div></div>
+      <div style="padding:12px 14px 100px">
+        <div class="game-grid" style="margin-top:4px">
+          <div class="game-tile t-slots ci ci-1" onclick="goGame('slots')"><span class="gt-ico">🎰</span><div class="gt-name">Слоты</div><div class="gt-sub">до ×25</div></div>
+          <div class="game-tile t-roulette ci ci-2" onclick="goGame('roulette')"><span class="gt-ico">🎡</span><div class="gt-name">Рулетка</div><div class="gt-sub">×2 / ×14 / ×35</div></div>
+          <div class="game-tile t-hc ci ci-3" onclick="goGame('hc')"><span class="gt-ico">🎴</span><div class="gt-name">Высокая карта</div><div class="gt-sub">vs Бот · ×2</div></div>
+          <div class="game-tile t-coin ci ci-4" onclick="goGame('coin')"><span class="gt-ico">🪙</span><div class="gt-name">Монетка</div><div class="gt-sub">50/50 · ×2</div></div>
+          <div class="game-tile t-crash ci ci-5" onclick="goGame('crash')" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:16px 20px"><span class="gt-ico" style="margin-bottom:0;font-size:36px">🚀</span><div><div class="gt-name" style="font-size:15px">Краш</div><div class="gt-sub" style="color:#10b981">Лети до краша · до ×100</div></div></div>
         </div>
       </div>
     </div>
@@ -416,7 +505,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
     <!-- SLOTS -->
     <div class="screen sp" id="s-slots">
       <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
         <div class="game-title">🎰 Слоты</div>
         <div class="game-badge" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#f59e0b" id="slot-bal-badge">0 🌸</div>
       </div>
@@ -463,7 +552,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
     <!-- ROULETTE -->
     <div class="screen sp" id="s-roulette">
       <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
         <div class="game-title">🎡 Рулетка</div>
         <div class="game-badge" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444" id="rou-bal-badge">0 🌸</div>
       </div>
@@ -506,7 +595,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
     <!-- HIGH CARD -->
     <div class="screen sp" id="s-hc">
       <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
         <div class="game-title">🎴 Высокая карта</div>
         <div class="game-badge" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);color:#a855f7" id="hc-bal-badge">0 🌸</div>
       </div>
@@ -549,7 +638,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
     <!-- COIN -->
     <div class="screen sp" id="s-coin">
       <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
         <div class="game-title">🪙 Монетка</div>
         <div class="game-badge" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6" id="coin-bal-badge">0 🌸</div>
       </div>
@@ -580,10 +669,50 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
       </div>
     </div>
 
+    <!-- CRASH -->
+    <div class="screen sp" id="s-crash">
+      <div class="game-header">
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="game-title">🚀 Краш</div>
+        <div class="game-badge" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981" id="crash-bal-badge">0 🌸</div>
+      </div>
+      <div style="padding:12px 14px 100px">
+        <div class="crash-arena ci ci-1">
+          <div class="crash-canvas-wrap">
+            <div class="crash-rocket" id="crash-rocket">🚀</div>
+            <div class="crash-mult" id="crash-mult">1.00×</div>
+            <div class="crash-status" id="crash-status">Ожидание ставок...</div>
+          </div>
+        </div>
+        <div class="crash-history" id="crash-history"></div>
+        <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
+          <div class="bet-row">
+            <button class="bet-btn" onclick="chgBet('crash',-1)">−</button>
+            <div class="bet-center"><input class="bet-val" id="crash-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('crash',this)" onblur="onBetBlur('crash',this)"><div class="bet-lbl">Ставка 🌸</div></div>
+            <button class="bet-btn" onclick="chgBet('crash',1)">+</button>
+          </div>
+          <div class="bet-presets">
+            <div class="bp" onclick="setBet('crash',100)">100</div>
+            <div class="bp" onclick="setBet('crash',500)">500</div>
+            <div class="bp" onclick="setBet('crash',1000)">1 000</div>
+            <div class="bp" onclick="setBetMax('crash')">MAX</div>
+          </div>
+          <div class="crash-actions">
+            <button class="act-btn" id="crash-bet-btn" onclick="placeCrashBet()" style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 6px 28px rgba(16,185,129,.28)"><div class="ripple"></div>🚀 Поставить</button>
+            <button class="crash-cashout-btn" id="crash-cashout-btn" onclick="crashCashout()" disabled>💰 Забрать</button>
+          </div>
+        </div>
+        <div class="card ci ci-3" style="padding:14px 16px">
+          <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Как играть</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">Поставь до старта. Ракета взлетает — множитель растёт. Нажми «Забрать» до краша. Не успел — теряешь ставку.</div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAXI -->
     <div class="screen sp" id="s-taxi">
       <div class="game-header">
-        <div class="back-btn" onclick="nav('home')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
+        <div class="back-btn" onclick="nav('games')"><svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg></div>
         <div class="game-title">🚕 Такси</div>
         <div class="game-badge" style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);color:#f97316" id="taxi-bal-badge">0 🌸</div>
       </div>
@@ -645,11 +774,11 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         <div class="nav-lbl">Главная</div>
       </div>
-      <div class="nav-item" id="ni-games" onclick="nav('slots')">
+      <div class="nav-item" id="ni-games" onclick="nav('games')">
         <div class="nav-ico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
         <div class="nav-lbl">Игры</div>
       </div>
-      <div class="nav-item" id="ni-taxi" onclick="nav('taxi')">
+      <div class="nav-item" id="ni-taxi" onclick="nav('taxi')" style="display:none">
         <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v9a2 2 0 01-2 2h-2"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/></svg></div>
         <div class="nav-lbl">Такси</div>
       </div>
@@ -658,6 +787,21 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="nav-lbl">Топ</div>
       </div>
     </div>
+  </div>
+</div>
+<div id="levelup-overlay">
+  <div class="lu-backdrop" onclick="closeLevelUp()"></div>
+  <div class="lu-card">
+    <div class="lu-stars" id="lu-stars"></div>
+    <div class="lu-badge" id="lu-badge">⬆️</div>
+    <div class="lu-title">Новый уровень!</div>
+    <div class="lu-level" id="lu-lvnum">2</div>
+    <div class="lu-rank-name" id="lu-rank-name">Silver I</div>
+    <div class="lu-rewards">
+      <div class="lu-reward">💰 <span id="lu-coins">+1 000</span> 🌸</div>
+      <div class="lu-reward">⚡ <span>+500 XP</span></div>
+    </div>
+    <button class="lu-close-btn" onclick="closeLevelUp()">🎉 Продолжить</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -670,8 +814,9 @@ const TG = window.Telegram?.WebApp;
 if(TG){TG.ready();TG.expand();}
 const API = ''; // your backend URL
 let UID = TG?.initDataUnsafe?.user?.id || 'demo';
+const IS_DEMO = !TG?.initDataUnsafe?.user?.id;
 let userData = null;
-let bets = {slots:100,rou:100,hc:100,coin:100};
+let bets = {slots:100,rou:100,hc:100,coin:100,crash:100};
 let rouChoice=null, coinChoice=null, selRoute=null, lbMode='balance';
 
 // ═══════════════════════════════
@@ -693,17 +838,23 @@ function fmt(n){
 // API
 // ═══════════════════════════════
 async function apireq(path,opts={}){
-  const r=await fetch(API+path,{headers:{'Content-Type':'application/json'},...opts});
-  const d=await r.json();
-  if(!r.ok) throw new Error(d.detail||d.error||'Ошибка');
-  return d;
+  if(!API) throw new Error('no-api');
+  const controller=new AbortController();
+  const tid=setTimeout(()=>controller.abort(),8000);
+  try{
+    const r=await fetch(API+path,{headers:{'Content-Type':'application/json'},signal:controller.signal,...opts});
+    clearTimeout(tid);
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||d.error||'Ошибка');
+    return d;
+  }catch(e){ clearTimeout(tid); throw e; }
 }
 
 // ═══════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════
-const smap={home:'s-home',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',taxi:'s-taxi',lb:'s-lb'};
-const nmap={home:'ni-home',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',taxi:'ni-taxi',lb:'ni-lb'};
+const smap={home:'s-home',games:'s-games',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',crash:'s-crash',taxi:'s-taxi',lb:'s-lb'};
+const nmap={home:'ni-home',games:'ni-games',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',crash:'ni-games',taxi:'ni-taxi',lb:'ni-lb'};
 let cur='home';
 
 function nav(to){
@@ -721,7 +872,9 @@ function nav(to){
   haptic('light');
   if(to==='lb') loadLb();
   if(to==='taxi') onTaxiOpen();
-  if(['slots','roulette','bj','coin'].includes(to)) fetchFreshBalance();
+  if(to==='crash') onCrashOpen();
+  else onCrashClose();
+  if(['slots','roulette','bj','coin','crash'].includes(to)) fetchFreshBalance();
 }
 function goGame(g){nav(g);}
 function movePill(){
@@ -772,7 +925,7 @@ function syncBal(n){
 function updateBadge(s){
   if(!userData)return;
   const b=fmt(userData.balance)+' 🌸';
-  const m={slots:'slot-bal-badge',roulette:'rou-bal-badge',hc:'hc-bal-badge',coin:'coin-bal-badge',taxi:'taxi-bal-badge'};
+  const m={slots:'slot-bal-badge',roulette:'rou-bal-badge',hc:'hc-bal-badge',coin:'coin-bal-badge',crash:'crash-bal-badge',taxi:'taxi-bal-badge'};
   if(m[s]){const el=document.getElementById(m[s]);if(el)el.textContent=b;}
 }
 
@@ -794,16 +947,21 @@ async function init(){
     };
     img.src=tgU.photo_url;
   }
-  try{
-    userData=await apireq(`/api/user/${UID}`);
+  if(IS_DEMO){
+    userData={balance:10000,experience:0,level:1,wins:0,losses:0,games_won:0,games_lost:0,total_won_amount:0,total_lost_amount:0,total_won:0,total_lost:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'};
     renderHome(userData);
-  }catch(e){
-    console.error('Ошибка загрузки профиля:',e);
-    userData={balance:0,experience:0,level:1,games_won:0,games_lost:0,total_won_amount:0,total_lost_amount:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'};
-    renderHome(userData);
+  } else {
+    try{
+      userData=await apireq(`/api/user/${UID}`);
+      renderHome(userData);
+    }catch(e){
+      console.error('Ошибка загрузки профиля:',e);
+      userData={balance:0,experience:0,level:1,wins:0,losses:0,games_won:0,games_lost:0,total_won_amount:0,total_lost_amount:0,total_won:0,total_lost:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'};
+      renderHome(userData);
+    }
   }
   // Check active taxi trip at startup
-  try{
+  if(!IS_DEMO){ try{
     const s=await apireq(`/api/taxi/status?user_id=${UID}`);
     if(s.stats) renderTaxiClass(s.stats);
     if(s.active&&s.trip){
@@ -814,19 +972,29 @@ async function init(){
       taxi.notifiedDone=false;
       startTaxiRAF();
     }
-  }catch(e){}
+  }catch(e){} }
+  // Bonus localStorage fallback
+  if(!userData?.last_daily_bonus){
+    try{const stored=localStorage.getItem('last_bonus_'+UID);if(stored){updateBonusState(parseInt(stored)||0);}}catch(_){}
+  }
   hideLdr();
   updateOnlineCount();
   setInterval(updateOnlineCount,30000);
   // Синхронизация баланса с сервером каждые 8 сек
   setInterval(async()=>{
-    if(!UID||UID==='demo')return;
-    try{const d=await apireq(`/api/user/${UID}`);syncBal(d.balance);if(userData){userData.experience=d.experience;userData.games_won=d.games_won;userData.games_lost=d.games_lost;}}catch(e){}
+    if(IS_DEMO||!UID||UID==='demo')return;
+    try{const d=await apireq(`/api/user/${UID}`);syncBal(d.balance);if(userData){
+      const prevLv=userData.level||1;
+      userData.experience=d.experience;userData.games_won=d.games_won;userData.games_lost=d.games_lost;
+      if(d.level&&d.level>prevLv){setTimeout(()=>showLevelUp(d.level,d.title_emoji||'⬆️',d.title_name||'',d.level*200),400);}
+      userData.level=d.level||userData.level;userData.title_emoji=d.title_emoji||userData.title_emoji;userData.title_name=d.title_name||userData.title_name;
+      if(d.last_daily_bonus&&d.last_daily_bonus>0&&!bonusReady&&(!userData.last_daily_bonus||d.last_daily_bonus>userData.last_daily_bonus)){userData.last_daily_bonus=d.last_daily_bonus;updateBonusState(d.last_daily_bonus);}
+    }}catch(e){}
   },8000);
 }
 // Обновлённый баланс прямо с сервера (перед ставкой)
 async function fetchFreshBalance(){
-  if(!UID||UID==='demo')return userData?.balance||0;
+  if(IS_DEMO||!UID||UID==='demo')return userData?.balance||0;
   try{
     const d=await apireq(`/api/user/${UID}`);
     syncBal(d.balance);
@@ -901,6 +1069,12 @@ function renderHome(d){
   const need=(d.level||1)*1000, cur2=Math.floor((d.experience||0)%need);
   document.getElementById('h-xp').textContent=fmt(cur2)+' / '+fmt(need)+' XP';
   setTimeout(()=>document.getElementById('h-xp-fill').style.width=Math.min(100,Math.round(cur2/need*100))+'%',300);
+  // Level-up check
+  const newLv=d.level||1;
+  if(_prevLevel>0&&newLv>_prevLevel){setTimeout(()=>showLevelUp(newLv,d.title_emoji||'⬆️',d.title_name||'',newLv*200),600);}
+  _prevLevel=newLv;
+  // Init bonus block
+  try{initBonusBlock();}catch(_e){}
 }
 
 // ═══════════════════════════════
@@ -1010,7 +1184,16 @@ async function spinSlots(){
 
   // 2. Запрос к API ДО анимации — получаем реальный результат
   let apiData=null;
-  try{
+  if(IS_DEMO){
+    // Demo mode: simulate result
+    const demoSyms=['🍒','🍋','🍇','🍊','⭐','💎'];
+    const r=[demoSyms[~~(Math.random()*demoSyms.length)],demoSyms[~~(Math.random()*demoSyms.length)],demoSyms[~~(Math.random()*demoSyms.length)]];
+    const won=r[0]===r[1]&&r[1]===r[2];
+    const mult={'🍒':3,'🍋':4,'🍇':5,'🍊':6,'⭐':10,'💎':25}[r[0]]||3;
+    const winAmt=won?bet*mult:0;
+    if(userData) userData.balance=Math.max(0,(userData.balance||0)-bet+winAmt);
+    apiData={reels:r,won,win_amount:winAmt,new_balance:userData?.balance||0,xp:won?10:1};
+  } else try{
     apiData=await apireq('/api/slots/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
   }catch(err){
     toast('❌ '+(err.message||'Ошибка сервера'));
@@ -1105,12 +1288,19 @@ async function spinRoule(){
   haptic('medium');
 
   let resColor='red',won=false,winAmt=0;
-  try{
+  if(IS_DEMO){
+    const roll=Math.random();
+    resColor=roll<0.486?'red':roll<0.972?'black':'green';
+    won=resColor===rouChoice;
+    const mult=rouChoice==='green'?14:2;
+    winAmt=won?bets.rou*mult:0;
+    if(userData) userData.balance=Math.max(0,(userData.balance||0)-bets.rou+winAmt);
+    setTimeout(()=>syncBal(userData?.balance||0),3500);
+  } else try{
     const d=await apireq('/api/roulette/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.rou,bet_type:rouChoice})});
     resColor=d.color||d.result_color||d.result||'red';
     won=d.won;
     winAmt=d.win_amount||d.win||0;
-    // syncBal после анимации
     setTimeout(()=>syncBal(d.new_balance),3500);
   }catch(e){
     toast('❌ '+(e.message||'Ошибка сервера'));
@@ -1171,7 +1361,18 @@ async function playHighCard(){
   document.getElementById('hc-res').className='result-chip';
   haptic('medium');
   let d;
-  try{
+  if(IS_DEMO){
+    const ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    const suits=['♠','♥','♦','♣'];
+    const myR=~~(Math.random()*13),botR=~~(Math.random()*13);
+    const myCard=ranks[myR]+suits[~~(Math.random()*4)];
+    const botCard=ranks[botR]+suits[~~(Math.random()*4)];
+    const draw=myR===botR;
+    const won=!draw&&myR>botR;
+    const winAmt=won?bets.hc:0;
+    if(userData) userData.balance=Math.max(0,(userData.balance||0)+(draw?0:won?bets.hc:-bets.hc));
+    d={player_card:myCard,bot_card:botCard,won,draw,bet:bets.hc,win_amount:winAmt,new_balance:userData?.balance||0};
+  } else try{
     d=await apireq('/api/highcard/play',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.hc})});
   }catch(e){toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;return;}
   setTimeout(()=>{
@@ -1210,7 +1411,13 @@ async function flipCoin(){
   chip.className='result-chip';resB.textContent='';
   ce.classList.add('flipping');haptic('medium');
   let result='heads',won=false,winAmt=0;
-  try{
+  if(IS_DEMO){
+    result=Math.random()<0.5?'heads':'tails';
+    won=result===coinChoice;
+    winAmt=won?bets.coin:0;
+    if(userData) userData.balance=Math.max(0,(userData.balance||0)-bets.coin+winAmt);
+    setTimeout(()=>syncBal(userData?.balance||0),1100);
+  } else try{
     const d=await apireq('/api/coin/flip',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.coin,choice:coinChoice})});
     result=d.result;won=d.won;winAmt=d.win_amount||d.win||0;
     setTimeout(()=>syncBal(d.new_balance),1100);
@@ -1376,6 +1583,10 @@ async function loadLb(){
   const apiType=lbMode==='balance'?'balance':'exp';
   document.getElementById('podium').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--sub);padding:20px;font-size:13px">⏳ Загрузка...</div>';
   document.getElementById('lb-rows').innerHTML='';
+  if(IS_DEMO){
+    const demoLb=[{user_id:'demo',rank:1,name:'Вы (демо)',balance:10000,experience:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'}];
+    renderLb(demoLb);return;
+  }
   try{
     const d=await apireq(`/api/leaderboard?type=${apiType}`);
     const arr=Array.isArray(d)?d:(d.leaderboard||d.data||[]);
@@ -1425,12 +1636,460 @@ function renderLb(data){
 // ОНЛАЙН ИГРОКИ
 // ═══════════════════════════════
 async function updateOnlineCount(){
+  if(IS_DEMO){ document.getElementById('online-count').textContent=Math.floor(Math.random()*15)+5; return; }
   try{
     const d=await apireq('/api/online');
     document.getElementById('online-count').textContent=d.online||1;
   }catch(e){
     document.getElementById('online-count').textContent=Math.floor(Math.random()*15)+5;
   }
+}
+
+
+// ═══════════════════════════════
+// BONUS SYSTEM (same timing as bot: 15min regular / 10min premium)
+// ═══════════════════════════════
+const BONUS_COOLDOWN_REGULAR = 15 * 60; // 900s = 15 min
+const BONUS_COOLDOWN_PREMIUM = 10 * 60; // 600s = 10 min
+const BONUS_AMOUNT = 5000;
+const BONUS_XP = 500;
+let bonusTimerInterval = null;
+let bonusReady = false;
+
+function getBonusCooldown(){
+  // Check premium from userData — bot uses `is_premium`; fallback to regular
+  const isPremium = userData?.is_premium || false;
+  return isPremium ? BONUS_COOLDOWN_PREMIUM : BONUS_COOLDOWN_REGULAR;
+}
+
+function initBonusBlock(){
+  // Get last_daily_bonus from userData if available
+  const lastBonus = userData?.last_daily_bonus || 0;
+  updateBonusState(lastBonus);
+}
+
+function updateBonusState(lastBonusTs){
+  const now = Math.floor(Date.now()/1000);
+  const cooldown = getBonusCooldown();
+  const elapsed = lastBonusTs > 0 ? (now - lastBonusTs) : cooldown+1;
+  if(elapsed >= cooldown){
+    setBonusReady(true);
+  } else {
+    setBonusReady(false, cooldown - elapsed, cooldown);
+    startBonusCountdown(cooldown - elapsed, cooldown);
+  }
+}
+
+function setBonusReady(ready, timeLeft, cooldown){
+  bonusReady = ready;
+  const btn = document.getElementById('bonus-btn');
+  const btnTxt = document.getElementById('bonus-btn-txt');
+  const timerRow = document.getElementById('bonus-timer-row');
+  const ico = document.getElementById('bonus-ico');
+  if(ready){
+    btn.disabled = false;
+    btnTxt.textContent = 'Забрать';
+    timerRow.style.display = 'none';
+    ico.style.animation = 'bonusIcoPulse 2.5s ease-in-out infinite';
+  } else {
+    btn.disabled = true;
+    btnTxt.textContent = '⏳';
+    timerRow.style.display = 'flex';
+    ico.style.animation = 'none';
+    if(timeLeft !== undefined) updateBonusTimerUI(timeLeft, cooldown);
+  }
+}
+
+function startBonusCountdown(timeLeft, cooldown){
+  clearInterval(bonusTimerInterval);
+  let tl = timeLeft;
+  bonusTimerInterval = setInterval(()=>{
+    tl -= 1;
+    if(tl <= 0){
+      clearInterval(bonusTimerInterval);
+      setBonusReady(true);
+      haptic('light');
+      // Flash the bonus block
+      const bb = document.getElementById('bonus-block');
+      bb.style.transition = 'box-shadow .3s';
+      bb.style.boxShadow = '0 0 28px rgba(251,191,36,.5)';
+      setTimeout(()=>{ bb.style.boxShadow = ''; }, 1200);
+    } else {
+      updateBonusTimerUI(tl, cooldown);
+    }
+  }, 1000);
+}
+
+function updateBonusTimerUI(timeLeft, cooldown){
+  const min = Math.floor(timeLeft/60);
+  const sec = timeLeft%60;
+  const lbl = document.getElementById('bonus-timer-lbl');
+  const bar = document.getElementById('bonus-timer-bar');
+  if(lbl) lbl.textContent = min+':'+(sec<10?'0':'')+sec;
+  if(bar) bar.style.width = Math.round((timeLeft/cooldown)*100)+'%';
+}
+
+async function claimBonus(){
+  if(!bonusReady) return;
+  const btn = document.getElementById('bonus-btn');
+  btn.disabled = true;
+  const btnTxt = document.getElementById('bonus-btn-txt');
+  btnTxt.textContent = '...';
+  try {
+    const d = await apireq('/api/bonus/claim', {method:'POST', body: JSON.stringify({user_id: UID})});
+    syncBal(d.new_balance);
+    const prevLevel = userData?.level || 1;
+    if(userData){ userData.last_daily_bonus = Math.floor(Date.now()/1000); }
+    const cooldown = getBonusCooldown();
+    setBonusReady(false, cooldown, cooldown);
+    startBonusCountdown(cooldown, cooldown);
+    spawnCoins();
+    haptic('success');
+    showGameToast(`🎁 +${fmt(BONUS_AMOUNT)} 🌸 · +${BONUS_XP} XP`, 'win');
+    // Check if level up happened
+    if(d.new_level && d.new_level > prevLevel){
+      setTimeout(()=> showLevelUp(d.new_level, d.title_emoji||'⬆️', d.title_name||'', d.bonus||0), 800);
+    }
+  } catch(e) {
+    // If demo mode or API not wired — handle client-side
+    if(IS_DEMO || (e.message && (e.message.includes('no-api') || e.message.includes('404') || e.message.includes('Failed') || e.message.includes('abort')))){
+      // Fallback: just show effect, store timestamp in localStorage key (best-effort)
+      const nowTs = Math.floor(Date.now()/1000);
+      try { localStorage.setItem('last_bonus_'+UID, nowTs); } catch(_){}
+      const prevLv = userData?.level||1;
+      syncBal((userData?.balance||0)+BONUS_AMOUNT);
+      if(userData){ userData.last_daily_bonus = nowTs; }
+      const cooldown = getBonusCooldown();
+      setBonusReady(false, cooldown, cooldown);
+      startBonusCountdown(cooldown, cooldown);
+      spawnCoins(); haptic('success');
+      showGameToast(`🎁 +${fmt(BONUS_AMOUNT)} 🌸 · +${BONUS_XP} XP`, 'win');
+    } else {
+      toast('❌ '+(e.message||'Ошибка'));
+      btn.disabled = false;
+      btnTxt.textContent = 'Забрать';
+    }
+  }
+}
+
+// ═══════════════════════════════
+// LEVEL-UP ANIMATION
+// ═══════════════════════════════
+function showLevelUp(level, emoji, rankName, coins){
+  const overlay = document.getElementById('levelup-overlay');
+  document.getElementById('lu-lvnum').textContent = level;
+  document.getElementById('lu-rank-name').textContent = rankName || ('Уровень '+level);
+  document.getElementById('lu-badge').textContent = emoji || '⬆️';
+  document.getElementById('lu-coins').textContent = '+'+fmt(coins||level*200);
+  // Spawn floating stars inside card
+  const starsEl = document.getElementById('lu-stars');
+  starsEl.innerHTML = '';
+  const starEmojis = ['⭐','✨','💫','🌟','💎','🌸'];
+  for(let i=0;i<14;i++){
+    const s = document.createElement('div');
+    s.className = 'lu-star';
+    s.textContent = starEmojis[i%starEmojis.length];
+    const angle = (i/14)*360;
+    const dist = 60 + Math.random()*50;
+    s.style.cssText = `left:50%;top:50%;--sx:${Math.cos(angle*Math.PI/180)*dist}px;--sy:${Math.sin(angle*Math.PI/180)*dist}px;animation-delay:${Math.random()*1.5}s;animation-duration:${2+Math.random()}s`;
+    starsEl.appendChild(s);
+  }
+  overlay.classList.add('show');
+  haptic('success');
+  // Confetti burst
+  spawnLevelUpConfetti();
+}
+
+function spawnLevelUpConfetti(){
+  const pieces = ['🎉','🎊','⭐','💜','🌸','✨','💎','🏆'];
+  for(let i=0;i<20;i++){
+    const p = document.createElement('div');
+    p.className = 'lu-confetti-piece';
+    p.textContent = pieces[i%pieces.length];
+    const cx = (Math.random()-0.5)*window.innerWidth*0.9;
+    const cy = -(100+Math.random()*window.innerHeight*0.7);
+    const cr = (Math.random()-0.5)*720;
+    p.style.cssText = `left:${window.innerWidth/2}px;top:${window.innerHeight/2}px;--cx:${cx}px;--cy:${cy}px;--cr:${cr}deg;animation-delay:${Math.random()*0.4}s`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 2300);
+  }
+}
+
+function closeLevelUp(){
+  const overlay = document.getElementById('levelup-overlay');
+  overlay.classList.remove('show');
+  haptic('light');
+}
+
+// Patch renderHome to detect level-up
+let _prevLevel = 0;
+// renderHome patching removed - logic inlined directly
+
+// fetchFreshBalance level-up check inlined into sync interval
+
+
+// ═══════════════════════════════
+// CRASH GAME
+// ═══════════════════════════════
+const crash = {
+  phase: 'waiting',   // waiting | betting | flying | crashed
+  mult: 1.00,
+  betPlaced: false,
+  cashedOut: false,
+  startTime: 0,
+  crashAt: 1.00,
+  rafId: null,
+  pollTimer: null,
+  gameId: null,
+  betAmount: 0,
+};
+
+const CRASH_COLORS = { line:'#10b981', bg:'rgba(16,185,129,.08)', rocket:'#10b981' };
+
+function crashResizeCanvas(){ /* no canvas needed */ }
+function drawCrashGraph(){ /* no canvas needed */ }
+
+function crashSetUI(phase, mult){
+  const multEl = document.getElementById('crash-mult');
+  const statusEl = document.getElementById('crash-status');
+  const betBtn = document.getElementById('crash-bet-btn');
+  const cashoutBtn = document.getElementById('crash-cashout-btn');
+  const rocket = document.getElementById('crash-rocket');
+
+  if(!multEl) return;
+
+  multEl.className = 'crash-mult';
+  if(phase === 'waiting' || phase === 'betting'){
+    multEl.textContent = '1.00×';
+    statusEl.textContent = phase === 'waiting' ? 'Ожидание...' : '⏳ Принимаем ставки...';
+    betBtn.disabled = crash.betPlaced;
+    betBtn.textContent = crash.betPlaced ? '✅ Ставка принята' : '🚀 Поставить';
+    cashoutBtn.disabled = true;
+    cashoutBtn.classList.remove('active-game');
+    if(rocket){ rocket.textContent='🚀'; rocket.className='crash-rocket'; }
+  } else if(phase === 'flying'){
+    multEl.textContent = mult.toFixed(2) + '×';
+    statusEl.textContent = crash.betPlaced && !crash.cashedOut ? '⚡ Нажми ЗАБРАТЬ!' : '🚀 В полёте...';
+    betBtn.disabled = true;
+    if(rocket){ rocket.textContent='🚀'; rocket.className='crash-rocket flying'; }
+    if(crash.betPlaced && !crash.cashedOut){
+      cashoutBtn.disabled = false;
+      cashoutBtn.textContent = `💰 Забрать ×${mult.toFixed(2)}`;
+      cashoutBtn.classList.add('active-game');
+    } else {
+      cashoutBtn.disabled = true;
+      cashoutBtn.classList.remove('active-game');
+    }
+  } else if(phase === 'crashed'){
+    multEl.textContent = mult.toFixed(2) + '×';
+    multEl.classList.add('crashed');
+    statusEl.textContent = '💥 КРАШ!';
+    betBtn.disabled = false;
+    betBtn.textContent = '🚀 Поставить';
+    cashoutBtn.disabled = true;
+    cashoutBtn.classList.remove('active-game');
+    if(rocket){ rocket.textContent='💥'; rocket.className='crash-rocket crashed'; }
+  }
+}
+
+function addCrashHistory(mult){
+  const hist = document.getElementById('crash-history');
+  if(!hist) return;
+  const el = document.createElement('div');
+  const cls = mult >= 3 ? 'hi' : mult >= 1.5 ? 'mid' : 'lo';
+  el.className = 'crash-hist-item ' + cls;
+  el.textContent = mult.toFixed(2) + '×';
+  hist.insertBefore(el, hist.firstChild);
+  while(hist.children.length > 10) hist.removeChild(hist.lastChild);
+}
+
+// RAF loop for smooth multiplier animation
+function crashRAF(){
+  if(crash.phase !== 'flying'){ cancelAnimationFrame(crash.rafId); return; }
+  const elapsed = (Date.now() - crash.startTime) / 1000;
+  const m = Math.max(1.00, Math.pow(Math.E, 0.06 * elapsed));
+  crash.mult = m;
+  const multEl = document.getElementById('crash-mult');
+  const cashoutBtn = document.getElementById('crash-cashout-btn');
+  if(multEl) multEl.textContent = m.toFixed(2) + '×';
+  if(cashoutBtn && crash.betPlaced && !crash.cashedOut && !cashoutBtn.disabled)
+    cashoutBtn.textContent = `💰 Забрать ×${m.toFixed(2)}`;
+  crash.rafId = requestAnimationFrame(crashRAF);
+}
+
+async function startCrashPoll(){
+  clearTimeout(crash.pollTimer);
+  if(cur !== 'crash') return;
+  try {
+    const d = await apireq(`/api/crash/state?user_id=${UID}`);
+    handleCrashState(d);
+  } catch(e) {
+    // Demo mode
+    if(IS_DEMO) handleCrashStateDemo();
+  }
+  if(cur === 'crash'){
+    const delay = crash.phase === 'flying' ? 200 : 500;
+    crash.pollTimer = setTimeout(startCrashPoll, delay);
+  }
+}
+
+// Demo crash state machine
+let _demoCrashPhase = 'betting', _demoCrashStart = 0, _demoCrashAt = 2.0, _demoCrashCountdown = 5;
+function handleCrashStateDemo(){
+  const now = Date.now();
+  if(_demoCrashPhase === 'betting'){
+    _demoCrashCountdown -= 0.5;
+    if(_demoCrashCountdown <= 0){
+      _demoCrashPhase = 'flying';
+      _demoCrashStart = now;
+      _demoCrashAt = demoGenCrashAt();
+      crash.phase = 'flying';
+      crash.startTime = now;
+      cancelAnimationFrame(crash.rafId);
+      crash.rafId = requestAnimationFrame(crashRAF);
+      crashSetUI('flying', 1);
+    } else {
+      crash.phase = 'betting';
+      crashSetUI('betting', 1);
+    }
+  } else if(_demoCrashPhase === 'flying'){
+    const elapsed = (now - _demoCrashStart)/1000;
+    const m = Math.pow(Math.E, 0.06*elapsed);
+    if(m >= _demoCrashAt){
+      _demoCrashPhase = 'crashed';
+      handleCrashCrashed(_demoCrashAt);
+      setTimeout(()=>{
+        _demoCrashPhase='betting';
+        _demoCrashCountdown=5;
+        crash.betPlaced=false;
+        crash.cashedOut=false;
+        crashSetUI('waiting',1);
+      }, 3000);
+    }
+  }
+}
+function demoGenCrashAt(){
+  // House edge 5%: P(X >= x) = 0.95/x
+  // Inverse: x = 0.95 / uniform(0,1)
+  const r = Math.random();
+  if(r < 0.05) return 1.0; // 5% instant crash
+  const mult = 0.95 / (1 - r);
+  return Math.min(Math.round(mult * 100) / 100, 100);
+}
+
+function handleCrashState(d){
+  if(d.phase === 'flying' && crash.phase !== 'flying'){
+    crash.phase = 'flying';
+    crash.startTime = Date.now() - (d.elapsed||0)*1000;
+    cancelAnimationFrame(crash.rafId);
+    crash.rafId = requestAnimationFrame(crashRAF);
+  } else if(d.phase === 'crashed' && crash.phase !== 'crashed'){
+    handleCrashCrashed(d.crash_at || crash.mult);
+  } else if((d.phase === 'betting' || d.phase === 'waiting') && crash.phase === 'flying'){
+    // Missed crash signal - update
+    handleCrashCrashed(d.last_crash || crash.mult);
+  }
+  if(d.phase === 'betting' || d.phase === 'waiting'){
+    crash.phase = d.phase;
+    crashSetUI(d.phase, 1);
+  }
+  if(d.history) renderCrashHistory(d.history);
+}
+
+function handleCrashCrashed(crashMult){
+  cancelAnimationFrame(crash.rafId);
+  crash.phase = 'crashed';
+  crashSetUI('crashed', crashMult);
+  addCrashHistory(crashMult);
+  haptic('heavy');
+  if(crash.betPlaced && !crash.cashedOut){
+    showGameToast(`💥 Краш ×${crashMult.toFixed(2)} — −${fmt(crash.betAmount)} 🌸`, 'loss');
+    crash.betPlaced = false;
+  }
+}
+
+function renderCrashHistory(arr){
+  const hist = document.getElementById('crash-history');
+  if(!hist || !arr) return;
+  hist.innerHTML = '';
+  arr.slice(0,10).forEach(m => {
+    const el = document.createElement('div');
+    const cls = m >= 3 ? 'hi' : m >= 1.5 ? 'mid' : 'lo';
+    el.className = 'crash-hist-item ' + cls;
+    el.textContent = parseFloat(m).toFixed(2) + '×';
+    hist.appendChild(el);
+  });
+}
+
+async function placeCrashBet(){
+  if(crash.betPlaced) return;
+  if(crash.phase === 'flying'){ toast('❗ Ставки закрыты, ракета уже летит'); return; }
+  if(crash.phase === 'crashed'){ toast('❗ Подожди следующего раунда'); return; }
+  const bet = bets.crash || bets.slots || 100;
+  const bal = await fetchFreshBalance();
+  if(bal < bet){ toast(`❌ Недостаточно средств`); return; }
+  crash.betPlaced = true;
+  crash.cashedOut = false;
+  crash.betAmount = bet;
+  if(IS_DEMO){
+    if(userData) userData.balance = Math.max(0,(userData.balance||0)-bet);
+    syncBal(userData?.balance||0);
+    crashSetUI(crash.phase, crash.mult);
+    toast('✅ Ставка принята!');
+    haptic('light');
+    return;
+  }
+  try{
+    const d = await apireq('/api/crash/bet', {method:'POST', body: JSON.stringify({user_id:UID, bet})});
+    syncBal(d.new_balance);
+    crashSetUI(crash.phase, crash.mult);
+    toast('✅ Ставка принята!');
+    haptic('light');
+  } catch(e){
+    crash.betPlaced = false;
+    toast('❌ '+(e.message||'Ошибка'));
+  }
+}
+
+async function crashCashout(){
+  if(!crash.betPlaced || crash.cashedOut || crash.phase !== 'flying') return;
+  crash.cashedOut = true;
+  const mult = crash.mult;
+  const winAmt = Math.floor(crash.betAmount * mult);
+  if(IS_DEMO){
+    if(userData) userData.balance = (userData.balance||0) + winAmt;
+    syncBal(userData?.balance||0);
+    showGameToast(`💰 Вывел ×${mult.toFixed(2)} · +${fmt(winAmt)} 🌸`, 'win');
+    spawnCoins(); haptic('success');
+    const btn = document.getElementById('crash-cashout-btn');
+    if(btn){ btn.disabled=true; btn.classList.remove('active-game'); btn.textContent='✅ Выведено'; }
+    return;
+  }
+  try{
+    const d = await apireq('/api/crash/cashout', {method:'POST', body: JSON.stringify({user_id:UID})});
+    syncBal(d.new_balance);
+    showGameToast(`💰 Вывел ×${mult.toFixed(2)} · +${fmt(d.win_amount||winAmt)} 🌸`, 'win');
+    spawnCoins(); haptic('success');
+    const btn = document.getElementById('crash-cashout-btn');
+    if(btn){ btn.disabled=true; btn.classList.remove('active-game'); btn.textContent='✅ Выведено'; }
+  } catch(e){
+    crash.cashedOut = false;
+    toast('❌ '+(e.message||'Ошибка'));
+  }
+}
+
+function onCrashOpen(){
+  updateBadge('crash');
+  crash.betPlaced = false;
+  crash.cashedOut = false;
+  crash.phase = 'waiting';
+  crashSetUI('waiting', 1);
+  startCrashPoll();
+}
+
+function onCrashClose(){
+  clearTimeout(crash.pollTimer);
+  cancelAnimationFrame(crash.rafId);
 }
 
 // Start
