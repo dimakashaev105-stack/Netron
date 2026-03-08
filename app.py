@@ -227,8 +227,7 @@ def cors(resp):
     resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     return resp
 
-@app.route('/api/<path:p>', methods=['OPTIONS'])
-def options(p): return '', 204
+# OPTIONS handled by after_request CORS headers
 
 @app.route('/ping')
 def ping(): return 'ok', 200
@@ -827,13 +826,6 @@ def auto_ping():
             print(f"🏓 Ping error: {e}")
         time.sleep(240)
 
-if __name__ == '__main__':
-    threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
-    setup_webhook()
-    print("✅ Flask запущен (webhook mode)")
-    app.run(host='0.0.0.0', port=3001, debug=False)
-
-
 # ══════════════════════════════════════════════
 #  BONUS
 # ══════════════════════════════════════════════
@@ -950,7 +942,7 @@ def _crash_loop():
 _threading.Thread(target=_crash_loop, daemon=True, name='CrashLoop').start()
 
 
-@app.route('/api/crash/state')
+@app.route('/api/crash/state', methods=['GET'])
 def crash_state():
     try:
         user_id = request.args.get('user_id')
@@ -1066,3 +1058,9 @@ def crash_cashout():
             )
             new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
     return jsonify({'success': True, 'multiplier': mult, 'win_amount': win_amount, 'new_balance': new_bal})
+
+if __name__ == '__main__':
+    threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
+    setup_webhook()
+    print("✅ Flask запущен (webhook mode)")
+    app.run(host='0.0.0.0', port=3001, debug=False)
