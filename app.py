@@ -755,7 +755,11 @@ def my_rank(user_id):
 @app.route('/mini')
 def mini():
     try:
-        return open('index.html','r',encoding='utf-8').read(), 200, {'Content-Type':'text/html'}
+        html = open('index.html', 'r', encoding='utf-8').read()
+        api_url = os.environ.get('RENDER_EXTERNAL_URL', '').rstrip('/')
+        html = html.replace("const API = ''; // your backend URL",
+                            f"const API = '{api_url}'; // injected by server")
+        return html, 200, {'Content-Type': 'text/html'}
     except FileNotFoundError:
         return 'Place index.html next to app.py', 404
 
