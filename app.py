@@ -15,6 +15,13 @@ from collections import defaultdict
 
 app = Flask(__name__)
 
+@app.errorhandler(404)
+def not_found(e): return jsonify({'error': 'not found'}), 404
+
+@app.errorhandler(500)
+def server_error(e): return jsonify({'error': str(e)}), 500
+
+
 from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -945,26 +952,42 @@ _threading.Thread(target=_crash_loop, daemon=True, name='CrashLoop').start()
 
 @app.route('/api/crash/state')
 def crash_state():
-    user_id = request.args.get('user_id')
-    with _crash_state['lock']:
-        phase = _crash_state['phase']
-        mult = _crash_current_mult() if phase == 'flying' else 1.0
-        elapsed = (time.time() - _crash_state['start_time']) if phase == 'flying' else 0
-        has_bet = str(user_id) in _crash_state['bets'] if user_id else False
-        cashed = str(user_id) in _crash_state['cashed_out'] if user_id else False
-        # Собираем список игроков с именами
-        bets_snap = dict(_crash_state['bets'])
-        co_snap   = dict(_crash_state['cashed_out'])
+    try:
+        user_id = request.args.get('user_id')
+        # Снимаем снэпшот под локом — быстро, без DB
+        with _crash_state['lock']:
+            phase     = _crash_state['phase']
+            game_id   = _crash_state['game_id']
+            crash_at  = _crash_state['crash_at']
+            history   = _crash_state['history'][:10]
+            betting_ends = _crash_state['betting_ends']
+            start_time   = _crash_state['start_time']
+            bets_snap = dict(_crash_state['bets'])
+            co_snap   = dict(_crash_state['cashed_out'])
+        # Вычисляем множитель вне лока
+        now = time.time()
+        if phase == 'flying':
+            elapsed = now - start_time
+            mult = round(min(pow(2.718281828, 0.06 * elapsed), crash_at), 2)
+        else:
+            elapsed = 0
+            mult = 1.0
+        has_bet = str(user_id) in bets_snap if user_id else False
+        cashed  = str(user_id) in co_snap   if user_id else False
+        # Имена игроков — вне лока
         players = []
         if bets_snap:
             uid_list = list(bets_snap.keys())
             placeholders = ','.join('?' * len(uid_list))
-            with get_db() as pconn:
-                rows = pconn.execute(
-                    f'SELECT user_id, first_name, custom_name FROM users WHERE user_id IN ({placeholders})',
-                    uid_list
-                ).fetchall()
-            names = {str(r['user_id']): r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}' for r in rows}
+            try:
+                with get_db() as pconn:
+                    rows = pconn.execute(
+                        f'SELECT user_id, first_name, custom_name FROM users WHERE user_id IN ({placeholders})',
+                        uid_list
+                    ).fetchall()
+                names = {str(r['user_id']): r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}' for r in rows}
+            except Exception:
+                names = {}
             for uid, bet in bets_snap.items():
                 co = co_snap.get(uid)
                 players.append({
@@ -974,22 +997,22 @@ def crash_state():
                     'cashed_out': co is not None,
                     'cashed_at': round(co, 2) if co else None,
                 })
-            # Сначала вышедшие, потом в игре
             players.sort(key=lambda p: (not p['cashed_out'], -(p.get('cashed_at') or 0)))
-
         return jsonify({
             'phase': phase,
-            'game_id': _crash_state['game_id'],
+            'game_id': game_id,
             'multiplier': mult,
             'elapsed': round(elapsed, 2),
-            'crash_at': _crash_state['crash_at'] if phase == 'crashed' else None,
-            'last_crash': _crash_state['history'][0] if _crash_state['history'] else None,
-            'history': _crash_state['history'][:10],
+            'crash_at': crash_at if phase == 'crashed' else None,
+            'last_crash': history[0] if history else None,
+            'history': history,
             'has_bet': has_bet,
             'cashed_out': cashed,
-            'time_to_start': max(0, round(_crash_state['betting_ends'] - time.time(), 1)) if phase == 'betting' else 0,
+            'time_to_start': max(0, round(betting_ends - now, 1)) if phase == 'betting' else 0,
             'players': players,
         })
+    except Exception as e:
+        return jsonify({'error': str(e), 'phase': 'waiting', 'players': [], 'history': [], 'multiplier': 1.0}), 500
 
 
 @app.route('/api/crash/bet', methods=['POST'])
