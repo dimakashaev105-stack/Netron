@@ -1718,8 +1718,9 @@ function updateBonusState(lastBonusTs){
   if(elapsed >= cooldown){
     setBonusReady(true);
   } else {
-    setBonusReady(false, cooldown - elapsed, cooldown);
-    startBonusCountdown(cooldown - elapsed, cooldown);
+    const tl = Math.max(0, Math.floor(cooldown - elapsed));
+    setBonusReady(false, tl, cooldown);
+    startBonusCountdown(tl, cooldown);
   }
 }
 
@@ -1764,8 +1765,9 @@ function startBonusCountdown(timeLeft, cooldown){
 }
 
 function updateBonusTimerUI(timeLeft, cooldown){
-  const min = Math.floor(timeLeft/60);
-  const sec = timeLeft%60;
+  const tl = Math.floor(timeLeft);
+  const min = Math.floor(tl/60);
+  const sec = tl%60;
   const lbl = document.getElementById('bonus-timer-lbl');
   const bar = document.getElementById('bonus-timer-bar');
   if(lbl) lbl.textContent = min+':'+(sec<10?'0':'')+sec;
@@ -2227,4 +2229,4 @@ window.addEventListener('load',()=>{movePill();init();});
 window.addEventListener('resize',movePill);
 </script>
 </body>
-  </html>
+          </html>
