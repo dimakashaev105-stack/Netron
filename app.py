@@ -842,10 +842,14 @@ def claim_bonus():
             return jsonify({'error': 'not found'}), 404
         last_bonus = row['last_daily_bonus'] or 0
         current_time = time.time()
-        # Проверяем премиум как в боте: 600с премиум / 900с обычный
-        with get_db() as conn2:
-            prem_row = conn2.execute('SELECT premium FROM users WHERE user_id=?', (user_id,)).fetchone()
-            is_prem = bool(prem_row and prem_row['premium']) if prem_row else False
+        # Проверяем премиум через таблицу premium
+        try:
+            prem_row = conn.execute(
+                'SELECT 1 FROM premium WHERE user_id=? AND expires_at > ?', (user_id, current_time)
+            ).fetchone()
+            is_prem = prem_row is not None
+        except Exception:
+            is_prem = False
         cooldown = 600 if is_prem else 900
         if last_bonus > 0 and (current_time - last_bonus) < cooldown:
             time_left = int(cooldown - (current_time - last_bonus))
