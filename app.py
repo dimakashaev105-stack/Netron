@@ -839,7 +839,11 @@ def claim_bonus():
             return jsonify({'error': 'not found'}), 404
         last_bonus = row['last_daily_bonus'] or 0
         current_time = time.time()
-        cooldown = 900  # 15 min
+        # Проверяем премиум как в боте: 600с премиум / 900с обычный
+        with get_db() as conn2:
+            prem_row = conn2.execute('SELECT premium FROM users WHERE user_id=?', (user_id,)).fetchone()
+            is_prem = bool(prem_row and prem_row['premium']) if prem_row else False
+        cooldown = 600 if is_prem else 900
         if last_bonus > 0 and (current_time - last_bonus) < cooldown:
             time_left = int(cooldown - (current_time - last_bonus))
             return jsonify({'error': 'Too soon', 'time_left': time_left}), 429
@@ -851,14 +855,21 @@ def claim_bonus():
         new_row = conn.execute('SELECT balance, experience FROM users WHERE user_id=?', (user_id,)).fetchone()
         new_level = get_level_from_exp(new_row['experience'])
         emoji, tname, tcolor = build_user_title(new_level)
+        lv_xp_start = sum(1000 + i*500 for i in range(new_level-1))
+        exp_current = max(0, new_row['experience'] - lv_xp_start)
+        exp_needed  = 1000 + (new_level-1)*500 if new_level < 50 else 0
         return jsonify({
             'success': True,
             'bonus_amount': bonus_amount,
             'bonus_xp': bonus_xp,
             'new_balance': new_row['balance'],
             'new_level': new_level,
+            'new_experience': new_row['experience'],
+            'exp_current': exp_current,
+            'exp_needed': exp_needed,
             'title_emoji': emoji,
             'title_name': tname,
+            'title_color': tcolor,
             'last_daily_bonus': current_time
         })
 
@@ -937,6 +948,31 @@ def crash_state():
         elapsed = (time.time() - _crash_state['start_time']) if phase == 'flying' else 0
         has_bet = str(user_id) in _crash_state['bets'] if user_id else False
         cashed = str(user_id) in _crash_state['cashed_out'] if user_id else False
+        # Собираем список игроков с именами
+        bets_snap = dict(_crash_state['bets'])
+        co_snap   = dict(_crash_state['cashed_out'])
+        players = []
+        if bets_snap:
+            uid_list = list(bets_snap.keys())
+            placeholders = ','.join('?' * len(uid_list))
+            with get_db() as pconn:
+                rows = pconn.execute(
+                    f'SELECT user_id, first_name, custom_name FROM users WHERE user_id IN ({placeholders})',
+                    uid_list
+                ).fetchall()
+            names = {str(r['user_id']): r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}' for r in rows}
+            for uid, bet in bets_snap.items():
+                co = co_snap.get(uid)
+                players.append({
+                    'user_id': uid,
+                    'name': names.get(str(uid), f'Игрок {str(uid)[-4:]}'),
+                    'bet': bet,
+                    'cashed_out': co is not None,
+                    'cashed_at': round(co, 2) if co else None,
+                })
+            # Сначала вышедшие, потом в игре
+            players.sort(key=lambda p: (not p['cashed_out'], -(p.get('cashed_at') or 0)))
+
         return jsonify({
             'phase': phase,
             'game_id': _crash_state['game_id'],
@@ -948,6 +984,7 @@ def crash_state():
             'has_bet': has_bet,
             'cashed_out': cashed,
             'time_to_start': max(0, round(_crash_state['betting_ends'] - time.time(), 1)) if phase == 'betting' else 0,
+            'players': players,
         })
 
 
