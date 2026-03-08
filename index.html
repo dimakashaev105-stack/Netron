@@ -1943,8 +1943,11 @@ function renderCrashPlayers(players){
     }
     const name = p.name || ('Игрок ' + String(p.user_id).slice(-4));
     const bet = fmt(p.bet);
+    const nameHtml = p.username
+      ? `<a href="https://t.me/${p.username}" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.3)"><b>${name}</b></a>`
+      : `<b>${name}</b>`;
     return `<div class="${rowCls}">
-      <div class="cp-name">${isMe?'👤 ':''}<b>${name}</b></div>
+      <div class="cp-name">${isMe?'👤 ':''}${nameHtml}</div>
       <div class="cp-bet">${bet} 🌸</div>
       <div class="${statusCls}">${statusTxt}</div>
     </div>`;
@@ -2184,7 +2187,7 @@ function handleCrashState(d){
   }
   if(d.history) renderCrashHistory(d.history);
   if(d.players !== undefined) renderCrashPlayers(d.players);
-  // Админская плашка с будущим краш-значением
+  // Плашка с будущим краш-значением (только для админа)
   const adminHint = document.getElementById('crash-admin-hint');
   if(adminHint){
     if(d.crash_at !== null && d.crash_at !== undefined && d.phase !== 'crashed'){
