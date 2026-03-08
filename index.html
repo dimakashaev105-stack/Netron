@@ -128,6 +128,21 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 @keyframes cashoutPulse{0%,100%{box-shadow:0 6px 28px rgba(16,185,129,.3)}50%{box-shadow:0 6px 40px rgba(16,185,129,.6)}}
 .crash-cashout-btn.active-game{animation:cashoutPulse 1s ease infinite}
 .crash-history{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.crash-players{margin-bottom:10px}
+.crash-players-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.crash-players-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.12em;text-transform:uppercase}
+.crash-players-count{font-size:11px;color:var(--sub)}
+.crash-player-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);transition:background .2s,border .2s}
+.crash-player-row.me{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.18)}
+.crash-player-row.cashed{background:rgba(251,191,36,.05);border-color:rgba(251,191,36,.15)}
+.crash-player-row.lost{background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.12);opacity:.6}
+.cp-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-bet{font-size:11px;color:var(--sub);white-space:nowrap}
+.cp-status{font-size:11px;font-weight:700;white-space:nowrap;text-align:right}
+.cp-status.active{color:#10b981}
+.cp-status.cashed{color:#fbbf24}
+.cp-status.lost{color:#ef4444}
+
 .crash-hist-item{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
 .crash-hist-item.hi{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981}
 .crash-hist-item.lo{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444}
@@ -685,7 +700,14 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
           </div>
         </div>
         <div class="crash-history" id="crash-history"></div>
-        <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
+        <div class="crash-players card ci ci-2" style="padding:12px 12px 8px">
+          <div class="crash-players-hdr">
+            <div class="crash-players-title">Игроки раунда</div>
+            <div class="crash-players-count" id="crash-players-count">0 игроков</div>
+          </div>
+          <div id="crash-players-list"></div>
+        </div>
+        <div class="card ci ci-3" style="padding:16px;margin-bottom:10px">
           <div class="bet-row">
             <button class="bet-btn" onclick="chgBet('crash',-1)">−</button>
             <div class="bet-center"><input class="bet-val" id="crash-bet-val" type="number" min="100" inputmode="numeric" value="100" onchange="onBetInput('crash',this)" onblur="onBetBlur('crash',this)"><div class="bet-lbl">Ставка 🌸</div></div>
@@ -985,10 +1007,16 @@ async function init(){
     if(IS_DEMO||!UID||UID==='demo')return;
     try{const d=await apireq(`/api/user/${UID}`);syncBal(d.balance);if(userData){
       const prevLv=userData.level||1;
-      userData.experience=d.experience;userData.games_won=d.games_won;userData.games_lost=d.games_lost;
+      userData.experience  = d.experience;
+      userData.games_won   = d.games_won;
+      userData.games_lost  = d.games_lost;
+      userData.exp_current = d.exp_current !== undefined ? d.exp_current : userData.exp_current;
+      userData.exp_needed  = d.exp_needed  !== undefined ? d.exp_needed  : userData.exp_needed;
+      userData.title_color = d.title_color || userData.title_color;
       if(d.level&&d.level>prevLv){setTimeout(()=>showLevelUp(d.level,d.title_emoji||'⬆️',d.title_name||'',d.level*200),400);}
       userData.level=d.level||userData.level;userData.title_emoji=d.title_emoji||userData.title_emoji;userData.title_name=d.title_name||userData.title_name;
       if(d.last_daily_bonus&&d.last_daily_bonus>0&&!bonusReady&&(!userData.last_daily_bonus||d.last_daily_bonus>userData.last_daily_bonus)){userData.last_daily_bonus=d.last_daily_bonus;updateBonusState(d.last_daily_bonus);}
+      if(cur==='home') renderHome(userData);
     }}catch(e){}
   },8000);
 }
@@ -998,7 +1026,14 @@ async function fetchFreshBalance(){
   try{
     const d=await apireq(`/api/user/${UID}`);
     syncBal(d.balance);
-    if(userData){userData.experience=d.experience;}
+    if(userData){
+      userData.experience  = d.experience;
+      userData.level       = d.level       || userData.level;
+      userData.title_emoji = d.title_emoji || userData.title_emoji;
+      userData.title_name  = d.title_name  || userData.title_name;
+      userData.exp_current = d.exp_current !== undefined ? d.exp_current : userData.exp_current;
+      userData.exp_needed  = d.exp_needed  !== undefined ? d.exp_needed  : userData.exp_needed;
+    }
     return d.balance;
   }catch(e){return userData?.balance||0;}
 }
@@ -1066,9 +1101,15 @@ function renderHome(d){
   document.getElementById('h-won').textContent=fmt(d.total_won||0);
   document.getElementById('h-lost').textContent=fmt(d.total_lost||0);
   document.getElementById('h-lv').textContent='Уровень '+(d.level||1);
-  const need=(d.level||1)*1000, cur2=Math.floor((d.experience||0)%need);
-  document.getElementById('h-xp').textContent=fmt(cur2)+' / '+fmt(need)+' XP';
-  setTimeout(()=>document.getElementById('h-xp-fill').style.width=Math.min(100,Math.round(cur2/need*100))+'%',300);
+  const _lv=d.level||1;
+  // Та же формула что в боте: 1000 + (level-1)*500
+  const need = _lv < 50 ? (1000 + (_lv-1)*500) : 0;
+  const cur2 = d.exp_current !== undefined ? d.exp_current : (()=>{
+    let t=0; for(let i=1;i<_lv;i++) t+=1000+(i-1)*500;
+    return Math.max(0,(d.experience||0)-t);
+  })();
+  document.getElementById('h-xp').textContent = need > 0 ? fmt(cur2)+' / '+fmt(need)+' XP' : 'MAX';
+  setTimeout(()=>document.getElementById('h-xp-fill').style.width=(need>0?Math.min(100,Math.round(cur2/need*100)):100)+'%',300);
   // Level-up check
   const newLv=d.level||1;
   if(_prevLevel>0&&newLv>_prevLevel){setTimeout(()=>showLevelUp(newLv,d.title_emoji||'⬆️',d.title_name||'',newLv*200),600);}
@@ -1651,8 +1692,10 @@ async function updateOnlineCount(){
 // ═══════════════════════════════
 const BONUS_COOLDOWN_REGULAR = 15 * 60; // 900s = 15 min
 const BONUS_COOLDOWN_PREMIUM = 10 * 60; // 600s = 10 min
-const BONUS_AMOUNT = 5000;
+const BONUS_BASE = 5000;
 const BONUS_XP = 500;
+// BONUS_AMOUNT вычисляется динамически с учётом уровня
+function getBonusAmount(){ const lv=userData?.level||1; return Math.floor(BONUS_BASE*(1+(lv-1)*0.05)); }
 let bonusTimerInterval = null;
 let bonusReady = false;
 
@@ -1737,18 +1780,28 @@ async function claimBonus(){
   btnTxt.textContent = '...';
   try {
     const d = await apireq('/api/bonus/claim', {method:'POST', body: JSON.stringify({user_id: UID})});
-    syncBal(d.new_balance);
     const prevLevel = userData?.level || 1;
-    if(userData){ userData.last_daily_bonus = Math.floor(Date.now()/1000); }
+    // Синхронизируем ВСЕ поля из ответа
+    if(userData){
+      userData.balance      = d.new_balance;
+      userData.level        = d.new_level        || userData.level;
+      userData.title_emoji  = d.title_emoji      || userData.title_emoji;
+      userData.title_name   = d.title_name       || userData.title_name;
+      userData.experience   = d.new_experience   !== undefined ? d.new_experience : (userData.experience||0) + (d.bonus_xp||500);
+      userData.exp_current  = d.exp_current      !== undefined ? d.exp_current  : userData.exp_current;
+      userData.exp_needed   = d.exp_needed       !== undefined ? d.exp_needed   : userData.exp_needed;
+      userData.last_daily_bonus = d.last_daily_bonus || Math.floor(Date.now()/1000);
+    }
+    syncBal(d.new_balance);
+    renderHome(userData);
     const cooldown = getBonusCooldown();
     setBonusReady(false, cooldown, cooldown);
     startBonusCountdown(cooldown, cooldown);
     spawnCoins();
     haptic('success');
-    showGameToast(`🎁 +${fmt(BONUS_AMOUNT)} 🌸 · +${BONUS_XP} XP`, 'win');
-    // Check if level up happened
+    showGameToast(`🎁 +${fmt(d.bonus_amount||BONUS_AMOUNT)} 🌸 · +${d.bonus_xp||BONUS_XP} XP`, 'win');
     if(d.new_level && d.new_level > prevLevel){
-      setTimeout(()=> showLevelUp(d.new_level, d.title_emoji||'⬆️', d.title_name||'', d.bonus||0), 800);
+      setTimeout(()=> showLevelUp(d.new_level, d.title_emoji||'⬆️', d.title_name||'', d.new_level*200), 800);
     }
   } catch(e) {
     // If demo mode or API not wired — handle client-side
@@ -1757,13 +1810,13 @@ async function claimBonus(){
       const nowTs = Math.floor(Date.now()/1000);
       try { localStorage.setItem('last_bonus_'+UID, nowTs); } catch(_){}
       const prevLv = userData?.level||1;
-      syncBal((userData?.balance||0)+BONUS_AMOUNT);
+      syncBal((userData?.balance||0)+getBonusAmount());
       if(userData){ userData.last_daily_bonus = nowTs; }
       const cooldown = getBonusCooldown();
       setBonusReady(false, cooldown, cooldown);
       startBonusCountdown(cooldown, cooldown);
       spawnCoins(); haptic('success');
-      showGameToast(`🎁 +${fmt(BONUS_AMOUNT)} 🌸 · +${BONUS_XP} XP`, 'win');
+      showGameToast(`🎁 +${fmt(getBonusAmount())} 🌸 · +${BONUS_XP} XP`, 'win');
     } else {
       toast('❌ '+(e.message||'Ошибка'));
       btn.disabled = false;
@@ -1828,6 +1881,44 @@ let _prevLevel = 0;
 // fetchFreshBalance level-up check inlined into sync interval
 
 
+
+// ── Crash players list ──
+function renderCrashPlayers(players){
+  const list = document.getElementById('crash-players-list');
+  const countEl = document.getElementById('crash-players-count');
+  if(!list) return;
+
+  const arr = players || [];
+  countEl.textContent = arr.length + ' ' + (arr.length===1?'игрок':arr.length<5?'игрока':'игроков');
+
+  if(arr.length === 0){
+    list.innerHTML = '<div style="font-size:12px;color:var(--sub);text-align:center;padding:8px 0">Никого пока нет</div>';
+    return;
+  }
+
+  list.innerHTML = arr.map(p => {
+    const isMe = String(p.user_id) === String(UID);
+    let rowCls = 'crash-player-row' + (isMe?' me':'');
+    let statusCls = 'cp-status active';
+    let statusTxt = '🚀 в игре';
+    if(p.cashed_out){
+      rowCls += ' cashed';
+      statusCls = 'cp-status cashed';
+      statusTxt = `✅ ×${parseFloat(p.cashed_at).toFixed(2)}`;
+    } else if(crash.phase === 'crashed' && !p.cashed_out){
+      rowCls += ' lost';
+      statusCls = 'cp-status lost';
+      statusTxt = '💥 краш';
+    }
+    const name = p.name || ('Игрок ' + String(p.user_id).slice(-4));
+    const bet = fmt(p.bet);
+    return `<div class="${rowCls}">
+      <div class="cp-name">${isMe?'👤 ':''}<b>${name}</b></div>
+      <div class="cp-bet">${bet} 🌸</div>
+      <div class="${statusCls}">${statusTxt}</div>
+    </div>`;
+  }).join('');
+}
 // ═══════════════════════════════
 // CRASH GAME
 // ═══════════════════════════════
@@ -1948,6 +2039,9 @@ function handleCrashStateDemo(){
       cancelAnimationFrame(crash.rafId);
       crash.rafId = requestAnimationFrame(crashRAF);
       crashSetUI('flying', 1);
+      // Обновляем статус всех демо-игроков на "в полёте"
+      _demoCrashPlayers.forEach(p => { p.cashed_out = false; delete p.cashed_at; });
+      renderCrashPlayers(_demoCrashPlayers);
     } else {
       crash.phase = 'betting';
       crashSetUI('betting', 1);
@@ -1958,16 +2052,42 @@ function handleCrashStateDemo(){
     if(m >= _demoCrashAt){
       _demoCrashPhase = 'crashed';
       handleCrashCrashed(_demoCrashAt);
+      renderCrashPlayers(_demoCrashPlayers);
       setTimeout(()=>{
         _demoCrashPhase='betting';
         _demoCrashCountdown=5;
         crash.betPlaced=false;
         crash.cashedOut=false;
+        _demoCrashPlayers = _genDemoPlayers();
         crashSetUI('waiting',1);
+        renderCrashPlayers(_demoCrashPlayers);
       }, 3000);
+    } else {
+      // Случайные кашауты демо-игроков во время полёта
+      _demoCrashPlayers.forEach(p => {
+        if(!p.cashed_out && Math.random() < 0.008){
+          p.cashed_out = true;
+          p.cashed_at = m;
+        }
+      });
+      renderCrashPlayers(_demoCrashPlayers);
     }
   }
 }
+
+const DEMO_NAMES = ['Алексей','Дмитрий','Иван','Максим','Артём','Кирилл','Никита','Андрей','Михаил','Егор','Анна','Мария'];
+let _demoCrashPlayers = [];
+function _genDemoPlayers(){
+  const count = 3 + Math.floor(Math.random()*6);
+  return Array.from({length:count}, (_,i) => ({
+    user_id: 100000+i,
+    name: DEMO_NAMES[i % DEMO_NAMES.length],
+    bet: [100,200,500,500,1000,1000,2000,5000][Math.floor(Math.random()*8)],
+    cashed_out: false
+  }));
+}
+_demoCrashPlayers = _genDemoPlayers();
+
 function demoGenCrashAt(){
   // House edge 5%: P(X >= x) = 0.95/x
   // Inverse: x = 0.95 / uniform(0,1)
@@ -1994,6 +2114,7 @@ function handleCrashState(d){
     crashSetUI(d.phase, 1);
   }
   if(d.history) renderCrashHistory(d.history);
+  if(d.players !== undefined) renderCrashPlayers(d.players);
 }
 
 function handleCrashCrashed(crashMult){
@@ -2035,6 +2156,10 @@ async function placeCrashBet(){
     if(userData) userData.balance = Math.max(0,(userData.balance||0)-bet);
     syncBal(userData?.balance||0);
     crashSetUI(crash.phase, crash.mult);
+    // Добавляем себя в список
+    _demoCrashPlayers = _demoCrashPlayers.filter(p => String(p.user_id) !== String(UID));
+    _demoCrashPlayers.unshift({user_id: UID, name: TG?.initDataUnsafe?.user?.first_name||'Ты', bet, cashed_out: false});
+    renderCrashPlayers(_demoCrashPlayers);
     toast('✅ Ставка принята!');
     haptic('light');
     return;
@@ -2059,6 +2184,10 @@ async function crashCashout(){
   if(IS_DEMO){
     if(userData) userData.balance = (userData.balance||0) + winAmt;
     syncBal(userData?.balance||0);
+    // Помечаем себя как вышедшего
+    const me = _demoCrashPlayers.find(p => String(p.user_id) === String(UID));
+    if(me){ me.cashed_out = true; me.cashed_at = mult; }
+    renderCrashPlayers(_demoCrashPlayers);
     showGameToast(`💰 Вывел ×${mult.toFixed(2)} · +${fmt(winAmt)} 🌸`, 'win');
     spawnCoins(); haptic('success');
     const btn = document.getElementById('crash-cashout-btn');
@@ -2084,6 +2213,7 @@ function onCrashOpen(){
   crash.cashedOut = false;
   crash.phase = 'waiting';
   crashSetUI('waiting', 1);
+  if(IS_DEMO){ _demoCrashPlayers = _genDemoPlayers(); renderCrashPlayers(_demoCrashPlayers); }
   startCrashPoll();
 }
 
@@ -2097,4 +2227,4 @@ window.addEventListener('load',()=>{movePill();init();});
 window.addEventListener('resize',movePill);
 </script>
 </body>
-          </html>
+  </html>
