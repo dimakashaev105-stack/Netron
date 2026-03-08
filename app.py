@@ -921,8 +921,8 @@ def _crash_loop():
             _crash_state['bets'] = {}
             _crash_state['cashed_out'] = {}
             _crash_state['crash_at'] = _crash_gen_point()
-            _crash_state['betting_ends'] = _t.time() + 8
-        _t.sleep(8)
+            _crash_state["betting_ends"] = _t.time() + 10
+        _t.sleep(10)
 
         with _crash_state['lock']:
             _crash_state['phase'] = 'flying'
