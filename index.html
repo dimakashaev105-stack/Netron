@@ -110,17 +110,38 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 /* CRASH GAME */
 .crash-arena{background:linear-gradient(160deg,#050f0a,#071a10);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:0;margin-bottom:12px;position:relative;overflow:hidden}
 .crash-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.5),transparent)}
-.crash-canvas-wrap{position:relative;height:200px;width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
-.crash-mult{font-size:56px;font-weight:900;font-family:'JetBrains Mono',monospace;letter-spacing:-2px;color:#10b981;text-shadow:0 0 30px rgba(16,185,129,.6);transition:color .3s;line-height:1}
-.crash-mult.crashed{color:#ef4444;text-shadow:0 0 30px rgba(239,68,68,.6);animation:crashShake .35s ease}
-.crash-mult.cashed{color:#fbbf24;text-shadow:0 0 30px rgba(251,191,36,.6)}
-.crash-status{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase}
-.crash-rocket{font-size:40px;line-height:1;filter:drop-shadow(0 0 10px rgba(16,185,129,.8))}
-@keyframes rocketFly{0%,100%{transform:translateY(0) rotate(-45deg)}50%{transform:translateY(-10px) rotate(-45deg)}}
-@keyframes rocketCrash{0%{transform:rotate(-45deg)}100%{transform:rotate(90deg) scale(1.3)}}
-.crash-rocket.flying{animation:rocketFly 1.2s ease-in-out infinite}
-.crash-rocket.crashed{animation:rocketCrash .3s ease forwards}
-@keyframes crashShake{0%,100%{transform:scale(1)}25%{transform:scale(1.08)}75%{transform:scale(0.95)}}
+.crash-canvas-wrap{position:relative;height:220px;width:100%;overflow:hidden;border-radius:12px}
+/* Множитель и статус — поверх */
+.crash-mult{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:58px;font-weight:900;font-family:'JetBrains Mono',monospace;letter-spacing:-2px;color:#10b981;text-shadow:0 0 40px rgba(16,185,129,.7);transition:color .3s;line-height:1;z-index:3;pointer-events:none}
+.crash-mult.crashed{color:#ef4444;text-shadow:0 0 40px rgba(239,68,68,.7);animation:crashShake .4s ease}
+.crash-status{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.12em;text-transform:uppercase;z-index:3;white-space:nowrap}
+/* Ракета */
+.crash-rocket-wrap{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:4;display:flex;flex-direction:column;align-items:center;gap:0}
+.crash-rocket-emoji{font-size:44px;line-height:1;display:block;filter:drop-shadow(0 0 12px rgba(16,185,129,.9))}
+/* Огонь под ракетой */
+.crash-flame{display:flex;gap:2px;justify-content:center;margin-top:-6px;height:28px}
+.crash-flame span{width:7px;border-radius:50% 50% 30% 30%;transform-origin:bottom center}
+.crash-flame .f1{background:linear-gradient(#fff,#fbbf24);animation:flame1 .18s ease-in-out infinite alternate}
+.crash-flame .f2{background:linear-gradient(#fbbf24,#f97316);animation:flame2 .22s ease-in-out infinite alternate;width:10px}
+.crash-flame .f3{background:linear-gradient(#f97316,#ef4444);animation:flame3 .15s ease-in-out infinite alternate}
+@keyframes flame1{0%{height:14px;opacity:.9}100%{height:20px;opacity:1}}
+@keyframes flame2{0%{height:22px;opacity:1}100%{height:28px;opacity:.85}}
+@keyframes flame3{0%{height:12px;opacity:.8}100%{height:18px;opacity:1}}
+/* Звёзды/частицы летящие вниз */
+.crash-star{position:absolute;width:2px;border-radius:1px;opacity:0;z-index:2}
+@keyframes starFall{0%{opacity:0;transform:translateY(0) scaleY(1)}20%{opacity:.8}80%{opacity:.4}100%{opacity:0;transform:translateY(180px) scaleY(3)}}
+/* Полёт ракеты */
+@keyframes rocketHover{0%,100%{transform:translateX(-50%) translateY(0) rotate(-42deg)}50%{transform:translateX(-50%) translateY(-8px) rotate(-48deg)}}
+@keyframes rocketWaiting{0%,100%{transform:translateX(-50%) translateY(0) rotate(0deg)}50%{transform:translateX(-50%) translateY(-4px) rotate(0deg)}}
+@keyframes rocketCrash{0%{transform:translateX(-50%) rotate(-42deg)}60%{transform:translateX(-50%) rotate(20deg) scale(1.2)}100%{transform:translateX(-50%) rotate(90deg) scale(.5);opacity:0}}
+.crash-rocket-wrap.waiting{animation:rocketWaiting 2s ease-in-out infinite}
+.crash-rocket-wrap.flying{animation:rocketHover .9s ease-in-out infinite}
+.crash-rocket-wrap.crashed{animation:rocketCrash .5s ease forwards}
+/* Взрыв */
+.crash-boom{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:64px;opacity:0;z-index:5;pointer-events:none}
+@keyframes boomAnim{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}
+.crash-boom.active{animation:boomAnim .6s ease forwards}
+@keyframes crashShake{0%,100%{transform:translate(-50%,-50%) scale(1)}25%{transform:translate(-50%,-50%) scale(1.1)}75%{transform:translate(-50%,-50%) scale(.92)}}
 .crash-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .crash-cashout-btn{height:54px;border-radius:18px;border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .18s cubic-bezier(.34,1.56,.64,1);background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 6px 28px rgba(16,185,129,.3)}
 .crash-cashout-btn:active{transform:scale(.96)}
@@ -694,9 +715,15 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
       <div style="padding:12px 14px 100px">
         <div class="crash-arena ci ci-1">
           <div class="crash-canvas-wrap">
-            <div class="crash-rocket" id="crash-rocket">🚀</div>
             <div class="crash-mult" id="crash-mult">1.00×</div>
-            <div class="crash-status" id="crash-status">Ожидание ставок...</div>
+            <div class="crash-rocket-wrap waiting" id="crash-rocket">
+              <span class="crash-rocket-emoji">🚀</span>
+              <div class="crash-flame" id="crash-flame" style="display:none">
+                <span class="f1"></span><span class="f2"></span><span class="f3"></span>
+              </div>
+            </div>
+            <div class="crash-boom" id="crash-boom">💥</div>
+            <div class="crash-status" id="crash-status">ОЖИДАНИЕ...</div>
           </div>
         </div>
         <div class="crash-history" id="crash-history"></div>
@@ -1952,19 +1979,25 @@ function crashSetUI(phase, mult){
   if(!multEl) return;
 
   multEl.className = 'crash-mult';
+  const flame = document.getElementById('crash-flame');
+  const boom  = document.getElementById('crash-boom');
   if(phase === 'waiting' || phase === 'betting'){
     multEl.textContent = '1.00×';
-    statusEl.textContent = phase === 'waiting' ? 'Ожидание...' : '⏳ Принимаем ставки...';
+    statusEl.textContent = phase === 'waiting' ? 'ОЖИДАНИЕ...' : '⏳ ПРИНИМАЕМ СТАВКИ...';
     betBtn.disabled = crash.betPlaced;
     betBtn.textContent = crash.betPlaced ? '✅ Ставка принята' : '🚀 Поставить';
     cashoutBtn.disabled = true;
     cashoutBtn.classList.remove('active-game');
-    if(rocket){ rocket.textContent='🚀'; rocket.className='crash-rocket'; }
+    if(rocket){ rocket.className='crash-rocket-wrap waiting'; }
+    if(flame) flame.style.display = 'none';
+    if(boom)  boom.classList.remove('active');
   } else if(phase === 'flying'){
     multEl.textContent = mult.toFixed(2) + '×';
-    statusEl.textContent = crash.betPlaced && !crash.cashedOut ? '⚡ Нажми ЗАБРАТЬ!' : '🚀 В полёте...';
+    statusEl.textContent = crash.betPlaced && !crash.cashedOut ? '⚡ НАЖМИ ЗАБРАТЬ!' : '🚀 В ПОЛЁТЕ...';
     betBtn.disabled = true;
-    if(rocket){ rocket.textContent='🚀'; rocket.className='crash-rocket flying'; }
+    if(rocket){ rocket.className='crash-rocket-wrap flying'; }
+    if(flame) flame.style.display = 'flex';
+    if(boom)  boom.classList.remove('active');
     if(crash.betPlaced && !crash.cashedOut){
       cashoutBtn.disabled = false;
       cashoutBtn.textContent = `💰 Забрать ×${mult.toFixed(2)}`;
@@ -1981,7 +2014,9 @@ function crashSetUI(phase, mult){
     betBtn.textContent = '🚀 Поставить';
     cashoutBtn.disabled = true;
     cashoutBtn.classList.remove('active-game');
-    if(rocket){ rocket.textContent='💥'; rocket.className='crash-rocket crashed'; }
+    if(rocket){ rocket.className='crash-rocket-wrap crashed'; }
+    if(flame) flame.style.display = 'none';
+    if(boom){ boom.classList.add('active'); setTimeout(()=>boom.classList.remove('active'),700); }
   }
 }
 
@@ -1997,9 +2032,11 @@ function addCrashHistory(mult){
 }
 
 // RAF loop for smooth multiplier animation
+let _lastStarTime = 0;
 function crashRAF(){
   if(crash.phase !== 'flying'){ cancelAnimationFrame(crash.rafId); return; }
-  const elapsed = (Date.now() - crash.startTime) / 1000;
+  const now = Date.now();
+  const elapsed = (now - crash.startTime) / 1000;
   const m = Math.max(1.00, Math.pow(Math.E, 0.06 * elapsed));
   crash.mult = m;
   const multEl = document.getElementById('crash-mult');
@@ -2007,7 +2044,29 @@ function crashRAF(){
   if(multEl) multEl.textContent = m.toFixed(2) + '×';
   if(cashoutBtn && crash.betPlaced && !crash.cashedOut && !cashoutBtn.disabled)
     cashoutBtn.textContent = `💰 Забрать ×${m.toFixed(2)}`;
+  // Spawn star particles every ~120ms
+  if(now - _lastStarTime > 120){
+    _lastStarTime = now;
+    spawnCrashStar();
+  }
   crash.rafId = requestAnimationFrame(crashRAF);
+}
+
+function spawnCrashStar(){
+  const wrap = document.querySelector('.crash-canvas-wrap');
+  if(!wrap) return;
+  const star = document.createElement('div');
+  star.className = 'crash-star';
+  const colors = ['#10b981','#34d399','#6ee7b7','#fbbf24','#fff'];
+  star.style.cssText = `
+    left:${30+Math.random()*40}%;
+    top:${10+Math.random()*30}%;
+    height:${8+Math.random()*16}px;
+    background:${colors[Math.floor(Math.random()*colors.length)]};
+    animation:starFall ${0.6+Math.random()*0.8}s ease-out forwards;
+  `;
+  wrap.appendChild(star);
+  setTimeout(()=>star.remove(), 1400);
 }
 
 async function startCrashPoll(){
@@ -2100,15 +2159,21 @@ function demoGenCrashAt(){
 }
 
 function handleCrashState(d){
+  // Синкаем betPlaced с сервером (has_bet = наша ставка принята)
+  if(d.has_bet !== undefined && d.has_bet) crash.betPlaced = true;
+
   if(d.phase === 'flying' && crash.phase !== 'flying'){
     crash.phase = 'flying';
     crash.startTime = Date.now() - (d.elapsed||0)*1000;
     cancelAnimationFrame(crash.rafId);
     crash.rafId = requestAnimationFrame(crashRAF);
+    crashSetUI('flying', d.multiplier || 1);  // активируем кнопку Забрать
+  } else if(d.phase === 'flying'){
+    // уже летим — обновляем кнопку если только что поставили
+    crashSetUI('flying', crash.mult);
   } else if(d.phase === 'crashed' && crash.phase !== 'crashed'){
     handleCrashCrashed(d.crash_at || crash.mult);
   } else if((d.phase === 'betting' || d.phase === 'waiting') && crash.phase === 'flying'){
-    // Missed crash signal - update
     handleCrashCrashed(d.last_crash || crash.mult);
   }
   if(d.phase === 'betting' || d.phase === 'waiting'){
