@@ -166,7 +166,6 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 
 .crash-hist-item{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
 .crash-hist-item.hi{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981}
-.crash-admin-hint{display:none;margin-bottom:8px;padding:8px 14px;border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:.05em}
 .crash-hist-item.lo{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444}
 .crash-hist-item.mid{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
 
@@ -345,15 +344,10 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 .p1 .p-val{color:var(--gold)}.p2 .p-val{color:#c0c0c0}.p3 .p-val{color:#cd7f32}
 .p-badge{font-size:9px;color:var(--sub);margin-top:3px}
 .lb-rows{display:flex;flex-direction:column;gap:7px}
-.lb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r2);background:var(--s2);border:1px solid var(--border);animation:cardIn .38s cubic-bezier(.22,1,.36,1) both}
-.lb-row:active{transform:scale(.97)}
-.lb-row.me{background:rgba(124,92,252,.07);border-color:rgba(124,92,252,.22)}
-.lb-rank{font-size:11px;font-weight:700;color:var(--sub);width:22px;text-align:center;flex-shrink:0;font-family:'JetBrains Mono',monospace}
 .lb-ava{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:var(--acc-g);display:flex;align-items:center;justify-content:center;font-size:16px}
-.lb-info{flex:1;min-width:0}
-.lb-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .lb-title{font-size:10.5px;color:var(--sub);margin-top:1px;font-weight:500}
-.lb-val{font-size:12.5px;font-weight:900;flex-shrink:0;font-family:'JetBrains Mono',monospace;color:var(--acc3)}
+
 .paytable-card{padding:14px;margin-bottom:12px}
 .pt-title{font-size:9px;font-weight:800;letter-spacing:.18em;color:var(--sub);margin-bottom:12px;text-transform:uppercase}
 .pt-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
@@ -451,6 +445,66 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 .auto-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .auto-toggle.on .auto-dot{box-shadow:0 0 6px currentColor}
 .machine-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+
+/* ══ LIGHT THEME ══════════════════════════════ */
+body.light{--bg:#f0f2f8;--s1:#ffffff;--s2:#f7f8fc;--s3:#eceef5;--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);--text:#0d0f18;--text2:#3d4560;--sub:#8890a8;--muted:#d0d4e8;--acc:#5c8a00;--acc2:#72aa00;--acc-dim:rgba(92,138,0,.12);--acc-glow:rgba(92,138,0,.2);--acc-g:linear-gradient(135deg,#72aa00,#a0cc00);--green:#007a52;--red:#cc1133;--gold:#b8860b}
+body.light .nav{background:rgba(240,242,248,.97)}
+body.light .game-header{background:rgba(240,242,248,.96)}
+body.light #loader{background:var(--bg)}
+body.light .crash-arena{background:linear-gradient(160deg,#e8f5f0,#f0faf5)}
+body.light .hc-arena{background:linear-gradient(160deg,#f0eeff,#f8f5ff)}
+body.light .card-table{background:linear-gradient(160deg,#e8f8f0,#f0fcf5)}
+body.light .roulette-table{background:var(--s2)}
+body.light .machine{background:var(--s1)}
+/* ══ THEME TOGGLE ══════════════════════════════ */
+.theme-btn{width:36px;height:36px;border-radius:11px;background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:17px;flex-shrink:0}
+.theme-btn:active{transform:scale(.86)}
+/* ══ REFERRAL SCREEN ══════════════════════════ */
+.ref-hero{border-radius:var(--r3);padding:20px;margin-bottom:10px;background:linear-gradient(135deg,var(--acc-dim),rgba(0,0,0,0));border:1px solid rgba(228,255,71,.15);position:relative;overflow:hidden}
+body.light .ref-hero{border-color:rgba(92,138,0,.2)}
+.ref-hero::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent)}
+.ref-earned-lbl{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.ref-earned-val{font-size:32px;font-weight:900;font-family:var(--mono,'Space Mono',monospace);color:var(--acc);letter-spacing:-1px;line-height:1}
+.ref-earned-sub{font-size:12px;color:var(--text2);margin-top:4px}
+.ref-link-box{display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--border2);border-radius:13px;padding:10px 12px;margin-top:14px;cursor:pointer;transition:all .18s}
+.ref-link-box:active{transform:scale(.97);border-color:var(--acc)}
+.ref-link-txt{flex:1;font-size:11.5px;font-family:var(--mono,'Space Mono',monospace);color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref-link-copy{font-size:18px;flex-shrink:0}
+.ref-share-btn{width:100%;height:52px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font,'Syne',sans-serif);box-shadow:0 6px 24px var(--acc-glow);transition:transform .18s cubic-bezier(.34,1.56,.64,1);margin-top:10px}
+body.light .ref-share-btn{color:#0a0d00}
+.ref-share-btn:active{transform:scale(.96)}
+.ref-stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ref-stat{padding:14px;border-radius:16px;background:var(--s2);border:1px solid var(--border);text-align:center}
+.ref-stat-val{font-size:22px;font-weight:900;font-family:var(--mono,'Space Mono',monospace);color:var(--acc)}
+.ref-stat-lbl{font-size:10px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.ref-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.ref-row{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:14px;background:var(--s2);border:1px solid var(--border);animation:cardIn .35s cubic-bezier(.22,1,.36,1) both}
+.ref-row-ava{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--acc-g);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.ref-row-info{flex:1;min-width:0}
+.ref-row-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ref-row-games{font-size:10px;color:var(--sub);margin-top:1px}
+.ref-empty{text-align:center;padding:32px 0;color:var(--sub);font-size:13px}
+.ref-empty-ico{font-size:40px;margin-bottom:8px}
+
+/* ══ LB AVATARS ═══════════════════════════════ */
+.lb-row{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:var(--r2);background:var(--s2);border:1px solid var(--border);animation:cardIn .38s cubic-bezier(.22,1,.36,1) both;cursor:pointer;overflow:hidden}
+.lb-row:active{transform:scale(.97)}
+.lb-row.me{background:rgba(228,255,71,.05);border-color:rgba(228,255,71,.2)}
+.lb-ava-wrap{border-radius:50%;flex-shrink:0;overflow:hidden;background:var(--s3)}
+.lb-ava-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.lb-ava-wrap .lb-ava-fb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,var(--acc-dim),var(--s3))}
+.lb-ava-wrap.me-ring{box-shadow:0 0 0 2px var(--acc)}
+.p-ava-wrap{width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--s3);margin:0 auto 6px;flex-shrink:0}
+.p-ava-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.p-ava-wrap .p-ava-fb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.lb-rank-num{font-size:12px;font-weight:900;font-family:var(--mono,'Space Mono',monospace);color:var(--sub);width:26px;text-align:center;flex-shrink:0}
+.lb-rank-num.top1{color:#f0c040}
+.lb-rank-num.top2{color:#b0bec5}
+.lb-rank-num.top3{color:#cd7f32}
+.lb-info{flex:1;min-width:0;overflow:hidden}
+.lb-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.lb-title-sm{font-size:10px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.lb-val{font-size:12px;font-weight:900;flex-shrink:0;font-family:var(--mono,'Space Mono',monospace);color:var(--acc);text-align:right;max-width:90px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -478,6 +532,7 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
             <div class="hero-name" id="h-name">Игрок</div>
             <div class="hero-rank" id="h-title">🥉 Bronze I</div>
           </div>
+          <div class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️</div>
         </div>
         <div class="bal-block">
           <div class="bal-num" id="h-bal">0</div>
@@ -728,7 +783,6 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
           </div>
         </div>
         <div class="crash-history" id="crash-history"></div>
-        <div class="crash-admin-hint" id="crash-admin-hint">🔴 КРАШ: —</div>
         <div class="crash-players card ci ci-2" style="padding:12px 12px 8px">
           <div class="crash-players-hdr">
             <div class="crash-players-title">Игроки раунда</div>
@@ -816,6 +870,17 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
       </div>
     </div>
 
+
+    <!-- REFERRAL -->
+    <div class="screen sp" id="s-ref">
+      <div class="game-header">
+        <div class="game-title" style="margin-left:4px">👥 Рефералы</div>
+      </div>
+      <div style="padding:12px 14px 100px" id="ref-content">
+        <div style="text-align:center;padding:40px 0;color:var(--sub)">Загрузка...</div>
+      </div>
+    </div>
+
   </div><!-- /screens -->
 
   <div class="nav-wrap">
@@ -825,7 +890,11 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
         <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         <div class="nav-lbl">Главная</div>
       </div>
-      <div class="nav-item" id="ni-games" onclick="nav('games')">
+      <div class="nav-item" id="ni-ref" onclick="nav('ref')">
+        <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <div class="nav-lbl">Рефералы</div>
+      </div>
+            <div class="nav-item" id="ni-games" onclick="nav('games')">
         <div class="nav-ico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
         <div class="nav-lbl">Игры</div>
       </div>
@@ -904,8 +973,8 @@ async function apireq(path,opts={}){
 // ═══════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════
-const smap={home:'s-home',games:'s-games',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',crash:'s-crash',taxi:'s-taxi',lb:'s-lb'};
-const nmap={home:'ni-home',games:'ni-games',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',crash:'ni-games',taxi:'ni-taxi',lb:'ni-lb'};
+const smap={home:'s-home',games:'s-games',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',crash:'s-crash',taxi:'s-taxi',ref:'s-ref',lb:'s-lb'};
+const nmap={home:'ni-home',games:'ni-games',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',crash:'ni-games',taxi:'ni-taxi',ref:'ni-ref',lb:'ni-lb'};
 let cur='home';
 
 function nav(to){
@@ -922,6 +991,7 @@ function nav(to){
   updateBadge(to);
   haptic('light');
   if(to==='lb') loadLb();
+  if(to==='ref') loadReferral();
   if(to==='taxi') onTaxiOpen();
   if(to==='crash') onCrashOpen();
   else onCrashClose();
@@ -997,6 +1067,10 @@ async function init(){
       ava.appendChild(img);
     };
     img.src=tgU.photo_url;
+    // Сохраняем фото на сервер для топа
+    if(!IS_DEMO && UID && UID!=='demo'){
+      apireq('/api/user/photo',{method:'POST',body:JSON.stringify({user_id:UID,photo_url:tgU.photo_url})}).catch(()=>{});
+    }
   }
   if(IS_DEMO){
     userData={balance:10000,experience:0,level:1,wins:0,losses:0,games_won:0,games_lost:0,total_won_amount:0,total_lost_amount:0,total_won:0,total_lost:0,title_name:'Bronze I',title_emoji:'🥉',title_color:'#cd7f32'};
@@ -1028,6 +1102,7 @@ async function init(){
   if(!userData?.last_daily_bonus){
     try{const stored=localStorage.getItem('last_bonus_'+UID);if(stored){updateBonusState(parseInt(stored)||0);}}catch(_){}
   }
+  initTheme();
   hideLdr();
   updateOnlineCount();
   setInterval(updateOnlineCount,30000);
@@ -1682,6 +1757,27 @@ function setLbMode(m){
   document.getElementById('lbt-'+(m==='balance'?'b':'e')).classList.add('active');
   loadLb();
 }
+function lbAvaHtml(u, size, isMe){
+  var sz = size||40;
+  var ringCls = isMe ? ' me-ring' : '';
+  var style = 'width:'+sz+'px;height:'+sz+'px';
+  if(u.photo_url){
+    return '<div class="lb-ava-wrap'+ringCls+'" style="'+style+'" data-fb="'+u.title_emoji+'" data-src="'+u.photo_url+'"><div class="lb-ava-fb">'+u.title_emoji+'</div></div>';
+  }
+  return '<div class="lb-ava-wrap'+ringCls+'" style="'+style+'"><div class="lb-ava-fb">'+u.title_emoji+'</div></div>';
+}
+function lbLoadAvatars(){
+  document.querySelectorAll('[data-src]').forEach(function(el){
+    var src = el.dataset.src;
+    var fb  = el.dataset.fb || '';
+    if(!src) return;
+    var img = new Image();
+    img.onload = function(){ el.innerHTML = ''; el.appendChild(img); img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%'; };
+    img.onerror = function(){ el.removeAttribute('data-src'); };
+    img.src = src;
+  });
+}
+
 function renderLb(data){
   const top3=data.slice(0,3),rest=data.slice(3);
   const order=[1,0,2],pc=['p2','p1','p3'],cr=['🥈','🥇','🥉'];
@@ -1689,17 +1785,32 @@ function renderLb(data){
   order.forEach((idx,pos)=>{
     const u=top3[idx];if(!u){pod.innerHTML+='<div></div>';return;}
     const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.experience)+' XP';
-    pod.innerHTML+=`<div class="p-item ${pc[pos]}"><div class="p-crown">${cr[pos]}</div><div class="p-name">${u.name}</div><div class="p-val">${val}</div><div class="p-badge">${u.title_emoji} ${u.title_name}</div></div>`;
+    const avaHtml=u.photo_url
+      ?'<div class="p-ava-wrap" data-src="'+u.photo_url+'" data-fb="'+u.title_emoji+'"><div class="p-ava-fb">'+u.title_emoji+'</div></div>'
+      :'<div class="p-ava-wrap"><div class="p-ava-fb">'+u.title_emoji+'</div></div>';
+    pod.innerHTML+='<div class="p-item '+pc[pos]+'"><div class="p-crown">'+cr[pos]+'</div>'+avaHtml+'<div class="p-name">'+u.name+'</div><div class="p-val">'+val+'</div><div class="p-badge">'+u.title_emoji+' '+u.title_name+'</div></div>';
   });
   const list=document.getElementById('lb-rows');list.innerHTML='';
   rest.forEach((u,i)=>{
     const me=String(u.user_id)===String(UID);
     const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.experience)+' XP';
+    const rankCls=u.rank===1?'top1':u.rank===2?'top2':u.rank===3?'top3':'';
     const row=document.createElement('div');
     row.className='lb-row'+(me?' me':'');row.style.animationDelay=(i*.05)+'s';
-    row.innerHTML=`<div class="lb-rank">#${u.rank}</div><div class="lb-ava">${u.title_emoji}</div><div class="lb-info"><div class="lb-name">${u.name}${me?' 👈':''}</div><div class="lb-title" style="color:${u.title_color}">${u.title_emoji} ${u.title_name}</div></div><div class="lb-val">${val}</div>`;
+    var maxNick = 18;
+    var dispName = u.name.length > maxNick ? u.name.slice(0,maxNick)+'…' : u.name;
+    row.innerHTML=
+      '<div class="lb-rank-num '+rankCls+'">#'+u.rank+'</div>'+
+      lbAvaHtml(u,38,me)+
+      '<div class="lb-info">'+
+        '<div class="lb-name">'+dispName+(me?' 👈':'')+'</div>'+
+        '<div class="lb-title-sm" style="color:'+u.title_color+'">'+u.title_emoji+' '+u.title_name+'</div>'+
+      '</div>'+
+      '<div class="lb-val">'+val+'</div>';
     list.appendChild(row);
   });
+  // Загружаем аватарки через JS (без onerror в HTML)
+  setTimeout(lbLoadAvatars, 50);
 }
 
 // ═══════════════════════════════
@@ -1943,11 +2054,8 @@ function renderCrashPlayers(players){
     }
     const name = p.name || ('Игрок ' + String(p.user_id).slice(-4));
     const bet = fmt(p.bet);
-    const nameHtml = p.username
-      ? `<a href="https://t.me/${p.username}" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.3)"><b>${name}</b></a>`
-      : `<b>${name}</b>`;
     return `<div class="${rowCls}">
-      <div class="cp-name">${isMe?'👤 ':''}${nameHtml}</div>
+      <div class="cp-name">${isMe?'👤 ':''}<b>${name}</b></div>
       <div class="cp-bet">${bet} 🌸</div>
       <div class="${statusCls}">${statusTxt}</div>
     </div>`;
@@ -2187,16 +2295,6 @@ function handleCrashState(d){
   }
   if(d.history) renderCrashHistory(d.history);
   if(d.players !== undefined) renderCrashPlayers(d.players);
-  // Плашка с будущим краш-значением (только для админа)
-  const adminHint = document.getElementById('crash-admin-hint');
-  if(adminHint){
-    if(d.crash_at !== null && d.crash_at !== undefined && d.phase !== 'crashed'){
-      adminHint.style.display = 'block';
-      adminHint.textContent = `🔴 КРАШ: ${parseFloat(d.crash_at).toFixed(2)}×`;
-    } else {
-      adminHint.style.display = 'none';
-    }
-  }
 }
 
 function handleCrashCrashed(crashMult){
@@ -2305,7 +2403,119 @@ function onCrashClose(){
 }
 
 // Start
-window.addEventListener('load',()=>{movePill();init();});
+
+// ══════════════════════════════════════════════
+//  ТЕМА (светлая / тёмная)
+// ══════════════════════════════════════════════
+function initTheme(){
+  try{
+    var saved=localStorage.getItem('fectiz_theme')||'dark';
+    applyTheme(saved);
+  }catch(e){}
+}
+function applyTheme(t){
+  document.body.classList.toggle('light',t==='light');
+  var btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=t==='light'?'🌙':'☀️';
+}
+function toggleTheme(){
+  var isLight=document.body.classList.contains('light');
+  var next=isLight?'dark':'light';
+  try{localStorage.setItem('fectiz_theme',next);}catch(e){}
+  applyTheme(next);
+  haptic('light');
+}
+
+// ══════════════════════════════════════════════
+//  РЕФЕРАЛЬНАЯ СИСТЕМА
+// ══════════════════════════════════════════════
+async function loadReferral(){
+  var box=document.getElementById('ref-content');
+  if(!box)return;
+  box.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--sub)">Загрузка...</div>';
+  if(IS_DEMO){
+    renderReferral({ref_link:'https://t.me/your_bot?start=ref12345',earned:15400,count:3,refs:[
+      {user_id:1,name:'Алексей',username:'alex_play',games:42},
+      {user_id:2,name:'Иван',username:null,games:18},
+      {user_id:3,name:'Дмитрий',username:'dm1tri',games:7}
+    ]});
+    return;
+  }
+  try{
+    var d=await apireq('/api/referral/'+UID);
+    renderReferral(d);
+  }catch(e){
+    box.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--sub)">Ошибка загрузки</div>';
+  }
+}
+function renderReferral(d){
+  var box=document.getElementById('ref-content');
+  var link=d.ref_link||'';
+  var earned=d.earned||0;
+  var refs=d.refs||[];
+  var refsHtml=refs.length===0
+    ?'<div class="ref-empty"><div class="ref-empty-ico">👥</div>Пока никого нет.<br>Пригласи первого друга!</div>'
+    :refs.map(function(r,i){
+      var nameHtml=r.username
+        ?('<a href="https://t.me/'+r.username+'" target="_blank" style="color:inherit;text-decoration:none">'+escRef(r.name)+'</a>')
+        :escRef(r.name);
+      return '<div class="ref-row" style="animation-delay:'+(i*0.05)+'s">'+
+        '<div class="ref-row-ava">'+escRef(r.name).charAt(0).toUpperCase()+'</div>'+
+        '<div class="ref-row-info">'+
+          '<div class="ref-row-name">'+nameHtml+'</div>'+
+          '<div class="ref-row-games">🎮 '+r.games+' игр</div>'+
+        '</div></div>';
+    }).join('');
+  box.innerHTML=
+    '<div class="ref-hero ci ci-1">'+
+      '<div class="ref-earned-lbl">Заработано с рефералов</div>'+
+      '<div class="ref-earned-val">'+fmtRef(earned)+' <span style="font-size:18px">🌸</span></div>'+
+      '<div class="ref-earned-sub">1% от каждого проигрыша друга</div>'+
+      '<div class="ref-link-box" onclick="copyRefLink()">'+
+        '<div class="ref-link-txt">'+escRef(link)+'</div>'+
+        '<div class="ref-link-copy">📋</div>'+
+      '</div>'+
+      '<button class="ref-share-btn" onclick="shareRefLink()">🚀 Пригласить друзей</button>'+
+    '</div>'+
+    '<div class="ref-stats-row ci ci-2">'+
+      '<div class="ref-stat"><div class="ref-stat-val">'+(d.count||0)+'</div><div class="ref-stat-lbl">Рефералов</div></div>'+
+      '<div class="ref-stat"><div class="ref-stat-val">'+fmtRef(earned)+'</div><div class="ref-stat-lbl">🌸 Заработано</div></div>'+
+    '</div>'+
+    '<div class="sec-lbl ci ci-3">👤 Ваши рефералы</div>'+
+    '<div class="ref-list">'+refsHtml+'</div>'+
+    '<div style="font-size:11px;color:var(--sub);text-align:center;padding:8px 0 4px">Ты получаешь 1% от проигрыша каждого приглашённого друга автоматически</div>';
+  window._refLink=link;
+}
+function fmtRef(n){return Math.floor(n||0).toLocaleString('ru-RU');}
+function escRef(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function copyRefLink(){
+  var link=window._refLink;if(!link)return;
+  if(navigator.clipboard){navigator.clipboard.writeText(link);}
+  else{var t=document.createElement('textarea');t.value=link;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);}
+  toast('✅ Ссылка скопирована!');haptic('success');
+}
+function shareRefLink(){
+  var link=window._refLink;if(!link)return;
+  if(TG&&TG.openTelegramLink){
+    TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent('Играй со мной в Fectiz! 🎮 Получишь 1 000 🌸 за регистрацию'));
+  }else if(navigator.share){
+    navigator.share({text:'Играй со мной в Fectiz!',url:link});
+  }else{copyRefLink();}
+  haptic('medium');
+}
+
+window.addEventListener('load',()=>{
+  // Защита: если init() завис — скрыть лоадер через 8 сек
+  setTimeout(()=>{
+    var l=document.getElementById('loader');
+    if(l&&l.style.display!=='none'){
+      initTheme();
+      hideLdr();
+    }
+  },8000);
+  movePill();
+  init();
+});
 window.addEventListener('resize',movePill);
 </script>
 </body>
