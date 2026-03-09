@@ -296,6 +296,20 @@ def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win
         except Exception as e:
             print(f"⚠️ game_history insert error (ignored): {e}")
 
+    # Реферальный бонус 1% от проигрыша
+    if result == 'lose' and bet > 0:
+        try:
+            ref_row = conn.execute('SELECT referred_by FROM users WHERE user_id=?', (user_id,)).fetchone()
+            if ref_row and ref_row['referred_by']:
+                ref_bonus = int(bet * 0.01)
+                if ref_bonus > 0:
+                    conn.execute(
+                        'UPDATE users SET balance=balance+?, referral_earned=referral_earned+? WHERE user_id=?',
+                        (ref_bonus, ref_bonus, ref_row['referred_by'])
+                    )
+        except Exception as e:
+            print(f"⚠️ referral bonus error: {e}")
+
     row = conn.execute('SELECT balance,experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     new_lv = get_level_from_exp(row['experience'])
     emoji, tname, tcolor = build_user_title(new_lv)
@@ -958,6 +972,24 @@ def _crash_loop():
             final_mult = _crash_state['crash_at']
             _crash_state['history'].insert(0, final_mult)
             _crash_state['history'] = _crash_state['history'][:20]
+            bets_snap = dict(_crash_state['bets'])
+            co_snap   = dict(_crash_state['cashed_out'])
+
+        # Реферальный бонус 1% от проигрыша в краше
+        try:
+            with get_db() as conn:
+                for uid_str, bet in bets_snap.items():
+                    if uid_str not in co_snap:  # не вывел = проиграл
+                        ref_row = conn.execute('SELECT referred_by FROM users WHERE user_id=?', (int(uid_str),)).fetchone()
+                        if ref_row and ref_row['referred_by']:
+                            ref_bonus = int(bet * 0.01)
+                            if ref_bonus > 0:
+                                conn.execute(
+                                    'UPDATE users SET balance=balance+?, referral_earned=referral_earned+? WHERE user_id=?',
+                                    (ref_bonus, ref_bonus, ref_row['referred_by'])
+                                )
+        except Exception as e:
+            print(f"⚠️ crash referral bonus error: {e}")
 
         _t.sleep(3)
 
