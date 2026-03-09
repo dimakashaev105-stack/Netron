@@ -96,7 +96,19 @@ def migrate_db():
             )
         ''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
-        print("✅ Миграция: game_history готова (старые данные не тронуты)")
+        # photo_url для аватарок в топе
+        try:
+            conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
+            print("✅ Миграция: photo_url добавлена")
+        except Exception:
+            pass
+        # referral_earned
+        try:
+            conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
+            print("✅ Миграция: referral_earned добавлена")
+        except Exception:
+            pass
+        print("✅ Миграция завершена")
 
 migrate_db()
 
@@ -703,7 +715,7 @@ def leaderboard():
     with get_db() as conn:
         rows = conn.execute(f'''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
-                   balance, experience as exp, games_won as wins
+                   username, photo_url, balance, experience as exp, games_won as wins
             FROM users ORDER BY {col} DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set(cache_key, result, ttl=30)
@@ -716,7 +728,7 @@ def leaderboard_exp():
     with get_db() as conn:
         rows = conn.execute('''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
-                   balance, experience as exp, games_won as wins
+                   username, photo_url, balance, experience as exp, games_won as wins
             FROM users ORDER BY experience DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set('lb_exp', result, ttl=30)
@@ -1049,7 +1061,7 @@ def crash_cashout():
         mult = _crash_current_mult()
         bet = _crash_state['bets'][user_id]
         win_amount = int(bet * mult)
-        xp_gain = max(1, int(win_amount * 0.00075))  # 0.075% от выигрыша, мин 1
+        xp_gain = max(10, int(win_amount * 0.01))
         _crash_state['cashed_out'][user_id] = mult
         with get_db() as conn:
             conn.execute(
@@ -1062,6 +1074,28 @@ def crash_cashout():
             )
             new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
     return jsonify({'success': True, 'multiplier': mult, 'win_amount': win_amount, 'new_balance': new_bal})
+
+
+# ══════════════════════════════════════════════
+#  ФОТО ПРОФИЛЯ
+# ══════════════════════════════════════════════
+
+@app.route('/api/user/photo', methods=['POST'])
+def save_photo():
+    """Сохраняет photo_url из Telegram initData."""
+    try:
+        data = request.get_json(force=True) or {}
+        user_id   = int(data.get('user_id', 0))
+        photo_url = str(data.get('photo_url', '')).strip()
+        if not user_id or not photo_url:
+            return jsonify({'ok': False}), 400
+        if not ('telegram' in photo_url or photo_url.startswith('https://t.me/') or photo_url.startswith('https://cdn')):
+            return jsonify({'ok': False, 'error': 'invalid url'}), 400
+        with get_db() as conn:
+            conn.execute('UPDATE users SET photo_url=? WHERE user_id=?', (photo_url, user_id))
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
