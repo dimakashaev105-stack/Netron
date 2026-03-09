@@ -1761,19 +1761,24 @@ function lbAvaHtml(u, size, isMe){
   var sz = size||40;
   var ringCls = isMe ? ' me-ring' : '';
   var style = 'width:'+sz+'px;height:'+sz+'px';
-  if(u.photo_url){
-    return '<div class="lb-ava-wrap'+ringCls+'" style="'+style+'" data-fb="'+u.title_emoji+'" data-src="'+u.photo_url+'"><div class="lb-ava-fb">'+u.title_emoji+'</div></div>';
-  }
-  return '<div class="lb-ava-wrap'+ringCls+'" style="'+style+'"><div class="lb-ava-fb">'+u.title_emoji+'</div></div>';
+  // Всегда пробуем загрузить через /api/avatar/:id
+  var avatarSrc = (API||'') + '/api/avatar/' + u.user_id;
+  return '<div class="lb-ava-wrap'+ringCls+'" style="'+style+'" data-fb="'+u.title_emoji+'" data-src="'+avatarSrc+'"><div class="lb-ava-fb">'+u.title_emoji+'</div></div>';
 }
 function lbLoadAvatars(){
-  document.querySelectorAll('[data-src]').forEach(function(el){
+  document.querySelectorAll('.lb-ava-wrap[data-src]').forEach(function(el){
     var src = el.dataset.src;
-    var fb  = el.dataset.fb || '';
+    var fb  = el.dataset.fb || '?';
     if(!src) return;
     var img = new Image();
-    img.onload = function(){ el.innerHTML = ''; el.appendChild(img); img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%'; };
-    img.onerror = function(){ el.removeAttribute('data-src'); };
+    img.onload = function(){
+      el.innerHTML = '';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';
+      el.appendChild(img);
+    };
+    img.onerror = function(){
+      el.removeAttribute('data-src'); // показываем эмодзи fallback
+    };
     img.src = src;
   });
 }
@@ -1785,9 +1790,8 @@ function renderLb(data){
   order.forEach((idx,pos)=>{
     const u=top3[idx];if(!u){pod.innerHTML+='<div></div>';return;}
     const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.experience)+' XP';
-    const avaHtml=u.photo_url
-      ?'<div class="p-ava-wrap" data-src="'+u.photo_url+'" data-fb="'+u.title_emoji+'"><div class="p-ava-fb">'+u.title_emoji+'</div></div>'
-      :'<div class="p-ava-wrap"><div class="p-ava-fb">'+u.title_emoji+'</div></div>';
+    const avatarSrc = (API||'') + '/api/avatar/' + u.user_id;
+    const avaHtml='<div class="p-ava-wrap lb-ava-wrap" data-src="'+avatarSrc+'" data-fb="'+u.title_emoji+'"><div class="p-ava-fb">'+u.title_emoji+'</div></div>';
     pod.innerHTML+='<div class="p-item '+pc[pos]+'"><div class="p-crown">'+cr[pos]+'</div>'+avaHtml+'<div class="p-name">'+u.name+'</div><div class="p-val">'+val+'</div><div class="p-badge">'+u.title_emoji+' '+u.title_name+'</div></div>';
   });
   const list=document.getElementById('lb-rows');list.innerHTML='';
