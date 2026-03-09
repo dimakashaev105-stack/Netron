@@ -26,7 +26,8 @@ def server_error(e): return jsonify({'error': str(e)}), 500
 from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DB_NAME   = "game.db"
+# БД на Persistent Disk — не теряется при деплое
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'game.db')
 
 # ══════════════════════════════════════════════
 #  DB
@@ -733,6 +734,11 @@ def leaderboard():
     cached = cache_get(cache_key)
     if cached: return jsonify(cached)
     with get_db() as conn:
+        # Авто-миграция: добавляем photo_url/referral_earned если их нет
+        try: conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
+        except Exception: pass
+        try: conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
+        except Exception: pass
         rows = conn.execute(f'''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
@@ -746,6 +752,8 @@ def leaderboard_exp():
     cached = cache_get('lb_exp')
     if cached: return jsonify(cached)
     with get_db() as conn:
+        try: conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
+        except Exception: pass
         rows = conn.execute('''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
@@ -1144,6 +1152,11 @@ def save_photo():
 def get_referral_info(user_id):
     try:
         with get_db() as conn:
+            # Авто-миграция
+            try: conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
+            except Exception: pass
+            try: conn.execute('ALTER TABLE users ADD COLUMN referral_code TEXT')
+            except Exception: pass
             row = conn.execute(
                 'SELECT referral_code, referral_earned FROM users WHERE user_id=?',
                 (user_id,)
