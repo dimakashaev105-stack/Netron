@@ -8,6 +8,7 @@ Flask API — Casino Mini App
 
 from flask import Flask, request, jsonify
 import sqlite3, json, hmac, hashlib, time, random, threading, os
+import urllib.request
 from contextlib import contextmanager
 from urllib.parse import parse_qsl
 from functools import wraps
@@ -61,7 +62,9 @@ def init_db():
                 experience INTEGER DEFAULT 0, business_start_time TIMESTAMP DEFAULT 0,
                 business_raw_materials INTEGER DEFAULT 0, clan_id INTEGER DEFAULT 0,
                 games_won INTEGER DEFAULT 0, games_lost INTEGER DEFAULT 0,
-                total_won_amount INTEGER DEFAULT 0, total_lost_amount INTEGER DEFAULT 0
+                total_won_amount INTEGER DEFAULT 0, total_lost_amount INTEGER DEFAULT 0,
+                photo_url TEXT DEFAULT NULL,
+                referral_earned INTEGER DEFAULT 0
             )
         ''')
         conn.execute('''
@@ -82,7 +85,11 @@ def init_db():
 init_db()
 
 def migrate_db():
-    """Безопасная миграция — добавляет недостающие таблицы не трогая старые данные"""
+    """Безопасная миграция — добавляет колонки не трогая существующие данные"""
+    COLUMNS = [
+        ('photo_url',       'TEXT DEFAULT NULL'),
+        ('referral_earned', 'INTEGER DEFAULT 0'),
+    ]
     with get_db() as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS game_history (
@@ -96,18 +103,17 @@ def migrate_db():
             )
         ''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
-        # photo_url для аватарок в топе
-        try:
-            conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
-            print("✅ Миграция: photo_url добавлена")
-        except Exception:
-            pass
-        # referral_earned
-        try:
-            conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
-            print("✅ Миграция: referral_earned добавлена")
-        except Exception:
-            pass
+        # Проверяем какие колонки уже есть
+        existing = {row[1] for row in conn.execute('PRAGMA table_info(users)').fetchall()}
+        for col, typedef in COLUMNS:
+            if col not in existing:
+                try:
+                    conn.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
+                    print(f"✅ Миграция: добавлена колонка {col}")
+                except Exception as e:
+                    print(f"⚠️ Миграция {col} ошибка: {e}")
+            else:
+                print(f"ℹ️ Колонка {col} уже существует")
         print("✅ Миграция завершена")
 
 migrate_db()
@@ -1096,6 +1102,123 @@ def save_photo():
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ══════════════════════════════════════════════
+#  РЕФЕРАЛЬНАЯ СИСТЕМА API
+# ══════════════════════════════════════════════
+
+@app.route('/api/referral/<int:user_id>')
+def get_referral_info(user_id):
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                'SELECT referral_code, referral_earned FROM users WHERE user_id=?',
+                (user_id,)
+            ).fetchone()
+            if not row:
+                return jsonify({'error': 'not found'}), 404
+
+            ref_code = row['referral_code'] or f'ref{user_id}'
+            earned   = row['referral_earned'] or 0
+
+            refs = conn.execute(
+                """SELECT u.first_name, u.custom_name, u.username, u.user_id,
+                          u.games_won + u.games_lost as total_games
+                   FROM users u WHERE u.referred_by = ?
+                   ORDER BY total_games DESC LIMIT 50""",
+                (user_id,)
+            ).fetchall()
+
+            ref_list = []
+            for r in refs:
+                name = r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}'
+                ref_list.append({
+                    'user_id': r['user_id'],
+                    'name': name,
+                    'username': r['username'],
+                    'games': r['total_games']
+                })
+
+        bot_username = os.getenv('BOT_USERNAME', 'fectiz_bot')
+        ref_link = f'https://t.me/{bot_username}?start={ref_code}'
+
+        return jsonify({
+            'ref_code': ref_code,
+            'ref_link': ref_link,
+            'earned': earned,
+            'refs': ref_list,
+            'count': len(ref_list)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ══════════════════════════════════════════════
+#  ПРОКСИ ФОТО TELEGRAM
+# ══════════════════════════════════════════════
+
+_photo_cache = {}   # user_id -> (url_or_None, timestamp)
+_PHOTO_TTL   = 3600 * 6  # кэш на 6 часов
+
+def _fetch_tg_photo(user_id):
+    """Получает URL фото пользователя через Bot API."""
+    try:
+        token = BOT_TOKEN
+        if not token:
+            return None
+        # Шаг 1: getUserProfilePhotos
+        url1 = f"https://api.telegram.org/bot{token}/getUserProfilePhotos?user_id={user_id}&limit=1"
+        with urllib.request.urlopen(url1, timeout=5) as r:
+            data = json.loads(r.read())
+        if not data.get('ok') or not data['result']['total_count']:
+            return None
+        file_id = data['result']['photos'][0][-1]['file_id']
+        # Шаг 2: getFile
+        url2 = f"https://api.telegram.org/bot{token}/getFile?file_id={file_id}"
+        with urllib.request.urlopen(url2, timeout=5) as r:
+            data2 = json.loads(r.read())
+        if not data2.get('ok'):
+            return None
+        file_path = data2['result']['file_path']
+        return f"https://api.telegram.org/file/bot{token}/{file_path}"
+    except Exception as e:
+        print(f"⚠️ photo fetch error uid={user_id}: {e}")
+        return None
+
+@app.route('/api/avatar/<int:user_id>')
+def get_avatar(user_id):
+    """Прокси аватарки: отдаёт фото или 404."""
+    now = time.time()
+    cached = _photo_cache.get(user_id)
+    if cached and now - cached[1] < _PHOTO_TTL:
+        photo_url = cached[0]
+    else:
+        # Сначала смотрим в БД (сохранённое самим юзером)
+        try:
+            with get_db() as conn:
+                row = conn.execute('SELECT photo_url FROM users WHERE user_id=?', (user_id,)).fetchone()
+                photo_url = row['photo_url'] if row and row['photo_url'] else None
+        except Exception:
+            photo_url = None
+        # Если нет — запрашиваем через Bot API
+        if not photo_url:
+            photo_url = _fetch_tg_photo(user_id)
+            # Сохраняем в БД чтобы не запрашивать каждый раз
+            if photo_url:
+                try:
+                    with get_db() as conn:
+                        conn.execute('UPDATE users SET photo_url=? WHERE user_id=?', (photo_url, user_id))
+                except Exception:
+                    pass
+        _photo_cache[user_id] = (photo_url, now)
+
+    if not photo_url:
+        return jsonify({'error': 'no photo'}), 404
+
+    # Редиректим на реальный URL (браузер сам скачает)
+    from flask import redirect
+    return redirect(photo_url, code=302)
 
 if __name__ == '__main__':
     threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
