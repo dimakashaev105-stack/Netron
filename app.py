@@ -921,8 +921,8 @@ def _crash_loop():
             _crash_state['bets'] = {}
             _crash_state['cashed_out'] = {}
             _crash_state['crash_at'] = _crash_gen_point()
-            _crash_state['betting_ends'] = _t.time() + 10
-        _t.sleep(10)
+            _crash_state['betting_ends'] = _t.time() + 8
+        _t.sleep(8)
 
         with _crash_state['lock']:
             _crash_state['phase'] = 'flying'
@@ -978,37 +978,28 @@ def crash_state():
             try:
                 with get_db() as pconn:
                     rows = pconn.execute(
-                        f'SELECT user_id, first_name, custom_name, username FROM users WHERE user_id IN ({placeholders})',
+                        f'SELECT user_id, first_name, custom_name FROM users WHERE user_id IN ({placeholders})',
                         uid_list
                     ).fetchall()
-                user_info = {str(r['user_id']): {
-                    'name': r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}',
-                    'username': r['username'] or None
-                } for r in rows}
+                names = {str(r['user_id']): r['custom_name'] or r['first_name'] or f'Игрок {str(r["user_id"])[-4:]}' for r in rows}
             except Exception:
-                user_info = {}
+                names = {}
             for uid, bet in bets_snap.items():
                 co = co_snap.get(uid)
-                info = user_info.get(str(uid), {})
                 players.append({
                     'user_id': uid,
-                    'name': info.get('name', f'Игрок {str(uid)[-4:]}'),
-                    'username': info.get('username'),
+                    'name': names.get(str(uid), f'Игрок {str(uid)[-4:]}'),
                     'bet': bet,
                     'cashed_out': co is not None,
                     'cashed_at': round(co, 2) if co else None,
                 })
             players.sort(key=lambda p: (not p['cashed_out'], -(p.get('cashed_at') or 0)))
-        CRASH_ADMIN_ID = 8139807344
-        is_crash_admin = str(user_id) == str(CRASH_ADMIN_ID) if user_id else False
-        reveal_crash_at = crash_at if (phase == 'crashed' or is_crash_admin) else None
-
         return jsonify({
             'phase': phase,
             'game_id': game_id,
             'multiplier': mult,
             'elapsed': round(elapsed, 2),
-            'crash_at': reveal_crash_at,
+            'crash_at': crash_at if phase == 'crashed' else None,
             'last_crash': history[0] if history else None,
             'history': history,
             'has_bet': has_bet,
@@ -1023,11 +1014,8 @@ def crash_state():
 @app.route('/api/crash/bet', methods=['POST'])
 def crash_bet():
     data = request.get_json() or {}
-    user_id = str(data.get('user_id', '')).strip()  # всегда str
-    try:
-        bet = int(data.get('bet', 0))
-    except (ValueError, TypeError):
-        return jsonify({'error': 'invalid params'}), 400
+    user_id = str(data.get('user_id', ''))
+    bet = int(data.get('bet', 0))
     if not user_id or bet < 100:
         return jsonify({'error': 'invalid params'}), 400
     with _crash_state['lock']:
@@ -1036,11 +1024,11 @@ def crash_bet():
         if user_id in _crash_state['bets']:
             return jsonify({'error': 'Ставка уже сделана'}), 400
         with get_db() as conn:
-            row = conn.execute('SELECT balance FROM users WHERE user_id=?', (int(user_id),)).fetchone()
+            row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
             if not row or row['balance'] < bet:
                 return jsonify({'error': 'Недостаточно средств'}), 400
-            conn.execute('UPDATE users SET balance=balance-? WHERE user_id=?', (bet, int(user_id)))
-            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (int(user_id),)).fetchone()['balance']
+            conn.execute('UPDATE users SET balance=balance-? WHERE user_id=?', (bet, user_id))
+            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
         _crash_state['bets'][user_id] = bet
     return jsonify({'success': True, 'new_balance': new_bal, 'bet': bet})
 
@@ -1061,19 +1049,18 @@ def crash_cashout():
         mult = _crash_current_mult()
         bet = _crash_state['bets'][user_id]
         win_amount = int(bet * mult)
-        xp_gain = max(10, int(win_amount * 0.01))
+        xp_gain = max(1, int(win_amount * 0.00075))  # 0.075% от выигрыша, мин 1
         _crash_state['cashed_out'][user_id] = mult
-        uid_int = int(user_id)
         with get_db() as conn:
             conn.execute(
                 'UPDATE users SET balance=balance+?, experience=experience+?, games_won=games_won+1, total_won_amount=total_won_amount+? WHERE user_id=?',
-                (win_amount, xp_gain, win_amount, uid_int)
+                (win_amount, xp_gain, win_amount, user_id)
             )
             conn.execute(
                 'INSERT INTO game_history (user_id,game,bet,result,win_amount) VALUES (?,?,?,?,?)',
-                (uid_int, 'crash', bet, 'win', win_amount)
+                (user_id, 'crash', bet, 'win', win_amount)
             )
-            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (uid_int,)).fetchone()['balance']
+            new_bal = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
     return jsonify({'success': True, 'multiplier': mult, 'win_amount': win_amount, 'new_balance': new_bal})
 
 if __name__ == '__main__':
