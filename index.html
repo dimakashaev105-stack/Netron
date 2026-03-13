@@ -3675,7 +3675,7 @@ async function rollsPoll(){
     } else if(!isDone && !rollsSpinning){
       rollsLastStatus=d.status;
       console.log('[ROLLS DRAW] betsArr='+JSON.stringify(betsArr)+' spinning='+rollsSpinning);
-      rollsDrawWheel(betsArr,d.names);
+      rollsDrawWheel(betsObj,d.names,-1,0,betsArr);
     }
     rollsLastId=d.round_id;
   }catch(e){console.log('[ROLLS ERROR]',e);}finally{_rollsPollRunning=false;}
