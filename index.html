@@ -3477,7 +3477,7 @@ function rollsSpinWheel(bets, names, winnerUid, cb){
   const entries=Object.entries(bets||{});
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
-  if(winIdx<0){rollsSpinning=false;cb&&cb();return;}
+  if(winIdx<0){console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));rollsSpinning=false;cb&&cb();return;}
   let cumFrac=0;
   for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
   cumFrac+=entries[winIdx][1]/total/2;
@@ -3652,6 +3652,7 @@ async function rollsPoll(){
     });
     const isDone=d.status==='done';
     const roundChanged=d.round_id!==rollsLastId;
+    console.log('[ROLLS]', 'status='+d.status, 'winner='+d.winner_id, 'round='+d.round_id, 'lastId='+rollsLastId, 'lastStatus='+rollsLastStatus, 'spinning='+rollsSpinning, 'bets='+JSON.stringify(d.bets?.map(b=>b.user_id)));
     // Если раунд сменился — сбрасываем lastStatus чтобы новый done сработал
     if(roundChanged && rollsLastStatus==='done'){
       rollsLastStatus=null;
@@ -3661,13 +3662,14 @@ async function rollsPoll(){
     if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
+      console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
       rollsSpinWheel(betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
     } else if(!isDone && !rollsSpinning){
       rollsLastStatus=d.status;
       rollsDrawWheel(betsObj,d.names);
     }
     rollsLastId=d.round_id;
-  }catch(e){}finally{_rollsPollRunning=false;}
+  }catch(e){console.log('[ROLLS ERROR]',e);}finally{_rollsPollRunning=false;}
 }
 
 
@@ -3819,7 +3821,8 @@ function rollsShowResult(d){
 function rollsCloseResult(){
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  rollsLastStatus=null;
+  rollsLastStatus='done'; // помечаем как уже обработанный
+  rollsSpinning=false;
   if(IS_DEMO){
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
@@ -4215,4 +4218,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-          </html>
+              </html>
