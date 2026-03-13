@@ -3740,7 +3740,7 @@ async function rollsPoll(){
     }
     const wasNotDone=rollsLastStatus!=='done';
     // Для finishing/spinning — ждём пока придёт winner_id, потом крутим
-    if(isDone && wasNotDone && d.winner_id){
+    if(isDone && wasNotDone && d.winner_id && !rollsSpinning){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
@@ -3978,8 +3978,9 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  rollsLastStatus=null;
-  rollsLastId=null;
+  // НЕ обнуляем rollsLastId — он нужен чтобы при следующем поллинге
+  // не перезапустить спин на том же done-раунде пока не придёт новый round_id
+  rollsLastStatus='done'; // явно помечаем что результат уже показан
   rollsSpinning=false;
   rollsState=null;
   rollsDrawWheel({},{});
@@ -4380,4 +4381,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-        </html>
+              </html>
