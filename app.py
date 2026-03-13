@@ -1339,6 +1339,57 @@ def _rolls_init_db():
 
 _rolls_init_db()
 
+def _save_active_round(r, rid):
+    import json as _json
+    try:
+        with get_db() as conn:
+            conn.execute('''CREATE TABLE IF NOT EXISTS rolls_active (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                round_id INTEGER, status TEXT, started_at INTEGER,
+                ends_at INTEGER, pot INTEGER DEFAULT 0,
+                bets_json TEXT DEFAULT '{}',
+                winner_id INTEGER, win_amount INTEGER DEFAULT 0,
+                commission INTEGER DEFAULT 0, finished_at INTEGER
+            )''')
+            conn.execute('''INSERT OR REPLACE INTO rolls_active
+                (id,round_id,status,started_at,ends_at,pot,bets_json,winner_id,win_amount,commission,finished_at)
+                VALUES (1,?,?,?,?,?,?,?,?,?,?)''',
+                (rid, r.get('status','open'), r.get('started_at',0),
+                 r.get('ends_at'), r.get('pot',0),
+                 _json.dumps({str(k):v for k,v in r.get('bets',{}).items()}),
+                 r.get('winner_id'), r.get('win_amount',0),
+                 r.get('commission',0), r.get('finished_at')))
+    except Exception as e:
+        print('[rolls] save error:', e)
+
+def _load_and_restore_round():
+    import json as _json
+    try:
+        with get_db() as conn:
+            conn.execute('''CREATE TABLE IF NOT EXISTS rolls_active (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                round_id INTEGER, status TEXT, started_at INTEGER,
+                ends_at INTEGER, pot INTEGER DEFAULT 0,
+                bets_json TEXT DEFAULT '{}',
+                winner_id INTEGER, win_amount INTEGER DEFAULT 0,
+                commission INTEGER DEFAULT 0, finished_at INTEGER
+            )''')
+            row = conn.execute('SELECT * FROM rolls_active WHERE id=1').fetchone()
+        if not row or not row['round_id']: return
+        rid = row['round_id']
+        bets = {int(k):v for k,v in _json.loads(row['bets_json'] or '{}').items()}
+        r = {'status':row['status'],'started_at':row['started_at'],
+             'ends_at':row['ends_at'],'pot':row['pot'],'bets':bets,
+             'winner_id':row['winner_id'],'win_amount':row['win_amount'],
+             'commission':row['commission'],'finished_at':row['finished_at']}
+        _rolls_rounds[rid] = r
+        print(f'[rolls] restored round {rid} status={r["status"]} bets={len(bets)}')
+    except Exception as e:
+        print('[rolls] restore error:', e)
+
+_load_and_restore_round()
+
+
 def _get_or_create_round():
     """Возвращает активный раунд или создаёт новый."""
     now = int(time.time())
@@ -1353,6 +1404,8 @@ def _get_or_create_round():
                 else:
                     # Таймер истёк — финишируем один раз
                     r['status'] = 'finishing'
+                    _save_active_round(r, rid)
+                    print(f'[ROUND] {rid} timer expired, launching _finish_round')
                     threading.Thread(target=_finish_round, args=(rid,), daemon=True).start()
                     return rid, r
 
@@ -1378,16 +1431,20 @@ def _get_or_create_round():
 
 def _finish_round(rid):
     import time as _time
-    _time.sleep(1)  # дать клиентам забрать последние ставки
+    print(f'[FINISH] round {rid} started')
+    _time.sleep(1)
     with _rolls_lock:
         r = _rolls_rounds.get(rid)
         if not r or r['status'] in ('done', 'spinning'):
+            print(f'[FINISH] round {rid} skipped, status={r and r.get("status")}')
             return
-        bets   = dict(r['bets'])  # копия под lock
+        bets   = dict(r['bets'])
         pot    = r['pot']
+        print(f'[FINISH] round {rid} bets={bets} pot={pot}')
         if not bets:
             r['status'] = 'done'
             r['winner_id'] = None
+            print(f'[FINISH] round {rid} no bets, done')
             return
 
     # Выбираем победителя пропорционально ставке
@@ -1419,6 +1476,8 @@ def _finish_round(rid):
         r['commission'] = commission
         r['db_rid']     = db_rid
         r['finished_at']= int(time.time())
+        _save_active_round(r, rid)
+        print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
         cutoff = int(time.time()) - 120
         for old_rid in [k for k, v in _rolls_rounds.items()
@@ -1522,9 +1581,10 @@ def rolls_bet():
     with _rolls_lock:
         r['bets'][user_id] = r['bets'].get(user_id, 0) + bet
         r['pot'] += bet
-        # Запускаем таймер когда зашёл второй уникальный участник
+        # Запускаем таймер когда зашли 2 уникальных участника
         if r['ends_at'] is None and len(r['bets']) >= 2:
             r['ends_at'] = now2 + ROLLS_TIMER
+        _save_active_round(r, rid)
 
     return jsonify({'ok': True, 'my_bet': r['bets'][user_id], 'pot': r['pot'], 'new_balance': new_balance})
 
