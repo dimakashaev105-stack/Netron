@@ -1523,7 +1523,7 @@ function nav(to){
       if(!rollsTimer){
         rollsPoll(); rollsTimer=setInterval(rollsPoll,2000);
       } else {
-        if(rollsState){ rollsUpdateUI(rollsState); const bo=rollsState.bets.reduce((o,b)=>({...o,[b.user_id]:b.amount}),{}); if(!rollsSpinning)rollsDrawWheel(bo,rollsState.names); }
+        if(rollsState){ rollsUpdateUI(rollsState); const bo=Object.fromEntries(rollsState.bets.map(b=>[b.user_id,b.amount])); const ba=rollsState.bets.map(b=>[b.user_id,b.amount]); if(!rollsSpinning)rollsDrawWheel(bo,rollsState.names,-1,0,ba); }
       }
     }
   }
@@ -3280,7 +3280,7 @@ function _rollsLoadAva(uid, url){
   img.src=url;
 }
 
-function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, sortedEntries=null){
+function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, betsArr=null){
   const canvas=document.getElementById('rolls-canvas');
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
@@ -3293,8 +3293,8 @@ function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, sortedEntries=null){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const S=CSS, cx=150, cy=150, R=138, Ri=22;
   ctx.clearRect(0,0,S,S);
-  // Сортировка по user_id — одинаковый порядок у всех клиентов
-  const entries=sortedEntries||Object.entries(bets||{}).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  // betsArr — массив с гарантированным порядком от сервера
+  const entries=betsArr||Object.entries(bets||{});
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const isLight=document.body.classList.contains('light');
 
@@ -3473,10 +3473,10 @@ function _rollsDrawRim(ctx,cx,cy,R){
   ctx.strokeStyle=innerGlow;ctx.lineWidth=12;ctx.stroke();
 }
 
-function rollsSpinWheel(bets, names, winnerUid, cb){
+function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
   if(rollsSpinning)return;rollsSpinning=true;
-  // ВАЖНО: сортируем по user_id чтобы порядок секторов был одинаков у всех клиентов
-  const entries=Object.entries(bets||{}).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  // betsArr — массив [[uid,amt],...] с гарантированным порядком от сервера
+  const entries=betsArr||Object.entries(bets||{});
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
   if(winIdx<0){console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));rollsSpinning=false;cb&&cb();return;}
@@ -3616,7 +3616,8 @@ function _demoSpin(betsObj,names){
   const commission=Math.floor(total*0.05);
   const winAmount=total-commission;
 
-  rollsSpinWheel(betsObj,names,winner,()=>{
+  const betsArrDemo=Object.entries(betsObj);
+  rollsSpinWheel(betsArrDemo,betsObj,names,winner,()=>{
     rollsDemoPhase='done';
     const isMe=winner==='demo';
     rollsUpdateUI({
@@ -3643,15 +3644,16 @@ async function rollsPoll(){
     if(!d.ok)return;
     rollsState=d;
     rollsUpdateUI(d);
-    // Сортируем ставки по user_id — одинаковый порядок секторов у всех
-    const betsObj=Object.fromEntries(d.bets.map(b=>[b.user_id,b.amount]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
+    // Порядок из сервера — уже отсортирован по user_id, храним как массив пар
+    const betsObj=Object.fromEntries(d.bets.map(b=>[b.user_id,b.amount]));
+    const betsArr=d.bets.map(b=>[b.user_id,b.amount]); // массив с гарантированным порядком
     // Предзагрузка аватарок — после загрузки перерисовываем колесо
     let anyNewPhoto=false;
     Object.entries(d.names||{}).forEach(([uid,info])=>{
       if(info?.photo&&!_rollsAvaCache[uid]){
         anyNewPhoto=true;
         const img=new Image();img.crossOrigin='anonymous';
-        img.onload=()=>{_rollsAvaCache[uid]=img;if(!rollsSpinning)rollsDrawWheel(betsObj,d.names);};
+        img.onload=()=>{_rollsAvaCache[uid]=img;if(!rollsSpinning)rollsDrawWheel(betsObj,d.names,-1,0,betsArr);};
         img.onerror=()=>{_rollsAvaCache[uid]=null;};
         img.src=info.photo;
       }
@@ -3669,10 +3671,10 @@ async function rollsPoll(){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
-      rollsSpinWheel(betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
+      rollsSpinWheel(betsArr,betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
     } else if(!isDone && !rollsSpinning){
       rollsLastStatus=d.status;
-      rollsDrawWheel(betsObj,d.names);
+      rollsDrawWheel(betsArr,d.names);
     }
     rollsLastId=d.round_id;
   }catch(e){console.log('[ROLLS ERROR]',e);}finally{_rollsPollRunning=false;}
