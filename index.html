@@ -2031,13 +2031,12 @@ async function spinRoule(){
 
   const dur=3200;
 
-  // 1. СРАЗУ крутим колесо — не ждём API
-  const currentNorm=wheelAngle%360;
+  // 1. СБРАСЫВАЕМ колесо в 0 и крутим заново
   svg.style.transition='none';
-  svg.style.transform=`rotate(${currentNorm}deg)`;
-  wheelAngle=currentNorm;
+  svg.style.transform=`rotate(0deg)`;
+  wheelAngle=0;
   svg.getBoundingClientRect();
-  const preSpinTarget=wheelAngle+4*360+Math.random()*360;
+  const preSpinTarget=4*360+Math.random()*360;
   svg.style.transition=`transform ${dur}ms cubic-bezier(.35,.05,.2,.98)`;
   svg.style.transform=`rotate(${preSpinTarget}deg)`;
   shimmerBtn(btn);
@@ -2086,6 +2085,14 @@ async function spinRoule(){
     resDv.textContent=em;resDv.classList.add('show');
     if(won){showResultOverlay('win',winAmt,bets.rou,`${em} Число ${WNUMS[land.i]}`);spawnCoins();}
     else{showResultOverlay('loss',0,bets.rou,`${em} Число ${WNUMS[land.i]}`);}
+    // Сбрасываем колесо обратно в 0 без анимации — готово к следующему раунду
+    setTimeout(()=>{
+      svg.style.transition='none';
+      svg.style.transform='rotate(0deg)';
+      wheelAngle=0;
+      resDv.classList.remove('show');
+      resDv.textContent='';
+    },600);
     btn.disabled=false;
   },remaining+200);
 }
