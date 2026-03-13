@@ -3678,14 +3678,10 @@ async function rollsPoll(){
     if(roundChanged && rollsLastStatus==='done'){
       rollsLastStatus=null;
       rollsSpinning=false;
-      window._rollsShownRoundId=null; // новый раунд — разрешаем крутить
     }
     const wasNotDone=rollsLastStatus!=='done';
-    // Не крутить раунд который уже показали
-    const alreadyShown=window._rollsShownRoundId&&String(window._rollsShownRoundId)===String(d.round_id);
-    if(isDone && wasNotDone && d.winner_id && !alreadyShown){
+    if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
-      window._rollsShownRoundId=d.round_id;
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
       rollsSpinWheel(betsArr,betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
@@ -3854,15 +3850,12 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  // Полный сброс состояния — но НЕ сбрасываем _rollsShownRoundId
-  // чтобы поллинг не запустил то же самое колесо снова
-  rollsLastStatus='done'; // помечаем как уже обработанный
+  rollsLastStatus=null;
+  rollsLastId=null;
   rollsSpinning=false;
   rollsState=null;
-  // Рисуем пустое колесо сразу
   rollsDrawWheel({},{});
   if(IS_DEMO){
-    window._rollsShownRoundId=null; // в демо сразу сбрасываем
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
   } else {
@@ -4259,4 +4252,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-                                                         </html>
+          </html>
