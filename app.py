@@ -27,7 +27,8 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 # БД на Persistent Disk — не теряется при деплое
-DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'game.db')
+DB_NAME = os.environ.get("DB_PATH", "/data/game.db")
+os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
 
 # ══════════════════════════════════════════════
 #  DB
@@ -280,12 +281,24 @@ def apply_game_result(conn, user_id, delta, xp, game=None, bet=0, result='', win
     old_row = conn.execute('SELECT experience FROM users WHERE user_id=?', (user_id,)).fetchone()
     old_lv  = get_level_from_exp(old_row['experience']) if old_row else 1
 
-    # Обновляем баланс и опыт — главная операция
-    conn.execute(
-        'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
-        'last_activity=CURRENT_TIMESTAMP WHERE user_id=?',
-        (delta, xp, user_id)
-    )
+    # Атомарное обновление: списываем ставку только если баланс >= bet
+    # MAX(0,...) защищает от отрицательного баланса
+    if delta < 0:
+        # Проигрыш — атомарно проверяем что баланс не уйдёт в минус
+        res = conn.execute(
+            'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
+            'last_activity=CURRENT_TIMESTAMP WHERE user_id=? AND balance>=?',
+            (delta, xp, user_id, -delta)
+        )
+        if res.rowcount == 0:
+            # Баланс недостаточен — кто-то параллельно успел потратить
+            return None
+    else:
+        conn.execute(
+            'UPDATE users SET balance=MAX(0,balance+?), experience=MIN(experience+?,999999), '
+            'last_activity=CURRENT_TIMESTAMP WHERE user_id=?',
+            (delta, xp, user_id)
+        )
 
     # Сохраняем в историю (некритично — не ломаем транзакцию при ошибке)
     if game:
@@ -448,6 +461,7 @@ def slots_spin():
                                 game='slots', bet=bet,
                                 result='win' if won else 'lose',
                                 win_amount=win_amount)
+        if res is None: return jsonify({'error': 'Недостаточно средств'}), 400
     return jsonify({'ok':True,'reels':reels,'won':won,
                     'win':win_amount,'win_amount':win_amount,'win_type':win_type,
                     'bet':bet,'new_balance':res['balance'],**res})
@@ -486,6 +500,7 @@ def roulette_spin():
                                 game='roulette', bet=bet,
                                 result='win' if won else 'lose',
                                 win_amount=win_amount)
+        if res is None: return jsonify({'error': 'Недостаточно средств'}), 400
     return jsonify({'ok':True,
                     'number':result_num,'result_number':result_num,
                     'color':color,'result_color':color,
@@ -643,6 +658,7 @@ def coin_flip():
                                 game='coin', bet=bet,
                                 result='win' if won else 'lose',
                                 win_amount=win_amount)
+        if res is None: return jsonify({'error': 'Недостаточно средств'}), 400
     return jsonify({'ok':True,'result':result,'result_emoji':result_emoji,'won':won,
                     'win':win_amount,'win_amount':win_amount,
                     'bet':bet,'new_balance':res['balance'],**res})
@@ -697,6 +713,7 @@ def hc_play():
                                 game='highcard', bet=bet,
                                 result='win' if won else ('draw' if draw else 'lose'),
                                 win_amount=win_amount)
+        if res is None: return jsonify({'error': 'Недостаточно средств'}), 400
 
     return jsonify({
         'ok': True,
@@ -734,11 +751,6 @@ def leaderboard():
     cached = cache_get(cache_key)
     if cached: return jsonify(cached)
     with get_db() as conn:
-        # Авто-миграция: добавляем photo_url/referral_earned если их нет
-        try: conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
-        except Exception: pass
-        try: conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
-        except Exception: pass
         rows = conn.execute(f'''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
@@ -752,8 +764,6 @@ def leaderboard_exp():
     cached = cache_get('lb_exp')
     if cached: return jsonify(cached)
     with get_db() as conn:
-        try: conn.execute('ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT NULL')
-        except Exception: pass
         rows = conn.execute('''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
@@ -1152,11 +1162,6 @@ def save_photo():
 def get_referral_info(user_id):
     try:
         with get_db() as conn:
-            # Авто-миграция
-            try: conn.execute('ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0')
-            except Exception: pass
-            try: conn.execute('ALTER TABLE users ADD COLUMN referral_code TEXT')
-            except Exception: pass
             row = conn.execute(
                 'SELECT referral_code, referral_earned FROM users WHERE user_id=?',
                 (user_id,)
@@ -1270,3 +1275,265 @@ if __name__ == '__main__':
     setup_webhook()
     print("✅ Flask запущен (webhook mode)")
     app.run(host='0.0.0.0', port=3001, debug=False)
+
+# ══════════════════════════════════════════════
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    user_id = request.args.get('user_id', type=int)
+    limit   = min(int(request.args.get('limit', 20)), 50)
+    offset  = int(request.args.get('offset', 0))
+    if not user_id:
+        return jsonify({'error': 'no user_id'}), 400
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT game, bet, result, win_amount, created_at
+               FROM game_history
+               WHERE user_id=?
+               ORDER BY created_at DESC
+               LIMIT ? OFFSET ?''',
+            (user_id, limit, offset)
+        ).fetchall()
+        total = conn.execute(
+            'SELECT COUNT(*) as cnt FROM game_history WHERE user_id=?',
+            (user_id,)
+        ).fetchone()['cnt']
+        user = conn.execute(
+            'SELECT games_won, games_lost FROM users WHERE user_id=?',
+            (user_id,)
+        ).fetchone()
+    return jsonify({
+        'ok':         True,
+        'history':    [dict(r) for r in rows],
+        'total':      total,
+        'games_won':  user['games_won']  if user else 0,
+        'games_lost': user['games_lost'] if user else 0,
+    })
+
+#  ROLLS — PvP рулетка
+# ══════════════════════════════════════════════
+
+ROLLS_COMMISSION = 0.05   # 5% с банка в пользу бота
+ROLLS_TIMER      = 45     # секунд на сбор ставок
+ROLLS_MIN_BET    = 1000
+ROLLS_MAX_BET    = 500_000_000
+
+_rolls_lock   = threading.Lock()
+_rolls_rounds = {}   # round_id -> dict
+
+def _rolls_init_db():
+    with get_db() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS rolls_rounds (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                started_at INTEGER,
+                ended_at   INTEGER,
+                winner_id  INTEGER,
+                pot        INTEGER DEFAULT 0,
+                commission INTEGER DEFAULT 0
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS rolls_bets (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                round_id INTEGER,
+                user_id  INTEGER,
+                amount   INTEGER,
+                placed_at INTEGER
+            )
+        ''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_rolls_bets_round ON rolls_bets(round_id)')
+
+_rolls_init_db()
+
+def _get_or_create_round():
+    """Возвращает активный раунд или создаёт новый."""
+    now = int(time.time())
+    with _rolls_lock:
+        for rid, r in list(_rolls_rounds.items()):
+            if r['status'] == 'open':
+                if r['ends_at'] is None:
+                    # Ждём второго участника — таймер ещё не стартовал
+                    return rid, r
+                elif now < r['ends_at']:
+                    return rid, r
+                else:
+                    # Таймер истёк — закрываем
+                    r['status'] = 'spinning'
+                    threading.Thread(target=_finish_round, args=(rid,), daemon=True).start()
+        # Создаём новый — таймер НЕ запускается пока не зайдёт второй участник
+        rid = now
+        _rolls_rounds[rid] = {
+            'status':     'open',
+            'started_at': now,
+            'ends_at':    None,   # None пока < 2 участников
+            'bets':       {},
+            'pot':        0,
+        }
+        return rid, _rolls_rounds[rid]
+
+def _finish_round(rid):
+    import time as _time
+    _time.sleep(1)  # дать клиентам забрать последние ставки
+    with _rolls_lock:
+        r = _rolls_rounds.get(rid)
+        if not r or r['status'] == 'done':
+            return
+        r['status'] = 'spinning'
+        bets   = dict(r['bets'])  # копия под lock
+        pot    = r['pot']
+        if not bets:
+            r['status'] = 'done'
+            r['winner_id'] = None
+            return
+
+    # Выбираем победителя пропорционально ставке
+    users   = list(bets.keys())
+    weights = [bets[u] for u in users]
+    winner  = random.choices(users, weights=weights, k=1)[0]
+
+    commission  = int(pot * ROLLS_COMMISSION)
+    win_amount  = pot - commission
+
+    with get_db() as conn:
+        # Победителю зачисляем выигрыш
+        conn.execute('UPDATE users SET balance=balance+? WHERE user_id=?', (win_amount, winner))
+        # Списываем ставки у проигравших (уже списаны при входе)
+        db_rid = conn.execute(
+            'INSERT INTO rolls_rounds (started_at, ended_at, winner_id, pot, commission) VALUES (?,?,?,?,?)',
+            (r['started_at'], int(time.time()), winner, pot, commission)
+        ).lastrowid
+        for uid, amt in bets.items():
+            conn.execute(
+                'INSERT INTO rolls_bets (round_id, user_id, amount, placed_at) VALUES (?,?,?,?)',
+                (db_rid, uid, amt, r['started_at'])
+            )
+
+    with _rolls_lock:
+        r['status']    = 'done'
+        r['winner_id'] = winner
+        r['win_amount'] = win_amount
+        r['commission'] = commission
+        r['db_rid']    = db_rid
+        # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
+        cutoff = int(time.time()) - 120
+        for old_rid in [k for k, v in _rolls_rounds.items()
+                        if v['status'] == 'done' and v.get('started_at', 0) < cutoff and k != rid]:
+            del _rolls_rounds[old_rid]
+
+
+@app.route('/api/rolls/state', methods=['POST'])
+def rolls_state():
+    data    = request.json or {}
+    user_id = data.get('user_id')
+
+    rid, r = _get_or_create_round()
+    now    = int(time.time())
+
+    with _rolls_lock:
+        bets_list = [
+            {'user_id': uid, 'amount': amt}
+            for uid, amt in r['bets'].items()
+        ]
+        pot  = r['pot']
+        ends = r['ends_at']
+
+    # Имена участников
+    names = {}
+    if bets_list:
+        with get_db() as conn:
+            for uid in r['bets']:
+                row = conn.execute(
+                    'SELECT custom_name, username, first_name, photo_url FROM users WHERE user_id=?',
+                    (uid,)
+                ).fetchone()
+                if row:
+                    # Ключи строками — JSON сериализует int-ключи как строки,
+                    # поэтому используем str чтобы фронт мог найти по b.user_id
+                    names[str(uid)] = {
+                        'name': row['custom_name'] or row['username'] or row['first_name'] or str(uid),
+                        'photo': row['photo_url']
+                    }
+
+    return jsonify({
+        'ok':        True,
+        'round_id':  rid,
+        'status':    r['status'],
+        'ends_at':   ends,
+        'time_left': max(0, ends - now) if ends else None,
+        'pot':       pot,
+        'bets':      bets_list,
+        'names':     names,
+        'my_bet':    r['bets'].get(int(user_id), 0) if user_id else 0,
+        'winner_id': r.get('winner_id'),
+        'win_amount': r.get('win_amount', 0),
+        'commission': r.get('commission', 0),
+    })
+
+
+@app.route('/api/rolls/bet', methods=['POST'])
+def rolls_bet():
+    data    = request.json or {}
+    user_id = data.get('user_id')
+    if user_id is not None:
+        try: user_id = int(user_id)
+        except: pass
+    bet     = int(data.get('bet', 0))
+
+    if not user_id:
+        return jsonify({'error': 'no user_id'}), 400
+    if bet < ROLLS_MIN_BET:
+        return jsonify({'error': f'Минимальная ставка {ROLLS_MIN_BET:,}'}), 400
+    if bet > ROLLS_MAX_BET:
+        return jsonify({'error': f'Максимальная ставка {ROLLS_MAX_BET:,}'}), 400
+
+    rid, r = _get_or_create_round()
+    if r['status'] != 'open':
+        return jsonify({'error': 'Раунд закрыт, подожди следующий'}), 400
+
+    now = int(time.time())
+    if r['ends_at'] is not None and now >= r['ends_at']:
+        return jsonify({'error': 'Раунд закрыт, подожди следующий'}), 400
+
+    with _rolls_lock:
+        already = r['bets'].get(user_id, 0)
+
+    # Атомарное списание
+    with get_db() as conn:
+        row = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        if row['balance'] < bet:
+            return jsonify({'error': 'Недостаточно средств', 'balance': row['balance']}), 400
+        res = conn.execute(
+            'UPDATE users SET balance=balance-?, last_activity=CURRENT_TIMESTAMP WHERE user_id=? AND balance>=?',
+            (bet, user_id, bet)
+        )
+        if res.rowcount == 0:
+            return jsonify({'error': 'Недостаточно средств'}), 400
+        new_balance = conn.execute('SELECT balance FROM users WHERE user_id=?', (user_id,)).fetchone()['balance']
+
+    now2 = int(time.time())
+    with _rolls_lock:
+        r['bets'][user_id] = r['bets'].get(user_id, 0) + bet
+        r['pot'] += bet
+        # Запускаем таймер когда зашёл второй уникальный участник
+        if r['ends_at'] is None and len(r['bets']) >= 2:
+            r['ends_at'] = now2 + ROLLS_TIMER
+
+    return jsonify({'ok': True, 'my_bet': r['bets'][user_id], 'pot': r['pot'], 'new_balance': new_balance})
+
+
+@app.route('/api/rolls/history', methods=['POST'])
+def rolls_history():
+    data    = request.json or {}
+    user_id = data.get('user_id')
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT rr.id, rr.ended_at, rr.pot, rr.winner_id, rr.commission,
+                   rb.amount as my_bet
+            FROM rolls_rounds rr
+            JOIN rolls_bets rb ON rb.round_id = rr.id AND rb.user_id = ?
+            ORDER BY rr.id DESC LIMIT 20
+        ''', (user_id,)).fetchall()
+    return jsonify({'ok': True, 'history': [dict(r) for r in rows]})
