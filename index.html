@@ -21,13 +21,8 @@
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.5}
 #app{height:100dvh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
-/* BG ORBS */
-#bg-mesh{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.mesh-orb{position:absolute;border-radius:50%;filter:blur(90px);animation:orbDrift 20s ease-in-out infinite}
-.orb-a{width:320px;height:320px;background:radial-gradient(circle,rgba(124,92,252,.18),transparent 70%);top:-100px;left:-80px;animation-duration:18s}
-.orb-b{width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,.1),transparent 70%);bottom:-80px;right:-60px;animation-duration:22s;animation-direction:reverse}
-.orb-c{width:200px;height:200px;background:radial-gradient(circle,rgba(59,130,246,.09),transparent 70%);top:40%;left:30%;animation-duration:16s;animation-delay:4s}
-@keyframes orbDrift{0%,100%{transform:translate(0,0)}33%{transform:translate(20px,-25px)}66%{transform:translate(-15px,15px)}}
+/* BG CANVAS */
+#bg-mesh{position:fixed;inset:0;pointer-events:none;z-index:0}
 /* SCREENS */
 .screens{flex:1;overflow:hidden;position:relative;min-height:0;z-index:1}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
@@ -95,18 +90,72 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .sec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
 /* GAME TILES */
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.game-tile{padding:18px 16px 16px;border-radius:var(--r2);cursor:pointer;position:relative;overflow:hidden;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-.game-tile:active{transform:scale(.94)}
-.t-slots{background:linear-gradient(145deg,rgba(245,158,11,.1),rgba(245,158,11,.04));border:1px solid rgba(245,158,11,.22)}
-.t-roulette{background:linear-gradient(145deg,rgba(239,68,68,.1),rgba(239,68,68,.04));border:1px solid rgba(239,68,68,.22)}
-.t-hc{background:linear-gradient(145deg,rgba(168,85,247,.1),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.22)}
-.t-coin{background:linear-gradient(145deg,rgba(59,130,246,.1),rgba(59,130,246,.04));border:1px solid rgba(59,130,246,.22)}
-.t-taxi{background:linear-gradient(145deg,rgba(249,115,22,.1),rgba(249,115,22,.04));border:1px solid rgba(249,115,22,.22)}
-.game-tile::before{content:'';position:absolute;top:-24px;right:-24px;width:96px;height:96px;border-radius:50%;opacity:.22;filter:blur(16px)}
-.t-slots::before{background:#f59e0b}.t-roulette::before{background:#ef4444}.t-hc::before{background:#a855f7}.t-coin::before{background:#3b82f6}.t-taxi::before{background:#f97316}
-.t-crash{background:linear-gradient(145deg,rgba(16,185,129,.1),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.22)}
-.t-crash::before{background:#10b981}
-.t-crash .gt-sub{color:#10b981}
+.game-tile{
+  padding:0;border-radius:20px;cursor:pointer;position:relative;overflow:hidden;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.game-tile:active{transform:scale(.93)!important;filter:brightness(.88)}
+.game-tile-inner{padding:18px 16px 16px;position:relative;z-index:1;height:100%}
+
+/* Фоны карточек */
+.t-slots{background:linear-gradient(145deg,#1e1608 0%,#110e04 100%);border:1px solid rgba(245,158,11,.3);box-shadow:0 4px 24px rgba(245,158,11,.08),inset 0 1px 0 rgba(245,158,11,.12)}
+.t-roulette{background:linear-gradient(145deg,#1c0a0a 0%,#0f0606 100%);border:1px solid rgba(239,68,68,.3);box-shadow:0 4px 24px rgba(239,68,68,.08),inset 0 1px 0 rgba(239,68,68,.12)}
+.t-hc{background:linear-gradient(145deg,#160d1e 0%,#0c0810 100%);border:1px solid rgba(168,85,247,.3);box-shadow:0 4px 24px rgba(168,85,247,.08),inset 0 1px 0 rgba(168,85,247,.12)}
+.t-coin{background:linear-gradient(145deg,#0a1020 0%,#060a14 100%);border:1px solid rgba(59,130,246,.3);box-shadow:0 4px 24px rgba(59,130,246,.08),inset 0 1px 0 rgba(59,130,246,.12)}
+.t-taxi{background:linear-gradient(145deg,#1a0f06 0%,#0f0904 100%);border:1px solid rgba(249,115,22,.3);box-shadow:0 4px 24px rgba(249,115,22,.08),inset 0 1px 0 rgba(249,115,22,.12)}
+.t-crash{background:linear-gradient(145deg,#061812 0%,#030f0a 100%);border:1px solid rgba(16,185,129,.3);box-shadow:0 4px 24px rgba(16,185,129,.08),inset 0 1px 0 rgba(16,185,129,.12)}
+
+/* Светящийся orb в углу */
+.game-tile::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;filter:blur(28px);pointer-events:none;z-index:0;transition:opacity .2s}
+.game-tile:active::before{opacity:.5}
+.t-slots::before{background:rgba(245,158,11,.55)}
+.t-roulette::before{background:rgba(239,68,68,.55)}
+.t-hc::before{background:rgba(168,85,247,.55)}
+.t-coin::before{background:rgba(59,130,246,.55)}
+.t-taxi::before{background:rgba(249,115,22,.55)}
+.t-crash::before{background:rgba(16,185,129,.55)}
+
+/* Блик снизу */
+.game-tile::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;pointer-events:none;z-index:0}
+.t-slots::after{background:linear-gradient(0deg,rgba(245,158,11,.06),transparent)}
+.t-roulette::after{background:linear-gradient(0deg,rgba(239,68,68,.06),transparent)}
+.t-hc::after{background:linear-gradient(0deg,rgba(168,85,247,.06),transparent)}
+.t-coin::after{background:linear-gradient(0deg,rgba(59,130,246,.06),transparent)}
+.t-taxi::after{background:linear-gradient(0deg,rgba(249,115,22,.06),transparent)}
+.t-crash::after{background:linear-gradient(0deg,rgba(16,185,129,.06),transparent)}
+
+/* Цветная полоска сверху */
+.game-tile-bar{position:absolute;top:0;left:0;right:0;height:2px;z-index:2;border-radius:20px 20px 0 0}
+.t-slots .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(245,158,11,.8),transparent)}
+.t-roulette .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(239,68,68,.8),transparent)}
+.t-hc .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(168,85,247,.8),transparent)}
+.t-coin .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(59,130,246,.8),transparent)}
+.t-taxi .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(249,115,22,.8),transparent)}
+.t-crash .game-tile-bar{background:linear-gradient(90deg,transparent,rgba(16,185,129,.8),transparent)}
+
+/* Иконка с кружком */
+.gt-ico-wrap{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;position:relative}
+.t-slots .gt-ico-wrap{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.2)}
+.t-roulette .gt-ico-wrap{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2)}
+.t-hc .gt-ico-wrap{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2)}
+.t-coin .gt-ico-wrap{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2)}
+.t-taxi .gt-ico-wrap{background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)}
+.t-crash .gt-ico-wrap{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2)}
+
+.gt-ico{font-size:26px;line-height:1;display:block}
+.gt-name{font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.2px}
+.gt-sub{font-size:10px;margin-top:4px;font-weight:600;opacity:.85}
+.t-slots .gt-sub{color:#f59e0b}.t-roulette .gt-sub{color:#ef4444}.t-hc .gt-sub{color:#a855f7}.t-coin .gt-sub{color:#3b82f6}.t-taxi .gt-sub{color:#f97316}.t-crash .gt-sub{color:#10b981}
+
+/* Бейдж множителя */
+.gt-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:800;margin-top:6px;letter-spacing:.02em}
+.t-slots .gt-badge{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.25)}
+.t-roulette .gt-badge{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+.t-hc .gt-badge{background:rgba(168,85,247,.15);color:#d8b4fe;border:1px solid rgba(168,85,247,.25)}
+.t-coin .gt-badge{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+.t-taxi .gt-badge{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.25)}
+.t-crash .gt-badge{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.25)}
 /* CRASH GAME */
 .crash-arena{background:linear-gradient(160deg,#050f0a,#071a10);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:0;margin-bottom:12px;position:relative;overflow:hidden}
 .crash-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.5),transparent)}
@@ -174,11 +223,22 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .gt-sub{font-size:10.5px;margin-top:3px;font-weight:500;opacity:.7}
 .t-slots .gt-sub{color:#f59e0b}.t-roulette .gt-sub{color:#ef4444}.t-hc .gt-sub{color:#a855f7}.t-coin .gt-sub{color:#3b82f6}.t-taxi .gt-sub{color:#f97316}
 /* GAME HEADER */
-.game-header{display:flex;align-items:center;gap:12px;padding:16px 14px 12px;position:sticky;top:0;z-index:20;background:rgba(13,15,20,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-.back-btn{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0}
-.back-btn:active{transform:scale(.88)}
-.back-btn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.game-title{font-size:17px;font-weight:800;letter-spacing:-.2px}
+@keyframes headerSlideDown{from{transform:translateY(-110%);opacity:0}to{transform:translateY(0);opacity:1}}
+.game-header{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px 13px;
+  position:sticky;top:0;z-index:20;
+  background:rgba(18,20,28,.88);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  border-radius:0 0 22px 22px;
+  box-shadow:0 8px 32px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.06) inset;
+  animation:headerSlideDown .32s cubic-bezier(.34,1.56,.64,1) both;
+}
+.back-btn{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .14s cubic-bezier(.34,1.56,.64,1);flex-shrink:0}
+.back-btn:active{transform:scale(.84);background:rgba(255,255,255,.12)}
+.back-btn svg{width:17px;height:17px;stroke:var(--text);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.game-title{font-size:16px;font-weight:800;letter-spacing:-.2px}
 .game-badge{margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
 .card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2)}
 /* SLOTS DRUM */
@@ -266,33 +326,249 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 @keyframes btnShimmer{to{transform:translateX(220%) skewX(-18deg)}}
 /* RESULT */
 .result-chip{display:none;margin-bottom:0}
+
+/* ── GAME TOAST ── */
 #game-toast{
-  position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-100px);
+  position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-120px) scale(.85);
   z-index:9999;pointer-events:none;
-  min-width:200px;max-width:300px;
-  padding:12px 24px;border-radius:50px;
+  min-width:180px;max-width:290px;
+  padding:11px 22px;border-radius:50px;
   text-align:center;font-size:15px;font-weight:800;
-  font-family:'Outfit',sans-serif;
-  white-space:nowrap;
+  font-family:'Outfit',sans-serif;white-space:nowrap;
   opacity:0;
-  transition:transform .38s cubic-bezier(.34,1.4,.64,1),opacity .3s ease;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  box-shadow:0 8px 32px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .28s ease;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
 }
-#game-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-#game-toast.t-win{background:rgba(16,185,129,.25);border:1.5px solid rgba(16,185,129,.55);color:#34d399;box-shadow:0 8px 32px rgba(16,185,129,.2),inset 0 1px 0 rgba(255,255,255,.1)}
-#game-toast.t-jackpot{background:rgba(251,191,36,.22);border:1.5px solid rgba(251,191,36,.6);color:#fbbf24;box-shadow:0 8px 32px rgba(251,191,36,.25),inset 0 1px 0 rgba(255,255,255,.1)}
-#game-toast.t-loss{background:rgba(239,68,68,.18);border:1.5px solid rgba(239,68,68,.45);color:#f87171;box-shadow:0 8px 32px rgba(239,68,68,.18),inset 0 1px 0 rgba(255,255,255,.08)}
-#game-toast.t-draw{background:rgba(148,163,184,.14);border:1.5px solid rgba(148,163,184,.3);color:#94a3b8}
-/* Подсветка экрана */
-#screen-flash{
-  position:fixed;inset:0;z-index:9998;pointer-events:none;
-  opacity:0;transition:opacity .18s ease;
-}
-#screen-flash.fl-win{background:radial-gradient(ellipse at center,rgba(16,185,129,.18) 0%,transparent 70%)}
-#screen-flash.fl-loss{background:radial-gradient(ellipse at center,rgba(239,68,68,.16) 0%,transparent 70%)}
-#screen-flash.fl-jackpot{background:radial-gradient(ellipse at center,rgba(251,191,36,.2) 0%,transparent 70%)}
+#game-toast.show{transform:translateX(-50%) translateY(0) scale(1);opacity:1}
+#game-toast.t-win{background:rgba(16,185,129,.22);border:1.5px solid rgba(16,185,129,.5);color:#34d399;box-shadow:0 0 0 4px rgba(16,185,129,.08),0 12px 40px rgba(16,185,129,.25)}
+#game-toast.t-jackpot{background:rgba(251,191,36,.2);border:1.5px solid rgba(251,191,36,.6);color:#fbbf24;box-shadow:0 0 0 4px rgba(251,191,36,.1),0 12px 40px rgba(251,191,36,.3)}
+#game-toast.t-loss{background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.4);color:#f87171;box-shadow:0 0 0 4px rgba(239,68,68,.06),0 12px 32px rgba(239,68,68,.2)}
+#game-toast.t-draw{background:rgba(148,163,184,.12);border:1.5px solid rgba(148,163,184,.28);color:#94a3b8}
+
+/* ── SCREEN FLASH ── */
+#screen-flash{position:fixed;inset:0;z-index:9990;pointer-events:none;opacity:0;transition:opacity .15s ease}
+#screen-flash.fl-win{background:radial-gradient(ellipse at 50% 40%,rgba(16,185,129,.18) 0%,transparent 65%)}
+#screen-flash.fl-loss{background:radial-gradient(ellipse at 50% 40%,rgba(239,68,68,.15) 0%,transparent 65%)}
+#screen-flash.fl-jackpot{background:radial-gradient(ellipse at 50% 30%,rgba(251,191,36,.22) 0%,transparent 60%)}
 #screen-flash.show{opacity:1}
+
+/* ── BORDER FLASH — canvas линия ── */
+#border-flash{
+  position:fixed;inset:0;z-index:10050;pointer-events:none;
+}
+
+/* ── WIN/LOSE FULL OVERLAY ── */
+#result-overlay{
+  position:fixed;inset:0;z-index:10100;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;opacity:0;
+  transition:opacity .22s ease;
+}
+#result-overlay.show{opacity:1;pointer-events:auto}
+#result-overlay .ro-backdrop{
+  position:absolute;inset:0;
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  background:rgba(0,0,0,.55);
+}
+#result-overlay .ro-card{
+  position:relative;z-index:1;
+  width:calc(100% - 48px);max-width:320px;
+  border-radius:28px;padding:32px 24px 24px;
+  text-align:center;
+  animation:roCardIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes roCardIn{
+  0%{opacity:0;transform:scale(.7) translateY(40px)}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
+#result-overlay.ro-win .ro-card{
+  background:linear-gradient(160deg,rgba(5,25,18,.97),rgba(3,18,12,.97));
+  border:1px solid rgba(16,185,129,.35);
+  box-shadow:0 0 0 1px rgba(16,185,129,.1),0 40px 80px rgba(0,0,0,.7),0 0 60px rgba(16,185,129,.15);
+}
+#result-overlay.ro-loss .ro-card{
+  background:linear-gradient(160deg,rgba(22,5,5,.97),rgba(14,4,4,.97));
+  border:1px solid rgba(239,68,68,.3);
+  box-shadow:0 0 0 1px rgba(239,68,68,.08),0 40px 80px rgba(0,0,0,.7),0 0 60px rgba(239,68,68,.12);
+}
+#result-overlay.ro-jackpot .ro-card{
+  background:linear-gradient(160deg,rgba(25,20,3,.97),rgba(16,13,2,.97));
+  border:1px solid rgba(251,191,36,.45);
+  box-shadow:0 0 0 1px rgba(251,191,36,.12),0 40px 80px rgba(0,0,0,.7),0 0 80px rgba(251,191,36,.2);
+}
+.ro-emoji{font-size:64px;display:block;margin-bottom:8px;animation:roEmoji .6s cubic-bezier(.34,1.9,.64,1) .15s both}
+@keyframes roEmoji{0%{transform:scale(0) rotate(-20deg)}100%{transform:scale(1) rotate(0)}}
+.ro-label{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+#result-overlay.ro-win .ro-label{color:rgba(52,211,153,.6)}
+#result-overlay.ro-loss .ro-label{color:rgba(248,113,113,.5)}
+#result-overlay.ro-jackpot .ro-label{color:rgba(251,191,36,.6)}
+.ro-amount{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:900;letter-spacing:-1.5px;line-height:1;margin-bottom:4px;animation:roAmount .5s cubic-bezier(.22,1,.36,1) .25s both}
+@keyframes roAmount{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:none}}
+#result-overlay.ro-win .ro-amount{color:#34d399}
+#result-overlay.ro-loss .ro-amount{color:#f87171}
+#result-overlay.ro-jackpot .ro-amount{color:#fbbf24}
+.ro-sub{font-size:12px;color:rgba(255,255,255,.35);margin-bottom:22px;animation:roAmount .5s .35s both}
+.ro-close{
+  width:100%;padding:14px;border:none;border-radius:16px;
+  font-size:15px;font-weight:800;color:#fff;cursor:pointer;
+  font-family:'Outfit',sans-serif;
+  transition:transform .14s cubic-bezier(.34,1.56,.64,1),opacity .12s;
+  animation:roAmount .4s .45s both;
+}
+.ro-close:active{transform:scale(.95)}
+#result-overlay.ro-win .ro-close{background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 6px 24px rgba(16,185,129,.35)}
+#result-overlay.ro-loss .ro-close{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+#result-overlay.ro-jackpot .ro-close{background:linear-gradient(135deg,#b45309,#f59e0b);box-shadow:0 6px 24px rgba(251,191,36,.35)}
+
+/* ── ЧАСТИЦЫ ── */
+@keyframes partFloat{
+  0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}
+  100%{transform:translate(var(--px),var(--py)) rotate(var(--pr)) scale(0);opacity:0}
+}
+.win-particle{position:fixed;pointer-events:none;z-index:10200;font-size:var(--ps,18px);animation:partFloat var(--pd,.9s) ease-out forwards}
+@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.shake-anim{animation:shakeX .45s ease}
+
+/* ── ONBOARDING ── */
+#onb-overlay{
+  position:fixed;inset:0;z-index:20000;pointer-events:none;
+}
+#onb-overlay.active{pointer-events:auto}
+
+/* Затемнение фона с вырезом */
+#onb-backdrop{
+  position:absolute;inset:0;
+  transition:opacity .3s ease;
+  opacity:0;
+}
+#onb-overlay.active #onb-backdrop{opacity:1}
+
+/* Подсветка целевого элемента */
+#onb-highlight{
+  position:absolute;
+  border-radius:18px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72);
+  border:2px solid rgba(124,92,252,.7);
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72),0 0 0 3px rgba(124,92,252,.4),0 0 24px rgba(124,92,252,.3);
+  transition:all .4s cubic-bezier(.34,1.2,.64,1);
+  pointer-events:none;
+  opacity:0;
+}
+#onb-overlay.active #onb-highlight{opacity:1}
+
+/* Tooltip */
+#onb-tip{
+  position:absolute;
+  width:260px;
+  background:rgba(20,22,32,.97);
+  border:1px solid rgba(124,92,252,.35);
+  border-radius:20px;
+  padding:18px 20px 16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04);
+  transition:all .38s cubic-bezier(.34,1.2,.64,1);
+  opacity:0;transform:scale(.9) translateY(8px);
+}
+#onb-overlay.active #onb-tip{opacity:1;transform:scale(1) translateY(0)}
+#onb-tip::before{
+  content:'';position:absolute;width:12px;height:12px;
+  background:rgba(20,22,32,.97);border:1px solid rgba(124,92,252,.35);
+  transform:rotate(45deg);
+}
+#onb-tip.arrow-top::before{top:-7px;left:50%;margin-left:-6px;border-bottom:none;border-right:none}
+#onb-tip.arrow-bottom::before{bottom:-7px;left:50%;margin-left:-6px;border-top:none;border-left:none}
+#onb-tip.arrow-left::before{left:-7px;top:24px;border-bottom:none;border-left:none}  
+
+.onb-step-num{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(124,92,252,.7);text-transform:uppercase;margin-bottom:6px}
+.onb-tip-title{font-size:16px;font-weight:800;color:#eef0f6;margin-bottom:6px;line-height:1.2}
+.onb-tip-text{font-size:13px;color:#8890a8;line-height:1.5;margin-bottom:14px}
+.onb-tip-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.onb-dots{display:flex;gap:5px}
+.onb-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .25s}
+.onb-dot.active{width:18px;border-radius:3px;background:var(--acc)}
+.onb-next{flex-shrink:0;padding:8px 18px;border-radius:12px;border:none;background:var(--acc);color:#fff;font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;cursor:pointer;transition:transform .15s,opacity .15s}
+.onb-next:active{transform:scale(.93)}
+.onb-skip{font-size:12px;color:rgba(255,255,255,.3);cursor:pointer;padding:4px;transition:color .15s}
+.onb-skip:hover{color:rgba(255,255,255,.5)}
+
+
+/* ── HISTORY SECTION ── */
+.hist-wrap{margin-top:20px}
+.hist-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hist-title{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
+.hist-stats{display:flex;gap:8px}
+.hist-stat{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.hist-stat.hs-win{background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2)}
+.hist-stat.hs-loss{background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.18)}
+
+.hist-list{display:flex;flex-direction:column;gap:7px}
+
+.hist-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:16px;
+  background:var(--s2);
+  border:1px solid var(--border);
+  position:relative;overflow:hidden;
+  transition:transform .15s ease,box-shadow .15s ease;
+  animation:histRowIn .4s cubic-bezier(.22,1,.36,1) both;
+}
+.hist-row:active{transform:scale(.985)}
+@keyframes histRowIn{
+  from{opacity:0;transform:translateY(10px) scale(.98)}
+  to{opacity:1;transform:none}
+}
+/* Боковая полоска результата */
+.hist-row::before{
+  content:'';position:absolute;left:0;top:16%;bottom:16%;
+  width:3px;border-radius:0 3px 3px 0;
+}
+.hist-row.hr-win::before{background:linear-gradient(180deg,#34d399,#10b981)}
+.hist-row.hr-loss::before{background:linear-gradient(180deg,#f87171,#ef4444)}
+.hist-row.hr-draw::before{background:rgba(148,163,184,.4)}
+
+/* Иконка игры */
+.hist-ico{
+  width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.hr-win .hist-ico{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.18)}
+.hr-loss .hist-ico{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15)}
+.hr-draw .hist-ico{background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.12)}
+
+/* Центр */
+.hist-mid{flex:1;min-width:0}
+.hist-game-name{font-size:13px;font-weight:800;color:var(--text);line-height:1.2}
+.hist-meta{font-size:11px;color:var(--sub);margin-top:2px}
+
+/* Правая часть */
+.hist-right{text-align:right;flex-shrink:0}
+.hist-amount{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;line-height:1.2}
+.hr-win .hist-amount{color:#34d399}
+.hr-loss .hist-amount{color:#f87171}
+.hr-draw .hist-amount{color:var(--sub)}
+.hist-bet{font-size:11px;color:var(--sub);margin-top:1px}
+
+/* Скелетон загрузки */
+.hist-skel{height:64px;border-radius:16px;background:var(--s2);border:1px solid var(--border);overflow:hidden;position:relative}
+.hist-skel::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.04) 50%,transparent 100%);
+  animation:skelShim 1.4s ease infinite;
+}
+@keyframes skelShim{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* Кнопка "Загрузить ещё" */
+.hist-more{
+  width:100%;padding:12px;border:1px solid var(--border);
+  border-radius:14px;background:transparent;
+  color:var(--sub);font-size:13px;font-weight:700;
+  font-family:'Outfit',sans-serif;cursor:pointer;margin-top:4px;
+  transition:all .18s ease;
+}
+.hist-more:hover{border-color:var(--border2);color:var(--text2)}
+.hist-more:active{transform:scale(.97)}
+.hist-empty{text-align:center;padding:28px 16px;color:var(--sub);font-size:13px}
+
 /* TAXI */
 .taxi-class-card{border-radius:var(--r2);padding:18px;margin-bottom:10px;background:var(--s2);border:1px solid rgba(249,115,22,.15);position:relative;overflow:hidden}
 .taxi-class-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(249,115,22,.4),transparent)}
@@ -447,9 +723,9 @@ circle.ring-fg.done{stroke:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,3
 .machine-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 
 /* ══ LIGHT THEME ══════════════════════════════ */
-body.light{--bg:#f0f2f8;--s1:#ffffff;--s2:#f7f8fc;--s3:#eceef5;--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);--text:#0d0f18;--text2:#3d4560;--sub:#8890a8;--muted:#d0d4e8;--acc:#5c8a00;--acc2:#72aa00;--acc-dim:rgba(92,138,0,.12);--acc-glow:rgba(92,138,0,.2);--acc-g:linear-gradient(135deg,#72aa00,#a0cc00);--green:#007a52;--red:#cc1133;--gold:#b8860b}
+body.light{--bg:#f4f5fb;--s1:#ffffff;--s2:#eef0f9;--s3:#e4e7f4;--border:rgba(100,110,160,0.1);--border2:rgba(100,110,160,0.18);--text:#111827;--text2:#374151;--sub:#6b7280;--muted:#d1d5db;--acc:#7c5cfc;--acc2:#6d48f5;--acc3:#5b38e8;--acc-dim:rgba(124,92,252,.1);--acc-glow:rgba(124,92,252,.25);--acc-g:linear-gradient(135deg,#7c5cfc,#6d48f5);--green:#059669;--red:#dc2626;--gold:#d97706}
 body.light .nav{background:rgba(240,242,248,.97)}
-body.light .game-header{background:rgba(240,242,248,.96)}
+body.light .game-header{background:rgba(240,242,248,.92);box-shadow:0 8px 32px rgba(0,0,0,.1)}
 body.light #loader{background:var(--bg)}
 body.light .crash-arena{background:linear-gradient(160deg,#e8f5f0,#f0faf5)}
 body.light .hc-arena{background:linear-gradient(160deg,#f0eeff,#f8f5ff)}
@@ -505,16 +781,97 @@ body.light .ref-share-btn{color:#0a0d00}
 .lb-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .lb-title-sm{font-size:10px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .lb-val{font-size:12px;font-weight:900;flex-shrink:0;font-family:var(--mono,'Space Mono',monospace);color:var(--acc);text-align:right;max-width:90px;white-space:nowrap}
+
+/* ── ROLLS ── */
+.rolls-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.rolls-badge.open{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.22);color:#34d399}
+.rolls-badge.spinning{background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);color:var(--acc2)}
+.rolls-badge.done{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.22);color:#93c5fd}
+.rolls-dot{width:6px;height:6px;border-radius:50%;animation:rDot 1.4s ease-in-out infinite}
+.open .rolls-dot{background:#34d399;box-shadow:0 0 5px #34d399}
+.spinning .rolls-dot{background:var(--acc2);box-shadow:0 0 5px var(--acc2)}
+.done .rolls-dot{background:#93c5fd;animation:none}
+@keyframes rDot{0%,100%{opacity:1}50%{opacity:.3}}
+.rolls-qb{padding:5px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:30px;font-size:11px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;transition:all .14s}
+.rolls-qb:active{transform:scale(.91)}
+.rolls-qb:hover,.rolls-qb:active{background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.35);color:#a78bfa}
+.rolls-player{display:flex;align-items:center;gap:10px;padding:10px 13px;background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.07);border-radius:16px;margin-bottom:7px;transition:border-color .2s,background .2s}
+.rolls-player.me{border-color:rgba(124,92,252,.25);background:rgba(124,92,252,.07)}
+.rolls-player.winner{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);animation:rWin .6s ease-in-out 3}
+@keyframes rWin{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(16,185,129,.3)}}
+.rolls-ava{width:32px;height:32px;border-radius:9px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;overflow:hidden;position:relative}
+.rolls-ava img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+/* RESULT */
+#rolls-result{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,15,20,.93);backdrop-filter:blur(14px)}
+#rolls-result.show{display:flex}
+.rolls-result-card{background:linear-gradient(145deg,var(--s2),var(--s1));border:1px solid rgba(124,92,252,.28);border-radius:var(--r3);padding:28px 24px;width:calc(100% - 40px);max-width:340px;text-align:center;box-shadow:0 0 50px rgba(124,92,252,.12);animation:rCardIn .45s cubic-bezier(.22,1,.36,1)}
+@keyframes rCardIn{from{opacity:0;transform:scale(.87) translateY(18px)}to{opacity:1;transform:none}}
+.rolls-confetti{position:fixed;pointer-events:none;z-index:600;animation:rConfetti linear forwards}
+@keyframes rConfetti{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ── КНОПКИ — глобальные анимации ── */
+button,
+.btn, .action-btn, .spin-btn, .place-btn, .cashout-btn,
+.back-btn, .bet-btn, .tab-btn, .bonus-block,
+.crash-cashout-btn, .rolls-qb, .qb,
+[onclick]:not(.game-tile):not(.nav-item):not(.screen):not(.nav):not(.lb-tab):not(.rou-type-btn) {
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled),
+.btn:not(:disabled),
+.action-btn:not(:disabled),
+.spin-btn:not(:disabled),
+.place-btn:not(:disabled) {
+  transition: transform .14s cubic-bezier(.34,1.56,.64,1), opacity .12s, box-shadow .14s;
+}
+button:active:not(:disabled),
+.btn:active:not(:disabled),
+.action-btn:active:not(:disabled),
+.spin-btn:active:not(:disabled),
+.place-btn:active:not(:disabled) {
+  transform: scale(.93);
+  opacity: .88;
+}
+/* Назад-кнопка */
+.back-btn:active { transform: scale(.86) !important; }
+/* Таб-кнопки */
+.lb-tab, .rou-type-btn, .coin-side {
+  transition: transform .14s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s !important;
+}
+.lb-tab:active, .rou-type-btn:active, .coin-side:active { transform: scale(.93) !important; }
+/* Бонус-блок */
+.bonus-block { transition: transform .16s cubic-bezier(.34,1.56,.64,1), box-shadow .16s !important; }
+.bonus-block:active { transform: scale(.97) !important; }
+/* Ripple-эффект для game-tile */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: .35; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.tile-ripple {
+  position: absolute; border-radius: 50%;
+  width: 80px; height: 80px;
+  margin-left: -40px; margin-top: -40px;
+  background: rgba(255,255,255,.18);
+  animation: ripple .5s ease forwards;
+  pointer-events: none; z-index: 10;
+}
 </style>
 </head>
 <body>
 <div id="game-toast"></div>
 <div id="screen-flash"></div>
-<div id="bg-mesh">
-  <div class="mesh-orb orb-a"></div>
-  <div class="mesh-orb orb-b"></div>
-  <div class="mesh-orb orb-c"></div>
+<canvas id="border-flash"></canvas>
+<div id="result-overlay">
+  <div class="ro-backdrop" onclick="closeResultOverlay()"></div>
+  <div class="ro-card">
+    <span class="ro-emoji" id="ro-emoji">🏆</span>
+    <div class="ro-label" id="ro-label">Победа</div>
+    <div class="ro-amount" id="ro-amount">+0 🌸</div>
+    <div class="ro-sub" id="ro-sub"></div>
+    <button class="ro-close" onclick="closeResultOverlay()" id="ro-close">Продолжить</button>
+  </div>
 </div>
+<canvas id="bg-mesh"></canvas>
 <div id="loader">
   <div class="loader-ico">🎮</div>
   <div class="loader-txt">Загрузка Fectiz Game</div>
@@ -585,12 +942,73 @@ body.light .ref-share-btn{color:#0a0d00}
       <div class="game-header"><div class="game-title" style="margin-left:4px">🎮 Игры</div></div>
       <div style="padding:12px 14px 100px">
         <div class="game-grid" style="margin-top:4px">
-          <div class="game-tile t-slots ci ci-1" onclick="goGame('slots')"><span class="gt-ico">🎰</span><div class="gt-name">Слоты</div><div class="gt-sub">до ×25</div></div>
-          <div class="game-tile t-roulette ci ci-2" onclick="goGame('roulette')"><span class="gt-ico">🎡</span><div class="gt-name">Рулетка</div><div class="gt-sub">×2 / ×14 / ×35</div></div>
-          <div class="game-tile t-hc ci ci-3" onclick="goGame('hc')"><span class="gt-ico">🎴</span><div class="gt-name">Высокая карта</div><div class="gt-sub">vs Бот · ×2</div></div>
-          <div class="game-tile t-coin ci ci-4" onclick="goGame('coin')"><span class="gt-ico">🪙</span><div class="gt-name">Монетка</div><div class="gt-sub">50/50 · ×2</div></div>
-          <div class="game-tile t-crash ci ci-5" onclick="goGame('crash')" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:16px 20px"><span class="gt-ico" style="margin-bottom:0;font-size:36px">🚀</span><div><div class="gt-name" style="font-size:15px">Краш</div><div class="gt-sub" style="color:#10b981">Лети до краша · до ×100</div></div></div>
+          <div class="game-tile t-slots ci ci-1" onclick="goGame('slots')">
+            <div class="game-tile-bar"></div>
+            <div class="game-tile-inner">
+              <div class="gt-ico-wrap"><span class="gt-ico">🎰</span></div>
+              <div class="gt-name">Слоты</div>
+              <div class="gt-sub">до ×25</div>
+              <div class="gt-badge">🔥 Популярное</div>
+            </div>
+          </div>
+          <div class="game-tile t-roulette ci ci-2" onclick="goGame('roulette')">
+            <div class="game-tile-bar"></div>
+            <div class="game-tile-inner">
+              <div class="gt-ico-wrap"><span class="gt-ico">🎡</span></div>
+              <div class="gt-name">Рулетка</div>
+              <div class="gt-sub">×2 / ×14 / ×35</div>
+              <div class="gt-badge">🎯 Классика</div>
+            </div>
+          </div>
+          <div class="game-tile t-hc ci ci-3" onclick="goGame('hc')">
+            <div class="game-tile-bar"></div>
+            <div class="game-tile-inner">
+              <div class="gt-ico-wrap"><span class="gt-ico">🎴</span></div>
+              <div class="gt-name">Высокая карта</div>
+              <div class="gt-sub">vs Бот · ×2</div>
+              <div class="gt-badge">⚡ Быстрая</div>
+            </div>
+          </div>
+          <div class="game-tile t-coin ci ci-4" onclick="goGame('coin')">
+            <div class="game-tile-bar"></div>
+            <div class="game-tile-inner">
+              <div class="gt-ico-wrap"><span class="gt-ico">🪙</span></div>
+              <div class="gt-name">Монетка</div>
+              <div class="gt-sub">50/50 · ×2</div>
+              <div class="gt-badge">🎲 50/50</div>
+            </div>
+          </div>
+          <div class="game-tile t-crash ci ci-5" onclick="goGame('crash')" style="grid-column:1/-1">
+            <div class="game-tile-bar"></div>
+            <div class="game-tile-inner" style="display:flex;align-items:center;gap:16px;padding:14px 18px">
+              <div class="gt-ico-wrap" style="width:56px;height:56px;border-radius:16px;flex-shrink:0;margin-bottom:0"><span class="gt-ico" style="font-size:30px">🚀</span></div>
+              <div style="flex:1">
+                <div class="gt-name" style="font-size:15px">Краш</div>
+                <div class="gt-sub" style="margin-top:2px">Лети как можно дольше</div>
+                <div class="gt-badge" style="margin-top:6px">💰 до ×100</div>
+              </div>
+              <div style="font-size:22px;opacity:.25">›</div>
+            </div>
+          </div>
         </div>
+
+        <!-- История игр -->
+        <div class="hist-wrap">
+          <div class="hist-header">
+            <div class="hist-title">📋 История</div>
+            <div class="hist-stats">
+              <div class="hist-stat hs-win" id="hist-stat-win">— побед</div>
+              <div class="hist-stat hs-loss" id="hist-stat-loss">— пораж.</div>
+            </div>
+          </div>
+          <div class="hist-list" id="hist-list">
+            <div class="hist-skel"></div>
+            <div class="hist-skel"></div>
+            <div class="hist-skel"></div>
+          </div>
+          <button class="hist-more" id="hist-more" onclick="histLoadMore()" style="display:none">Загрузить ещё</button>
+        </div>
+
       </div>
     </div>
 
@@ -881,6 +1299,88 @@ body.light .ref-share-btn{color:#0a0d00}
       </div>
     </div>
 
+    <!-- ROLLS -->
+    <div class="screen sp" id="s-rolls">
+      <div class="game-header">
+        <div class="game-title" style="margin-left:4px">🎡 Wheel</div>
+        <div id="rolls-bal-pill" style="display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);border-radius:30px;font-size:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--acc2)" id="rolls-bal">0</span>
+          <span style="font-size:13px">🌸</span>
+        </div>
+      </div>
+      <div style="padding:0 14px 100px">
+
+        <!-- WHEEL -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin:16px 0 14px">
+          <div style="position:relative;width:300px;height:300px">
+            <!-- Внешнее свечение -->
+            <div id="rolls-glow" style="position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,252,.18),transparent 68%);pointer-events:none;transition:background .6s ease"></div>
+            <canvas id="rolls-canvas" style="display:block;border-radius:50%;width:300px;height:300px"></canvas>
+            <!-- Указатель -->
+            <div id="rolls-pointer" style="position:absolute;top:-4px;left:50%;transform:translateX(-50%);z-index:10;filter:drop-shadow(0 2px 8px rgba(124,92,252,.9))">
+              <svg width="22" height="28" viewBox="0 0 22 28"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#7c5cfc"/></linearGradient></defs><path d="M11 2 L20 14 Q11 28 11 28 Q11 28 2 14 Z" fill="url(#pg)" stroke="rgba(255,255,255,.3)" stroke-width="1"/><circle cx="11" cy="10" r="3" fill="rgba(255,255,255,.6)"/></svg>
+            </div>
+            <!-- Центральная шайба -->
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2a2d3e,#0d0f14);border:2px solid rgba(124,92,252,.5);box-shadow:0 0 20px rgba(124,92,252,.25),inset 0 1px 0 rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;z-index:5;font-size:22px">🎡</div>
+          </div>
+
+          <!-- Таймер -->
+          <div style="width:260px;margin-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em">До броска</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--acc2)" id="rolls-timer">—</span>
+            </div>
+            <div style="height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">
+              <div id="rolls-timer-fill" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .9s linear;width:100%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATUS + POT — одна строка -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 2px">
+          <span id="rolls-status-badge" class="rolls-badge open"><span class="rolls-dot"></span><span id="rolls-status-text">Приём ставок</span></span>
+          <div style="text-align:right">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:var(--acc2);letter-spacing:-.5px" id="rolls-pot">0 🌸</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px" id="rolls-pot-sub">0 ставок · 5% комиссия</div>
+          </div>
+        </div>
+
+        <!-- MY BET -->
+        <div id="rolls-mybet-row" style="display:none;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(124,92,252,.08);border:1px solid rgba(124,92,252,.18);border-radius:14px;margin-bottom:12px;backdrop-filter:blur(8px)">
+          <span style="font-size:12px;color:rgba(255,255,255,.5)">Моя ставка</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--acc2)" id="rolls-mybet-val">0 🌸</span>
+        </div>
+
+        <!-- BET INPUT -->
+        <div id="rolls-bet-card" style="background:rgba(255,255,255,.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:14px 14px 12px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Сделать ставку</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input type="number" id="rolls-bet-input" placeholder="1 000" min="1000"
+              style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--text);outline:none;width:100%;transition:border-color .2s"
+              onfocus="this.style.borderColor='rgba(124,92,252,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            <button id="rolls-bet-btn" onclick="rollsPlaceBet()"
+              style="padding:11px 18px;border-radius:12px;background:linear-gradient(135deg,#7c5cfc,#a78bfa);border:none;font-size:14px;font-weight:800;color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 4px 20px rgba(124,92,252,.35);transition:transform .14s,box-shadow .14s">Поставить</button>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <div class="rolls-qb" onclick="rollsSetBet(1000)">1К</div>
+            <div class="rolls-qb" onclick="rollsSetBet(5000)">5К</div>
+            <div class="rolls-qb" onclick="rollsSetBet(10000)">10К</div>
+            <div class="rolls-qb" onclick="rollsSetBet(50000)">50К</div>
+            <div class="rolls-qb" onclick="rollsSetBet(100000)">100К</div>
+            <div class="rolls-qb" onclick="rollsSetBetHalf()">½</div>
+            <div class="rolls-qb" onclick="rollsSetBetMax()">MAX</div>
+          </div>
+        </div>
+
+        <!-- PLAYERS -->
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          Участники <span style="flex:1;height:1px;background:rgba(255,255,255,.06)"></span>
+        </div>
+        <div id="rolls-players"></div>
+
+      </div>
+    </div>
+
   </div><!-- /screens -->
 
   <div class="nav-wrap">
@@ -902,6 +1402,10 @@ body.light .ref-share-btn{color:#0a0d00}
         <div class="nav-ico"><svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v9a2 2 0 01-2 2h-2"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/></svg></div>
         <div class="nav-lbl">Такси</div>
       </div>
+      <div class="nav-item" id="ni-rolls" onclick="nav('rolls')">
+        <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/><path d="M12 2c2.5 2.5 4 6 4 10s-1.5 7.5-4 10"/></svg></div>
+        <div class="nav-lbl">Wheel</div>
+      </div>
       <div class="nav-item" id="ni-lb" onclick="nav('lb')">
         <div class="nav-ico"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
         <div class="nav-lbl">Топ</div>
@@ -909,6 +1413,7 @@ body.light .ref-share-btn{color:#0a0d00}
     </div>
   </div>
 </div>
+<div id="rolls-result"></div>
 <div id="levelup-overlay">
   <div class="lu-backdrop" onclick="closeLevelUp()"></div>
   <div class="lu-card">
@@ -959,6 +1464,14 @@ function fmt(n){
 // ═══════════════════════════════
 async function apireq(path,opts={}){
   if(!API) throw new Error('no-api');
+  // Добавляем initData в тело POST-запросов для верификации на сервере
+  if(opts.method==='POST' && opts.body){
+    try{
+      const b=JSON.parse(opts.body);
+      if(!b.initData && TG?.initData) b.initData=TG.initData;
+      opts.body=JSON.stringify(b);
+    }catch(e){}
+  }
   const controller=new AbortController();
   const tid=setTimeout(()=>controller.abort(),8000);
   try{
@@ -973,8 +1486,8 @@ async function apireq(path,opts={}){
 // ═══════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════
-const smap={home:'s-home',games:'s-games',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',crash:'s-crash',taxi:'s-taxi',ref:'s-ref',lb:'s-lb'};
-const nmap={home:'ni-home',games:'ni-games',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',crash:'ni-games',taxi:'ni-taxi',ref:'ni-ref',lb:'ni-lb'};
+const smap={home:'s-home',games:'s-games',slots:'s-slots',roulette:'s-roulette',hc:'s-hc',coin:'s-coin',crash:'s-crash',taxi:'s-taxi',ref:'s-ref',lb:'s-lb',rolls:'s-rolls'};
+const nmap={home:'ni-home',games:'ni-games',slots:'ni-games',roulette:'ni-games',hc:'ni-games',coin:'ni-games',crash:'ni-games',taxi:'ni-taxi',ref:'ni-ref',lb:'ni-lb',rolls:'ni-rolls'};
 let cur='home';
 
 function nav(to){
@@ -991,7 +1504,29 @@ function nav(to){
   updateBadge(to);
   haptic('light');
   if(to==='lb') loadLb();
+  if(to==='games') loadHistory(true);
   if(to==='ref') loadReferral();
+  if(to==='rolls'){
+    if(IS_DEMO){
+      // Демо: запускаем только если нет активного раунда
+      const demoHasRound = rollsDemoBets && Object.values(rollsDemoBets).some(v=>v>0);
+      if(!demoHasRound && !_rollsDemoSimInterval){
+        rollsInitDemoUI();
+      } else {
+        // Восстанавливаем отображение текущего состояния
+        const names={demo:{name:'Ты'}};DEMO_BOTS.forEach(b=>{names[b.id]={name:b.name};});
+        const betsObj=Object.fromEntries(Object.entries(rollsDemoBets||{}).filter(([,v])=>v>0));
+        rollsUpdateUI({status:'open',time_left:rollsDemoPhase==='collecting'?rollsDemoTimer:null,pot:rollsDemoPot,bets:Object.entries(betsObj).map(([u,a])=>({user_id:u,amount:a})),names,my_bet:(rollsDemoBets||{})['demo']||0,winner_id:null,commission:0,win_amount:0,round_id:'demo'});
+        if(!rollsSpinning) rollsDrawWheel(betsObj,names);
+      }
+    } else {
+      if(!rollsTimer){
+        rollsPoll(); rollsTimer=setInterval(rollsPoll,2000);
+      } else {
+        if(rollsState){ rollsUpdateUI(rollsState); const bo=rollsState.bets.reduce((o,b)=>({...o,[b.user_id]:b.amount}),{}); if(!rollsSpinning)rollsDrawWheel(bo,rollsState.names); }
+      }
+    }
+  }
   if(to==='taxi') onTaxiOpen();
   if(to==='crash') onCrashOpen();
   else onCrashClose();
@@ -1035,12 +1570,74 @@ function spawnCoins(){
     setTimeout(()=>p.remove(),900);
   }
 }
+
+// ── WIN/LOSE OVERLAY ──
+let _roTimer=null;
+function showResultOverlay(type, amount, bet, sub){
+  if(type==='draw'){showGameToast('🤝 Ничья','draw',1800);return;}
+  const isWin=type==='win'||type==='jackpot';
+  const bfType=isWin?(type==='jackpot'?'jackpot':'win'):'loss';
+  const toastTxt=isWin?(type==='jackpot'?`🎉 ДЖЕКПОТ +${fmt(amount)} 🌸`:`+${fmt(amount)} 🌸`):`−${fmt(bet)} 🌸`;
+  const toastType=isWin?'win':'loss';
+
+  // Toast + canvas border — одновременно
+  const el=document.getElementById('game-toast');
+  const fl=document.getElementById('screen-flash');
+  if(el){el.className='';el.textContent=toastTxt;void el.offsetWidth;el.classList.add('show','t-'+toastType);}
+  if(fl){fl.className='';void fl.offsetWidth;fl.classList.add('fl-'+bfType,'show');setTimeout(()=>{fl.className='';},500);}
+  drawBorderLine(bfType);
+
+  // Скрываем тост
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{
+    if(!el)return;
+    el.style.transition='transform .3s ease,opacity .3s ease';
+    el.style.transform='translateX(-50%) translateY(-80px)';
+    el.style.opacity='0';
+    setTimeout(()=>{el.className='';el.style.cssText='';},320);
+  }, isWin?2200:1900);
+
+  if(isWin){spawnWinParticles(type==='jackpot');haptic('success');}
+  else{haptic('error');}
+  // Обновить историю если мы на экране games
+  if(cur==='games') setTimeout(()=>loadHistory(true),800);
+}
+function closeResultOverlay(){
+  const ov=document.getElementById('result-overlay');
+  if(ov){ov.style.opacity='0';ov.style.transform='scale(.95)';ov.style.transition='opacity .2s ease,transform .2s ease';setTimeout(()=>{ov.className='';ov.style.cssText='';},220);}
+}
+function spawnWinParticles(isJackpot){
+  const emojis=isJackpot?['🎉','💰','⭐','💎','🌸','🏆']:['🌸','⭐','💎','✨','🌸'];
+  const count=isJackpot?30:18;
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const p=document.createElement('div');
+      p.className='win-particle';
+      p.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      const size=14+Math.random()*16;
+      const angle=Math.random()*Math.PI*2;
+      const dist=80+Math.random()*180;
+      p.style.cssText=[
+        `left:${20+Math.random()*60}vw`,
+        `top:${30+Math.random()*30}vh`,
+        `--px:${Math.cos(angle)*dist}px`,
+        `--py:${Math.sin(angle)*dist - 60}px`,
+        `--pr:${(Math.random()-.5)*360}deg`,
+        `--ps:${size}px`,
+        `--pd:${.7+Math.random()*.8}s`,
+      ].join(';');
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(),1600);
+    }, i*45);
+  }
+}
 function shimmerBtn(btn){btn.classList.add('shimmer');setTimeout(()=>btn.classList.remove('shimmer'),800);}
 function syncBal(n){
   if(n===undefined||n===null)return;
   n=parseInt(n)||0;
   if(userData)userData.balance=n;
   document.getElementById('h-bal').textContent=fmt(n);
+  const rb=document.getElementById('rolls-bal');if(rb)rb.textContent=rollsFmt(n);
   updateBadge(cur);
 }
 function updateBadge(s){
@@ -1104,6 +1701,7 @@ async function init(){
   }
   initTheme();
   hideLdr();
+  onbStart();
   updateOnlineCount();
   setInterval(updateOnlineCount,30000);
   // Синхронизация баланса с сервером каждые 8 сек
@@ -1363,12 +1961,11 @@ async function spinSlots(){
     ['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.add('win-reel'));
     flash.classList.add('show');
     const isJackpot=apiData.win_type==='jackpot';
-    showGameToast(isJackpot?`🎉 ДЖЕКПОТ! +${fmt(winAmt)} 🌸`:`✅ +${fmt(winAmt)} 🌸`,isJackpot?'jackpot':'win');
-    spawnCoins();haptic('success');
+    showResultOverlay(isJackpot?'jackpot':'win', winAmt, bet, isJackpot?'🎰 Все три символа совпали!':'');
+    spawnCoins();
     setTimeout(()=>flash.classList.remove('show'),1800);
   }else{
-    showGameToast(`😔 −${fmt(bet)} 🌸`,'loss');
-    haptic('light');
+    showResultOverlay('loss',0,bet,'');
   }
   setTimeout(()=>{['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.remove('win-reel'));},3500);
   shimmerBtn(btn);
@@ -1468,9 +2065,8 @@ async function spinRoule(){
   setTimeout(()=>{
     const em=resColor==='red'?'🔴':resColor==='black'?'⚫':'🟢';
     resDv.textContent=em;resDv.classList.add('show');
-    if(won){res.className='result-chip win show';res.textContent=`✅ +${fmt(winAmt)} 🌸`;spawnCoins();haptic('success');}
-    else{res.className='result-chip loss show';res.textContent=`😔 −${fmt(bets.rou)} 🌸`;haptic('light');}
-    setTimeout(()=>res.classList.remove('show'),3500);
+    if(won){showResultOverlay('win',winAmt,bets.rou,`${em} Число ${WNUMS[land.i]}`);spawnCoins();}
+    else{showResultOverlay('loss',0,bets.rou,`${em} Число ${WNUMS[land.i]}`);}    
     btn.disabled=false;
   },dur+200);
   shimmerBtn(btn);
@@ -1527,9 +2123,9 @@ async function playHighCard(){
     hcRenderCard('hc-bot-card',d.bot_card,botState);
     const res=document.getElementById('hc-res');
     let txt,cls;
-    if(d.draw){showGameToast('🤝 Ничья — ставка возвращена','draw');}
-    else if(d.won){showGameToast(`✅ Победа! +${fmt(d.bet)} 🌸`,'win');spawnCoins();haptic('success');}
-    else{showGameToast(`😔 Поражение −${fmt(d.bet)} 🌸`,'loss');haptic('light');}
+    if(d.draw){showResultOverlay('draw',d.bet,d.bet,'🎴 Ставка возвращена');}
+    else if(d.won){showResultOverlay('win',d.bet,d.bet,'🎴 Ты побил карту бота!');spawnCoins();}
+    else{showResultOverlay('loss',0,d.bet,'🎴 Карта бота оказалась выше');}
     if(d.new_balance!==undefined)syncBal(d.new_balance);
     btn.disabled=false;
   },500);
@@ -1575,9 +2171,8 @@ async function flipCoin(){
     ce.classList.remove('flipping');
     ce.textContent=result==='heads'?'👑':'🦅';
     resB.textContent=result==='heads'?'👑 Орёл':'🦅 Решка';
-    if(won){chip.className='result-chip win show';chip.textContent=`✅ +${fmt(winAmt)} 🌸`;spawnCoins();haptic('success');}
-    else{chip.className='result-chip loss show';chip.textContent=`😔 −${fmt(bets.coin)} 🌸`;haptic('light');}
-    setTimeout(()=>chip.classList.remove('show'),3200);
+    if(won){showResultOverlay('win',winAmt,bets.coin,result==='heads'?'👑 Орёл':'🦅 Решка');spawnCoins();}
+    else{showResultOverlay('loss',0,bets.coin,result==='heads'?'👑 Орёл':'🦅 Решка');}
     btn.disabled=false;shimmerBtn(btn);
   },1000);
 }
@@ -1720,6 +2315,138 @@ function doFinishTaxi(earned,newBal,xp){
   document.getElementById('h-taxi-earn').textContent=fmt(earned)+' 🌸';
   loadRoutes();
 }
+
+
+// ══ ИСТОРИЯ ИГР ══
+const HIST_GAME_MAP = {
+  slots:    {name:'Слоты',     ico:'🎰'},
+  roulette: {name:'Рулетка',   ico:'🎡'},
+  hc:       {name:'Выс. карта',ico:'🎴'},
+  coin:     {name:'Монетка',   ico:'🪙'},
+  crash:    {name:'Краш',      ico:'🚀'},
+  blackjack:{name:'Блэкджек',  ico:'🃏'},
+  rolls:    {name:'Wheel',     ico:'🎡'},
+};
+const HIST_RESULT_MAP = {
+  win:       {cls:'hr-win',  label:'Победа'},
+  lose:      {cls:'hr-loss', label:'Проигрыш'},
+  loss:      {cls:'hr-loss', label:'Проигрыш'},
+  draw:      {cls:'hr-draw', label:'Ничья'},
+  blackjack: {cls:'hr-win',  label:'Блэкджек'},
+  bust:      {cls:'hr-loss', label:'Перебор'},
+  push:      {cls:'hr-draw', label:'Ничья'},
+};
+
+let _histOffset = 0;
+let _histLoading = false;
+const HIST_PAGE = 15;
+
+function histFmt(n){
+  n=Math.abs(parseInt(n)||0);
+  if(n>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1).replace('.0','')+'K';
+  return n.toLocaleString('ru');
+}
+
+function histTimeAgo(ts){
+  const diff = Math.floor(Date.now()/1000) - ts;
+  if(diff < 60)   return 'только что';
+  if(diff < 3600) return Math.floor(diff/60)+'м назад';
+  if(diff < 86400)return Math.floor(diff/3600)+'ч назад';
+  return Math.floor(diff/86400)+'д назад';
+}
+
+function histRenderRow(h, delay){
+  const g   = HIST_GAME_MAP[h.game]  || {name: h.game, ico:'🎮'};
+  const res = HIST_RESULT_MAP[h.result] || {cls:'hr-draw', label: h.result};
+  const isWin  = res.cls === 'hr-win';
+  const isLoss = res.cls === 'hr-loss';
+  const amtStr = isWin
+    ? `+${histFmt(h.win_amount)} 🌸`
+    : isLoss
+      ? `−${histFmt(h.bet)} 🌸`
+      : `±0 🌸`;
+  const betStr = `Ставка: ${histFmt(h.bet)} 🌸`;
+  const time   = h.created_at ? histTimeAgo(h.created_at) : '';
+
+  const row = document.createElement('div');
+  row.className = `hist-row ${res.cls}`;
+  row.style.animationDelay = delay+'ms';
+  row.innerHTML = `
+    <div class="hist-ico">${g.ico}</div>
+    <div class="hist-mid">
+      <div class="hist-game-name">${g.name}</div>
+      <div class="hist-meta">${res.label}${time?' · '+time:''}</div>
+    </div>
+    <div class="hist-right">
+      <div class="hist-amount">${amtStr}</div>
+      <div class="hist-bet">${betStr}</div>
+    </div>
+  `;
+  return row;
+}
+
+async function loadHistory(reset){
+  if(_histLoading) return;
+  _histLoading = true;
+
+  const list = document.getElementById('hist-list');
+  const moreBtn = document.getElementById('hist-more');
+
+  if(reset){
+    _histOffset = 0;
+    // Показываем скелетон
+    list.innerHTML = [0,1,2].map(()=>'<div class="hist-skel"></div>').join('');
+    moreBtn && (moreBtn.style.display='none');
+  }
+
+  if(IS_DEMO){
+    // Демо данные
+    const demoGames = ['slots','roulette','hc','coin','crash'];
+    const demoRes   = ['win','lose','draw','win','lose','win','win','lose'];
+    const rows = Array.from({length:8},(_,i)=>({
+      game: demoGames[i%demoGames.length],
+      result: demoRes[i%demoRes.length],
+      bet: [500,1000,2000,5000,10000][i%5],
+      win_amount: demoRes[i%demoRes.length]==='win'?[1000,2000,4000,10000,20000][i%5]:0,
+      created_at: Math.floor(Date.now()/1000) - i*600,
+    }));
+    _histLoading = false;
+    list.innerHTML = '';
+    rows.forEach((h,i) => list.appendChild(histRenderRow(h, i*40)));
+    return;
+  }
+
+  try{
+    const d = await apireq(`/api/history?user_id=${UID}&limit=${HIST_PAGE}&offset=${_histOffset}`);
+    const rows = d.history || [];
+
+    // Обновляем статы
+    const statWin  = document.getElementById('hist-stat-win');
+    const statLoss = document.getElementById('hist-stat-loss');
+    if(statWin)  statWin.textContent  = (d.games_won||0)+' побед';
+    if(statLoss) statLoss.textContent = (d.games_lost||0)+' пораж.';
+
+    if(reset) list.innerHTML = '';
+
+    if(!rows.length && reset){
+      list.innerHTML = '<div class="hist-empty">😴 Игр пока нет<br><span style="font-size:11px;opacity:.5">Сыграй первую!</span></div>';
+      _histLoading=false; return;
+    }
+
+    rows.forEach((h,i) => list.appendChild(histRenderRow(h, i*35)));
+    _histOffset += rows.length;
+
+    if(moreBtn){
+      moreBtn.style.display = (_histOffset < (d.total||0)) ? 'block' : 'none';
+    }
+  }catch(e){
+    if(reset) list.innerHTML = '<div class="hist-empty">Не удалось загрузить историю</div>';
+  }
+  _histLoading = false;
+}
+
+function histLoadMore(){ loadHistory(false); }
 
 // ═══════════════════════════════
 // LEADERBOARD
@@ -2308,7 +3035,7 @@ function handleCrashCrashed(crashMult){
   addCrashHistory(crashMult);
   haptic('heavy');
   if(crash.betPlaced && !crash.cashedOut){
-    showGameToast(`💥 Краш ×${crashMult.toFixed(2)} — −${fmt(crash.betAmount)} 🌸`, 'loss');
+    showResultOverlay('loss',0,crash.betAmount,`💥 Краш на ×${crashMult.toFixed(2)}`);
     crash.betPlaced = false;
   }
 }
@@ -2372,7 +3099,7 @@ async function crashCashout(){
     const me = _demoCrashPlayers.find(p => String(p.user_id) === String(UID));
     if(me){ me.cashed_out = true; me.cashed_at = mult; }
     renderCrashPlayers(_demoCrashPlayers);
-    showGameToast(`💰 Вывел ×${mult.toFixed(2)} · +${fmt(winAmt)} 🌸`, 'win');
+    showResultOverlay('win',winAmt,bet,`🚀 Вывел ×${mult.toFixed(2)}`);
     spawnCoins(); haptic('success');
     const btn = document.getElementById('crash-cashout-btn');
     if(btn){ btn.disabled=true; btn.classList.remove('active-game'); btn.textContent='✅ Выведено'; }
@@ -2381,7 +3108,7 @@ async function crashCashout(){
   try{
     const d = await apireq('/api/crash/cashout', {method:'POST', body: JSON.stringify({user_id:UID})});
     syncBal(d.new_balance);
-    showGameToast(`💰 Вывел ×${mult.toFixed(2)} · +${fmt(d.win_amount||winAmt)} 🌸`, 'win');
+    showResultOverlay('win',d.win_amount||winAmt,bet,`🚀 Вывел ×${mult.toFixed(2)}`);
     spawnCoins(); haptic('success');
     const btn = document.getElementById('crash-cashout-btn');
     if(btn){ btn.disabled=true; btn.classList.remove('active-game'); btn.textContent='✅ Выведено'; }
@@ -2508,6 +3235,884 @@ function shareRefLink(){
   haptic('medium');
 }
 
+
+// ═══════════════════════════════
+// ROLLS
+// ═══════════════════════════════
+const ROLLS_COLORS=['#7c5cfc','#ef4444','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#a855f7','#f97316','#22c55e','#6366f1','#fbbf24','#84cc16','#0ea5e9','#d946ef'];
+let rollsState=null, rollsTimer=null, rollsSpinning=false, rollsLastId=null, rollsLastStatus=null;
+let rollsDemoBets=null, rollsDemoPot=0, rollsDemoTimer=45;
+
+function rollsFmt(n){
+  if(!n)return'0';
+  if(n>=1e9)return(n/1e9).toFixed(1).replace(/\.0$/,'')+'ккк';
+  if(n>=1e6)return(n/1e6).toFixed(1).replace(/\.0$/,'')+'кк';
+  if(n>=1e3)return(n/1e3).toFixed(1).replace(/\.0$/,'')+'к';
+  return Math.floor(n).toLocaleString('ru');
+}
+
+// Кэш аватарок для колеса
+const _rollsAvaCache={};
+function _rollsLoadAva(uid, url){
+  if(!url||_rollsAvaCache[uid])return;
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=()=>{ _rollsAvaCache[uid]=img; };
+  img.onerror=()=>{ _rollsAvaCache[uid]=null; };
+  img.src=url;
+}
+
+function rollsDrawWheel(bets, names, winIdx=-1, rotation=0){
+  const canvas=document.getElementById('rolls-canvas');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const CSS=300;
+  if(canvas.width!==CSS*dpr){
+    canvas.width=CSS*dpr;
+    canvas.height=CSS*dpr;
+  }
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const S=CSS, cx=150, cy=150, R=138, Ri=22;
+  ctx.clearRect(0,0,S,S);
+  const entries=Object.entries(bets||{});
+  const total=entries.reduce((s,[,v])=>s+v,0)||1;
+  const isLight=document.body.classList.contains('light');
+
+  // ── Пустое колесо ──
+  if(!entries.length){
+    // Фон
+    const bgGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    bgGrad.addColorStop(0,'#1e2235');bgGrad.addColorStop(1,'#13161d');
+    ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.fillStyle=bgGrad;ctx.fill();
+    // Декоративные спицы
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2;
+      ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*Ri*1.5,cy+Math.sin(a)*Ri*1.5);
+      ctx.lineTo(cx+Math.cos(a)*(R-8),cy+Math.sin(a)*(R-8));
+      ctx.strokeStyle='rgba(124,92,252,.08)';ctx.lineWidth=1;ctx.stroke();
+    }
+    // Концентрические кольца
+    [R*0.4,R*0.7].forEach(r=>{
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(124,92,252,.06)';ctx.lineWidth=1;ctx.stroke();
+    });
+    // Текст
+    ctx.fillStyle='rgba(255,255,255,.18)';ctx.font='bold 13px Outfit';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Ждём игроков...',cx,cy+4);
+    _rollsDrawRim(ctx,cx,cy,R);
+    return;
+  }
+
+  entries.forEach(([uid])=>{ const info=names[uid];if(info?.photo)_rollsLoadAva(uid,info.photo); });
+
+  // ── Тень колеса ──
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=20;ctx.shadowOffsetY=4;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle='#000';ctx.fill();
+  ctx.restore();
+
+  // ── Сектора ──
+  let angle=rotation-Math.PI/2;
+  entries.forEach(([uid,amt],i)=>{
+    const frac=amt/total, sweep=frac*Math.PI*2;
+    const baseCol=ROLLS_COLORS[i%ROLLS_COLORS.length];
+    const mid=angle+sweep/2;
+    const isWinner=winIdx===i;
+
+    // Градиент сектора — от светлее к темнее к краю
+    const gx1=cx+Math.cos(mid)*R*0.3, gy1=cy+Math.sin(mid)*R*0.3;
+    const gx2=cx+Math.cos(mid)*R,     gy2=cy+Math.sin(mid)*R;
+    const sg=ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+    if(isWinner){
+      sg.addColorStop(0,'#fff9e6');sg.addColorStop(0.5,'#ffd770');sg.addColorStop(1,'#f59e0b');
+    } else {
+      sg.addColorStop(0,_lighten(baseCol,.38));
+      sg.addColorStop(1,_darken(baseCol,.28));
+    }
+
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,angle,angle+sweep);ctx.closePath();
+    ctx.fillStyle=sg;ctx.fill();
+
+    // Глянцевый блик — дуга вдоль внешнего края
+    if(sweep>0.15){
+      const glGrad=ctx.createLinearGradient(
+        cx+Math.cos(mid-sweep*.3)*R*.85, cy+Math.sin(mid-sweep*.3)*R*.85,
+        cx+Math.cos(mid)*R*.7,           cy+Math.sin(mid)*R*.7
+      );
+      glGrad.addColorStop(0,'rgba(255,255,255,.22)');
+      glGrad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.beginPath();ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,R,angle,angle+sweep);ctx.closePath();
+      ctx.fillStyle=glGrad;ctx.fill();
+    }
+
+    // Разделитель секторов
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(angle)*R,cy+Math.sin(angle)*R);
+    ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1.5;ctx.stroke();
+
+    // ── Аватар ──
+    const avaR=R*0.68;
+    const ax=cx+Math.cos(mid)*avaR, ay=cy+Math.sin(mid)*avaR;
+    const avaSize=frac>0.18?30:frac>0.07?24:18;
+    const half=avaSize/2;
+
+    ctx.save();
+    // Тень под аватаркой
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(ax,ay,half+2,0,Math.PI*2);
+    ctx.fillStyle=isWinner?'rgba(251,191,36,.9)':'rgba(255,255,255,.85)';ctx.fill();
+    ctx.restore();
+
+    const avaImg=_rollsAvaCache[uid];
+    ctx.save();
+    ctx.beginPath();ctx.arc(ax,ay,half,0,Math.PI*2);ctx.clip();
+    if(avaImg){
+      ctx.drawImage(avaImg,ax-half,ay-half,avaSize,avaSize);
+    } else {
+      const info=names[uid];const letter=(info?.name||String(uid))[0]?.toUpperCase()||'?';
+      ctx.fillStyle=_darken(baseCol,.1);ctx.fillRect(ax-half,ay-half,avaSize,avaSize);
+      ctx.fillStyle='#fff';ctx.font=`bold ${Math.max(9,half*.95)}px Outfit`;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(letter,ax,ay+.5);
+    }
+    ctx.restore();
+
+    // ── Процент ──
+    if(frac>0.09){
+      const dist=avaR-half-14;
+      const px=cx+Math.cos(mid)*dist, py=cy+Math.sin(mid)*dist;
+      ctx.save();
+      ctx.translate(px,py);ctx.rotate(mid+Math.PI/2);
+      ctx.fillStyle=isWinner?'rgba(0,0,0,.6)':'rgba(0,0,0,.55)';
+      const pw=30,ph=14,pr=7;
+      ctx.beginPath();ctx.moveTo(-pw/2+pr,-ph/2);ctx.lineTo(pw/2-pr,-ph/2);
+      ctx.quadraticCurveTo(pw/2,-ph/2,pw/2,-ph/2+pr);
+      ctx.lineTo(pw/2,ph/2-pr);ctx.quadraticCurveTo(pw/2,ph/2,pw/2-pr,ph/2);
+      ctx.lineTo(-pw/2+pr,ph/2);ctx.quadraticCurveTo(-pw/2,ph/2,-pw/2,ph/2-pr);
+      ctx.lineTo(-pw/2,-ph/2+pr);ctx.quadraticCurveTo(-pw/2,-ph/2,-pw/2+pr,-ph/2);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=isWinner?'#fbbf24':'rgba(255,255,255,.95)';
+      ctx.font='bold 9px JetBrains Mono';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText((frac*100).toFixed(0)+'%',0,0.5);
+      ctx.restore();
+    }
+
+    angle+=sweep;
+  });
+
+  _rollsDrawRim(ctx,cx,cy,R);
+}
+
+// Утилиты цвета
+function _lighten(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,((n>>16)&255)+Math.round(255*amt));
+  const g=Math.min(255,((n>>8)&255)+Math.round(255*amt));
+  const b=Math.min(255,(n&255)+Math.round(255*amt));
+  return `rgb(${r},${g},${b})`;
+}
+function _darken(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.max(0,((n>>16)&255)-Math.round(255*amt));
+  const g=Math.max(0,((n>>8)&255)-Math.round(255*amt));
+  const b=Math.max(0,(n&255)-Math.round(255*amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+// Металлический обод с делениями
+function _rollsDrawRim(ctx,cx,cy,R){
+  // Основное кольцо — металлический градиент
+  const rimGrad=ctx.createConicalGradient?.(cx,cy,0)??null;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.strokeStyle='rgba(200,180,255,.45)';ctx.lineWidth=3;ctx.stroke();
+
+  // Внешняя тёмная окантовка
+  ctx.beginPath();ctx.arc(cx,cy,R+1.5,0,Math.PI*2);
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=2;ctx.stroke();
+
+  // Деления — 24 штуки
+  for(let i=0;i<24;i++){
+    const a=(i/24)*Math.PI*2;
+    const isMajor=(i%6===0);
+    const r1=R-1, r2=isMajor?R-8:R-5;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);
+    ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);
+    ctx.strokeStyle=isMajor?'rgba(255,255,255,.55)':'rgba(255,255,255,.2)';
+    ctx.lineWidth=isMajor?1.5:1;ctx.stroke();
+  }
+
+  // Внутреннее свечение обода
+  const innerGlow=ctx.createRadialGradient(cx,cy,R-12,cx,cy,R);
+  innerGlow.addColorStop(0,'rgba(124,92,252,0)');
+  innerGlow.addColorStop(1,'rgba(124,92,252,.15)');
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.strokeStyle=innerGlow;ctx.lineWidth=12;ctx.stroke();
+}
+
+function rollsSpinWheel(bets, names, winnerUid, cb){
+  if(rollsSpinning)return;rollsSpinning=true;
+  const entries=Object.entries(bets||{});
+  const total=entries.reduce((s,[,v])=>s+v,0)||1;
+  const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
+  if(winIdx<0){rollsSpinning=false;cb&&cb();return;}
+  let cumFrac=0;
+  for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
+  cumFrac+=entries[winIdx][1]/total/2;
+  const targetAngle=-cumFrac*Math.PI*2;
+  const totalRot=(6+Math.random()*4)*Math.PI*2+targetAngle;
+  const dur=5500,start=performance.now();
+  // Easing: быстрый старт, плавное торможение
+  function ease(t){const c4=2*Math.PI/3;return t===0?0:t===1?1:Math.pow(2,-8*t)*Math.sin((t*10-0.75)*c4)+1;}
+  function easeOut(t){return 1-Math.pow(1-t,4);}
+  const glow=document.getElementById('rolls-glow');
+  function frame(now){
+    const t=Math.min((now-start)/dur,1),rot=easeOut(t)*totalRot;
+    rollsDrawWheel(bets,names,t>=1?winIdx:-1,rot);
+    // Пульсация свечения во время вращения
+    if(glow && t<1){
+      const pulse=0.5+0.5*Math.sin(t*40);
+      glow.style.opacity=0.7+pulse*0.3+'';
+    }
+    if(t<1)requestAnimationFrame(frame);
+    else{
+      // Победное свечение
+      if(glow){
+        const winColor=entries[winIdx]?ROLLS_COLORS[winIdx%ROLLS_COLORS.length]:'#7c5cfc';
+        glow.style.background=`radial-gradient(circle,${winColor}44,transparent 68%)`;
+        glow.style.opacity='1';
+        setTimeout(()=>{glow.style.background='radial-gradient(circle,rgba(124,92,252,.18),transparent 68%)';glow.style.opacity='1';},1800);
+      }
+      setTimeout(()=>{rollsSpinning=false;cb&&cb();},600);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// Демо-боты
+const DEMO_BOTS=[
+  {id:'bot1',name:'Алексей К.',photo:null,emoji:'😎'},
+  {id:'bot2',name:'Виктор П.',photo:null,emoji:'🤑'},
+  {id:'bot3',name:'Настя Л.',photo:null,emoji:'😈'},
+  {id:'bot4',name:'Макс Р.',photo:null,emoji:'🎯'},
+  {id:'bot5',name:'Дима С.',photo:null,emoji:'🦅'},
+];
+
+function rollsInitDemoUI(){
+  // Сбрасываем стейт
+  rollsDemoBets={'demo':0};
+  rollsDemoPot=0;
+  rollsDemoTimer=45;
+  rollsDemoPhase='waiting'; // waiting → collecting → spinning → done
+
+  const names={demo:{name:'Ты'}};
+  DEMO_BOTS.forEach(b=>{ names[b.id]={name:b.name}; });
+
+  rollsUpdateUI({
+    status:'open', time_left:null, pot:0,
+    bets:[], names, my_bet:0,
+    winner_id:null, commission:0, win_amount:0, round_id:'demo'
+  });
+  rollsDrawWheel({},names);
+
+  // Запускаем демо симуляцию (только если ещё не запущена)
+  clearInterval(_rollsDemoSimInterval);
+  _rollsDemoSimInterval=null;
+  _rollsDemoSimInterval=setInterval(_rollsDemoTick,1000);
+}
+
+let _rollsDemoSimInterval=null;
+let rollsDemoPhase='waiting';
+
+function _rollsDemoTick(){
+  if(!IS_DEMO){ clearInterval(_rollsDemoSimInterval); return; }
+
+  const names={demo:{name:'Ты'}};
+  DEMO_BOTS.forEach(b=>{ names[b.id]={name:b.name}; });
+
+  if(rollsDemoPhase==='waiting'){
+    // Ждём пока игрок сделает ставку
+    if((rollsDemoBets['demo']||0)>0){
+      rollsDemoPhase='collecting';
+      rollsDemoTimer=30;
+      // Первый бот заходит сразу
+      _demoAddBotBet();
+    }
+    return;
+  }
+
+  if(rollsDemoPhase==='collecting'){
+    rollsDemoTimer--;
+    // Боты периодически делают ставки
+    if(rollsDemoTimer>20 && Math.random()<0.4) _demoAddBotBet();
+    if(rollsDemoTimer>10 && Math.random()<0.25) _demoAddBotBet();
+
+    const betsObj=Object.fromEntries(
+      Object.entries(rollsDemoBets).filter(([,v])=>v>0)
+    );
+    rollsUpdateUI({
+      status:'open', time_left:rollsDemoTimer, pot:rollsDemoPot,
+      bets:Object.entries(betsObj).map(([u,a])=>({user_id:u,amount:a})),
+      names, my_bet:rollsDemoBets['demo']||0,
+      winner_id:null, commission:0, win_amount:0, round_id:'demo'
+    });
+    if(!rollsSpinning){
+      rollsDrawWheel(betsObj,names);
+    }
+
+    if(rollsDemoTimer<=0){
+      rollsDemoPhase='spinning';
+      clearInterval(_rollsDemoSimInterval);
+      _demoSpin(betsObj,names);
+    }
+    return;
+  }
+}
+
+function _demoAddBotBet(){
+  const available=DEMO_BOTS.filter(b=>!(rollsDemoBets[b.id]>0));
+  if(!available.length) return;
+  const bot=available[Math.floor(Math.random()*available.length)];
+  const betAmounts=[500,1000,2000,5000,10000,20000,50000];
+  const amt=betAmounts[Math.floor(Math.random()*betAmounts.length)];
+  rollsDemoBets[bot.id]=(rollsDemoBets[bot.id]||0)+amt;
+  rollsDemoPot+=amt;
+}
+
+function _demoSpin(betsObj,names){
+  // Выбираем победителя пропорционально ставкам
+  const entries=Object.entries(betsObj);
+  const total=entries.reduce((s,[,v])=>s+v,0);
+  let r=Math.random()*total, winner='bot1';
+  for(const [uid,amt] of entries){ r-=amt; if(r<=0){winner=uid;break;} }
+
+  const commission=Math.floor(total*0.05);
+  const winAmount=total-commission;
+
+  rollsSpinWheel(betsObj,names,winner,()=>{
+    rollsDemoPhase='done';
+    const isMe=winner==='demo';
+    rollsUpdateUI({
+      status:'done', time_left:0, pot:total,
+      bets:entries.map(([u,a])=>({user_id:u,amount:a})),
+      names, my_bet:rollsDemoBets['demo']||0,
+      winner_id:winner, win_amount:winAmount, commission, round_id:'demo'
+    });
+    // Через 5 сек новый раунд
+    setTimeout(()=>{
+      if(IS_DEMO && cur==='rolls') rollsInitDemoUI();
+    },5500);
+  });
+}
+
+
+let _rollsPollRunning=false;
+async function rollsPoll(){
+  if(IS_DEMO)return;
+  if(_rollsPollRunning)return; // предыдущий запрос ещё не завершился
+  _rollsPollRunning=true;
+  try{
+    const d=await apireq('/api/rolls/state',{method:'POST',body:JSON.stringify({user_id:UID})});
+    if(!d.ok)return;
+    rollsState=d;
+    rollsUpdateUI(d);
+    const betsObj=d.bets.reduce((o,b)=>({...o,[b.user_id]:b.amount}),{});
+    // Предзагрузка аватарок — после загрузки перерисовываем колесо
+    let anyNewPhoto=false;
+    Object.entries(d.names||{}).forEach(([uid,info])=>{
+      if(info?.photo&&!_rollsAvaCache[uid]){
+        anyNewPhoto=true;
+        const img=new Image();img.crossOrigin='anonymous';
+        img.onload=()=>{_rollsAvaCache[uid]=img;if(!rollsSpinning)rollsDrawWheel(betsObj,d.names);};
+        img.onerror=()=>{_rollsAvaCache[uid]=null;};
+        img.src=info.photo;
+      }
+    });
+    if(d.status==='done'&&rollsLastStatus!=='done'){
+      rollsLastStatus='done';
+      rollsSpinWheel(betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
+    } else if(d.status!=='done'){
+      rollsLastStatus=d.status;
+      if(!rollsSpinning)rollsDrawWheel(betsObj,d.names);
+    }
+    rollsLastId=d.round_id;
+  }catch(e){}finally{_rollsPollRunning=false;}
+}
+
+function rollsUpdateUI(d){
+  // balance
+  const bal=(userData&&userData.balance)||0;
+  const balEl=document.getElementById('rolls-bal');
+  if(balEl)balEl.textContent=rollsFmt(bal);
+
+  // timer
+  const tl=d.time_left; // null = ждём 2-го игрока
+  const waiting=tl===null||tl===undefined;
+  const tEl=document.getElementById('rolls-timer');
+  if(tEl)tEl.textContent=waiting?'ждём…':tl>0?tl+'с':'—';
+  const fill=document.getElementById('rolls-timer-fill');
+  if(fill)fill.style.width=waiting?'100%':((tl/45)*100)+'%';
+  if(fill)fill.style.background=waiting?'rgba(255,255,255,.1)':'linear-gradient(90deg,var(--acc),var(--acc2))';
+
+  // badge
+  const badge=document.getElementById('rolls-status-badge');
+  const stTxt=document.getElementById('rolls-status-text');
+  if(badge){badge.className='rolls-badge '+(d.status||'open');}
+  if(stTxt){
+    if(waiting)stTxt.textContent='Ждём второго игрока…';
+    else if(d.status==='open')stTxt.textContent='Приём ставок · '+tl+'с';
+    else if(d.status==='spinning')stTxt.textContent='Крутим…';
+    else stTxt.textContent='Раунд завершён';
+  }
+
+  // pot
+  const pot=document.getElementById('rolls-pot');
+  if(pot)pot.textContent=rollsFmt(d.pot)+' 🌸';
+  const psub=document.getElementById('rolls-pot-sub');
+  if(psub)psub.textContent='Ставок: '+(d.bets?.length||0)+' · Комиссия 5%';
+
+  // my bet
+  const mb=d.my_bet||0;
+  const mbRow=document.getElementById('rolls-mybet-row');
+  const mbVal=document.getElementById('rolls-mybet-val');
+  if(mbRow)mbRow.style.display=mb>0?'flex':'none';
+  if(mbVal)mbVal.textContent=rollsFmt(mb)+' 🌸';
+
+  // bet card
+  const bc=document.getElementById('rolls-bet-card');
+  const bb=document.getElementById('rolls-bet-btn');
+  if(bc)bc.style.opacity=d.status!=='open'?'.4':'1';
+  if(bb)bb.disabled=d.status!=='open';
+
+  // players
+  const pl=document.getElementById('rolls-players');
+  if(!pl)return;
+  if(!d.bets?.length){
+    pl.innerHTML='<div style="text-align:center;padding:24px;color:var(--sub);font-size:13px">👥 Первый в раунде!</div>';
+    return;
+  }
+  const tot=d.pot||1;
+  pl.innerHTML=d.bets.map((b,i)=>{
+    const info=d.names?.[b.user_id]||{};
+    const name=info.name||String(b.user_id);
+    const pct=((b.amount/tot)*100).toFixed(1);
+    const isMe=String(b.user_id)===String(UID);
+    const isWin=String(d.winner_id)===String(b.user_id);
+    const col=ROLLS_COLORS[i%ROLLS_COLORS.length];
+    const photo=info.photo?`<img src="${info.photo}" onerror="this.style.display='none'">`:(name[0]||'?').toUpperCase();
+    return `<div class="rolls-player${isMe?' me':''}${isWin?' winner':''}">
+      <div class="rolls-ava">${photo}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}${isMe?' <span style="font-size:9px;color:var(--acc2)">◀ Ты</span>':''}</div>
+        <div style="height:3px;border-radius:2px;margin:4px 0;background:${col};width:${pct}%"></div>
+        <div style="font-size:11px;color:var(--sub)">${pct}% шанс</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--acc2)">${rollsFmt(b.amount)} 🌸</div>
+        ${isWin?'<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#34d399;margin-top:3px">🏆 WIN</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rollsShowResult(d){
+  // Ensure overlay exists
+  const overlay=document.getElementById('rolls-result');
+  const info=d.names?.[d.winner_id]||{};
+  const name=info.name||String(d.winner_id);
+  const isMe=String(d.winner_id)===String(UID);
+  const myBet=d.my_bet||0;
+  const profit=isMe?(d.win_amount-myBet):-myBet;
+
+  overlay.innerHTML=`<div class="rolls-result-card">
+    <div style="font-size:48px;margin-bottom:10px;animation:rCardIn .5s both .1s">${isMe?'🏆':'🎲'}</div>
+    <div style="font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:5px">${isMe?'Ты победил!':'Победитель'}</div>
+    <div style="font-size:15px;color:var(--acc2);font-weight:700;margin-bottom:16px">${name}</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:var(--acc2);margin-bottom:4px">+${rollsFmt(d.win_amount)} 🌸</div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:16px">Комиссия: ${rollsFmt(d.commission)} 🌸</div>
+    ${myBet>0?`<div style="padding:10px 14px;background:var(--s2);border-radius:var(--r);margin-bottom:16px;font-size:12px;color:var(--text2)">Ставка: <b style="color:var(--text)">${rollsFmt(myBet)} 🌸</b> &nbsp; Итог: <b style="color:${profit>=0?'#34d399':'#f87171'}">${profit>=0?'+':''}${rollsFmt(profit)} 🌸</b></div>`:''}
+    <button onclick="rollsCloseResult()" style="width:100%;padding:12px;background:var(--acc-g);border:none;border-radius:var(--r);font-size:14px;font-weight:800;color:#fff;cursor:pointer">Следующий раунд →</button>
+  </div>`;
+  overlay.className='show';
+  if(isMe)rollsConfetti();
+  if(isMe&&userData)userData.balance+=(d.win_amount-myBet);
+  else if(userData)userData.balance=Math.max(0,userData.balance-myBet);
+  if(userData)syncBal(userData.balance);
+}
+
+function rollsCloseResult(){
+  const o=document.getElementById('rolls-result');
+  if(o)o.className='';
+  rollsLastStatus=null;
+  if(IS_DEMO){
+    rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
+    rollsInitDemoUI();
+  } else {
+    rollsPoll();
+  }
+}
+
+function rollsConfetti(){
+  const cols=['#7c5cfc','#a78bfa','#10b981','#f59e0b','#ef4444','#3b82f6'];
+  for(let i=0;i<55;i++){
+    const el=document.createElement('div');el.className='rolls-confetti';
+    el.style.cssText=`left:${Math.random()*100}vw;width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.7}s;`;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),4000);
+  }
+}
+
+async function rollsPlaceBet(){
+  const input=document.getElementById('rolls-bet-input');
+  const bet=parseInt((input?.value||'').replace(/\D/g,''))||0;
+  const bal=(userData&&userData.balance)||0;
+  if(bet<1000){haptic('error');toast('Минимум 1 000 🌸');return;}
+  if(bet>bal){haptic('error');toast('Недостаточно средств');return;}
+  // Демо-режим
+  if(IS_DEMO){
+    if(userData)userData.balance=Math.max(0,bal-bet);
+    syncBal(userData.balance);
+    if(input)input.value='';
+    toast('✅ Ставка принята (демо)');haptic('success');
+    // Ставка игрока — симуляция запускается автоматически из _rollsDemoTick
+    if(!rollsDemoBets)rollsDemoBets={'demo':0};
+    rollsDemoBets['demo']=(rollsDemoBets['demo']||0)+bet;
+    rollsDemoPot=(rollsDemoPot||0)+bet;
+    const names={demo:{name:'Ты'}};DEMO_BOTS.forEach(b=>{names[b.id]={name:b.name};});
+    const betsObj=Object.fromEntries(Object.entries(rollsDemoBets).filter(([,v])=>v>0));
+    rollsUpdateUI({status:'open',time_left:rollsDemoPhase==='collecting'?rollsDemoTimer:null,pot:rollsDemoPot,bets:Object.entries(betsObj).map(([u,a])=>({user_id:u,amount:a})),names,my_bet:rollsDemoBets['demo'],winner_id:null,commission:0,win_amount:0,round_id:'demo'});
+    rollsDrawWheel(betsObj,names);
+    return;
+  }
+  const btn=document.getElementById('rolls-bet-btn');
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const d=await apireq('/api/rolls/bet',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
+    if(d.ok){
+      if(input)input.value='';
+      if(d.new_balance!==undefined)syncBal(d.new_balance);
+      haptic('success');
+      rollsPoll();
+    } else {
+      haptic('error');toast(d.error||'Ошибка');
+    }
+  }catch(e){haptic('error');toast('Ошибка соединения');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Поставить';}}
+}
+
+function rollsSetBet(n){const i=document.getElementById('rolls-bet-input');if(i)i.value=n;}
+function rollsSetBetHalf(){const b=(userData&&userData.balance)||0;rollsSetBet(Math.max(1000,Math.floor(b/2)));}
+function rollsSetBetMax(){const b=(userData&&userData.balance)||0;rollsSetBet(Math.min(b,500000000));}
+
+
+
+
+// ── RIPPLE на game-tile ──
+document.addEventListener('pointerdown', function(e) {
+  const tile = e.target.closest('.game-tile');
+  if (!tile) return;
+  const rect = tile.getBoundingClientRect();
+  const r = document.createElement('div');
+  r.className = 'tile-ripple';
+  r.style.left = (e.clientX - rect.left) + 'px';
+  r.style.top  = (e.clientY - rect.top)  + 'px';
+  tile.appendChild(r);
+  setTimeout(() => r.remove(), 520);
+});
+
+
+// ── CANVAS BORDER LINE ──
+let _bfRaf=null;
+function drawBorderLine(type){
+  const cv=document.getElementById('border-flash');
+  if(!cv)return;
+  // Размер под экран
+  cv.width=window.innerWidth;
+  cv.height=window.innerHeight;
+  const ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const lw=3;
+  const colors={
+    win:  {r:'52,211,153', g:'16,185,129'},
+    loss: {r:'248,113,113',g:'239,68,68'},
+    jackpot:{r:'251,191,36',g:'245,158,11'}
+  };
+  const col=colors[type]||colors.win;
+
+  // Периметр: top→right→bottom→left
+  const perim=2*(W+H);
+  const dur=1400; // мс полного обхода
+  const fadeIn=120, fadeOut=300;
+  const start=performance.now();
+
+  cancelAnimationFrame(_bfRaf);
+
+  function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+
+  function frame(now){
+    const elapsed=now-start;
+    const raw=elapsed/dur;
+
+    // opacity
+    let alpha=1;
+    if(elapsed<fadeIn) alpha=elapsed/fadeIn;
+    else if(elapsed>dur-fadeOut) alpha=1-(elapsed-(dur-fadeOut))/fadeOut;
+    alpha=Math.max(0,Math.min(1,alpha));
+
+    ctx.clearRect(0,0,W,H);
+    if(elapsed>=dur){return;} // готово
+
+    const progress=Math.min(ease(raw),1);
+    const drawn=progress*perim;
+
+    // glow
+    ctx.shadowBlur=18;
+    ctx.shadowColor=`rgba(${col.g},${alpha*.6})`;
+    ctx.lineWidth=lw;
+    ctx.lineCap='round';
+
+    // gradient вдоль пути — голова светлее
+    const grad=ctx.createLinearGradient(0,0,W,H);
+    grad.addColorStop(0,  `rgba(${col.r},0)`);
+    grad.addColorStop(0.4,`rgba(${col.r},${alpha*.5})`);
+    grad.addColorStop(1,  `rgba(${col.r},${alpha})`);
+    ctx.strokeStyle=grad;
+
+    // Рисуем путь по периметру до drawn
+    ctx.beginPath();
+    let rem=drawn;
+    // top: 0,0 → W,0
+    if(rem>0){const seg=Math.min(rem,W);ctx.moveTo(0,lw/2);ctx.lineTo(seg,lw/2);rem-=seg;}
+    // right: W,0 → W,H
+    if(rem>0){const seg=Math.min(rem,H);ctx.moveTo(W-lw/2,0);ctx.lineTo(W-lw/2,seg);rem-=seg;}
+    // bottom: W,H → 0,H
+    if(rem>0){const seg=Math.min(rem,W);ctx.moveTo(W,H-lw/2);ctx.lineTo(W-seg,H-lw/2);rem-=seg;}
+    // left: 0,H → 0,0
+    if(rem>0){const seg=Math.min(rem,H);ctx.moveTo(lw/2,H);ctx.lineTo(lw/2,H-seg);}
+    ctx.stroke();
+
+    _bfRaf=requestAnimationFrame(frame);
+  }
+  _bfRaf=requestAnimationFrame(frame);
+}
+
+
+
+// ══ ONBOARDING ══
+const ONB_STEPS = [
+  {
+    selector: '.hero',
+    title: 'Добро пожаловать! 👋',
+    text: 'Здесь твой профиль — баланс, уровень и прогресс. Чем больше играешь, тем выше поднимаешься.',
+    arrow: 'top', offsetY: 8,
+  },
+  {
+    selector: '#ni-games',
+    title: 'Игры 🎮',
+    text: 'Слоты, рулетка, краш, монетка и другие. Выбирай и играй!',
+    arrow: 'bottom', offsetY: -8,
+  },
+  {
+    selector: '#ni-rolls',
+    title: 'Wheel 🎡',
+    text: 'PvP-режим! Ставь против других игроков — чем больше ставка, тем выше шанс победить.',
+    arrow: 'bottom', offsetY: -8,
+  },
+  {
+    selector: '#ni-lb',
+    title: 'Топ игроков 🏆',
+    text: 'Соревнуйся с другими. Здесь видно кто богаче всех и у кого больше побед.',
+    arrow: 'bottom', offsetY: -8,
+  },
+  {
+    selector: '#ni-ref',
+    title: 'Рефералы 🤝',
+    text: 'Приглашай друзей и получай бонусы за каждого нового игрока.',
+    arrow: 'bottom', offsetY: -8,
+  },
+  {
+    selector: '.bonus-block, #bonus-btn',
+    title: 'Ежедневный бонус 🎁',
+    text: 'Заходи каждый день и забирай бесплатные монеты. Не пропускай!',
+    arrow: 'top', offsetY: 8,
+    last: true,
+  },
+];
+
+let _onbStep = 0;
+
+function onbStart() {
+  try { if(localStorage.getItem('onb_done')) return; } catch(e){}
+  // Небольшая задержка чтобы интерфейс успел отрисоваться
+  setTimeout(() => {
+    _onbStep = 0;
+    document.getElementById('onb-overlay').classList.add('active');
+    onbShow(_onbStep);
+  }, 900);
+}
+
+function onbShow(idx) {
+  const steps = ONB_STEPS;
+  const step  = steps[idx];
+  if(!step) { onbDone(); return; }
+
+  // Обновляем текст
+  document.getElementById('onb-step-num').textContent = `${String(idx+1).padStart(2,'0')} / ${steps.length}`;
+  document.getElementById('onb-tip-title').textContent = step.title;
+  document.getElementById('onb-tip-text').textContent  = step.text;
+  document.getElementById('onb-next').textContent = step.last ? 'Поехали! 🚀' : 'Далее →';
+
+  // Dots
+  const dotsEl = document.getElementById('onb-dots');
+  dotsEl.innerHTML = steps.map((_,i) =>
+    `<div class="onb-dot${i===idx?' active':''}"></div>`
+  ).join('');
+
+  // Подсвечиваем элемент
+  const el = document.querySelector(step.selector);
+  const hl = document.getElementById('onb-highlight');
+  const tip = document.getElementById('onb-tip');
+
+  if(el) {
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    hl.style.cssText = `
+      left:${r.left - pad}px;
+      top:${r.top - pad}px;
+      width:${r.width + pad*2}px;
+      height:${r.height + pad*2}px;
+    `;
+
+    // Позиционируем тултип
+    const tipW = 260, tipH = 140;
+    let tipLeft = r.left + r.width/2 - tipW/2;
+    let tipTop;
+
+    if(step.arrow === 'bottom') {
+      tipTop = r.top - tipH - 16 + (step.offsetY||0);
+    } else {
+      tipTop = r.bottom + 16 + (step.offsetY||0);
+    }
+
+    // Не выходим за края
+    tipLeft = Math.max(12, Math.min(tipLeft, window.innerWidth - tipW - 12));
+    tipTop  = Math.max(12, Math.min(tipTop,  window.innerHeight - tipH - 12));
+
+    tip.className = 'arrow-' + step.arrow;
+    tip.style.cssText = `left:${tipLeft}px;top:${tipTop}px;width:${tipW}px`;
+
+    // Стрелка по центру над элементом
+    const arrowLeft = r.left + r.width/2 - tipLeft - 6;
+    tip.style.setProperty('--arrow-left', `${Math.max(16,Math.min(arrowLeft,tipW-28))}px`);
+    tip.querySelector('::before'); // just reference
+
+  } else {
+    // Элемент не найден — центр экрана
+    hl.style.cssText = 'opacity:0';
+    tip.className = '';
+    tip.style.cssText = `left:50%;top:50%;transform:translateX(-50%) translateY(-50%);width:260px`;
+  }
+}
+
+function onbNext() {
+  _onbStep++;
+  if(_onbStep >= ONB_STEPS.length) { onbDone(); return; }
+  // Анимируем переход
+  const tip = document.getElementById('onb-tip');
+  const hl  = document.getElementById('onb-highlight');
+  tip.style.opacity = '0';
+  tip.style.transform = 'scale(.93) translateY(6px)';
+  hl.style.opacity = '0.3';
+  setTimeout(() => {
+    tip.style.opacity = '';
+    tip.style.transform = '';
+    hl.style.opacity = '';
+    onbShow(_onbStep);
+  }, 250);
+}
+
+function onbSkip() { onbDone(); }
+
+function onbDone() {
+  try { localStorage.setItem('onb_done', '1'); } catch(e){}
+  const ov = document.getElementById('onb-overlay');
+  ov.style.transition = 'opacity .3s ease';
+  ov.style.opacity = '0';
+  setTimeout(() => {
+    ov.classList.remove('active');
+    ov.style.cssText = '';
+  }, 320);
+}
+
+// ── BACKGROUND CANVAS ──
+(function(){
+  const cv = document.getElementById('bg-mesh');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  let W, H, orbs;
+
+  function resize(){
+    W = cv.width  = window.innerWidth;
+    H = cv.height = window.innerHeight;
+  }
+
+  function mkOrb(i){
+    const configs = [
+      {cx:0.15, cy:0.12, r:220, cr:'124,92,252', a:.28},
+      {cx:0.85, cy:0.88, r:200, cr:'245,158,11', a:.18},
+      {cx:0.5,  cy:0.5,  r:160, cr:'59,130,246', a:.14},
+      {cx:0.1,  cy:0.75, r:130, cr:'16,185,129', a:.10},
+    ];
+    const c = configs[i % configs.length];
+    return {
+      x: c.cx * window.innerWidth,
+      y: c.cy * window.innerHeight,
+      bx: c.cx * window.innerWidth,
+      by: c.cy * window.innerHeight,
+      r: c.r, cr: c.cr, a: c.a,
+      vx: (Math.random()-.5)*0.18,
+      vy: (Math.random()-.5)*0.18,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.0004 + Math.random()*0.0003,
+    };
+  }
+
+  function init(){
+    resize();
+    orbs = [0,1,2,3].map(mkOrb);
+  }
+
+  function draw(t){
+    ctx.clearRect(0,0,W,H);
+    const isLight = document.body.classList.contains('light');
+
+    orbs.forEach(o => {
+      // Плавное движение по синусоиде
+      o.x = o.bx + Math.sin(t * o.speed + o.phase) * 55;
+      o.y = o.by + Math.cos(t * o.speed * 0.7 + o.phase) * 40;
+
+      const alpha = isLight ? o.a * 0.5 : o.a;
+      const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      grad.addColorStop(0,   `rgba(${o.cr},${alpha})`);
+      grad.addColorStop(0.5, `rgba(${o.cr},${alpha*0.4})`);
+      grad.addColorStop(1,   `rgba(${o.cr},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  init();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(draw);
+})();
+
 window.addEventListener('load',()=>{
   // Защита: если init() завис — скрыть лоадер через 8 сек
   setTimeout(()=>{
@@ -2522,5 +4127,20 @@ window.addEventListener('load',()=>{
 });
 window.addEventListener('resize',movePill);
 </script>
+
+<div id="onb-overlay">
+  <div id="onb-backdrop"></div>
+  <div id="onb-highlight"></div>
+  <div id="onb-tip">
+    <div class="onb-step-num" id="onb-step-num">01 / 06</div>
+    <div class="onb-tip-title" id="onb-tip-title"></div>
+    <div class="onb-tip-text" id="onb-tip-text"></div>
+    <div class="onb-tip-footer">
+      <span class="onb-skip" onclick="onbSkip()">Пропустить</span>
+      <div class="onb-dots" id="onb-dots"></div>
+      <button class="onb-next" id="onb-next" onclick="onbNext()">Далее →</button>
+    </div>
+  </div>
+</div>
 </body>
           </html>
