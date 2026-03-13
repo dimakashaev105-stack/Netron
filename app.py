@@ -1377,13 +1377,20 @@ def _load_and_restore_round():
             row = conn.execute('SELECT * FROM rolls_active WHERE id=1').fetchone()
         if not row or not row['round_id']: return
         rid = row['round_id']
+        now = int(time.time())
+        finished_at = row['finished_at']
+        age = (now - finished_at) if finished_at else None
+        # Если done/finishing-раунд старше 60с — не восстанавливаем, новый создастся сам
+        if row['status'] in ('done', 'finishing', 'spinning') and finished_at and age > 60:
+            print(f'[rolls] skipping stale round rid={rid} status={row["status"]} age={age}s')
+            return
         bets = {int(k):v for k,v in _json.loads(row['bets_json'] or '{}').items()}
         r = {'status':row['status'],'started_at':row['started_at'],
              'ends_at':row['ends_at'],'pot':row['pot'],'bets':bets,
              'winner_id':row['winner_id'],'win_amount':row['win_amount'],
              'commission':row['commission'],'finished_at':row['finished_at']}
         _rolls_rounds[rid] = r
-        print(f'[rolls] restored round {rid} status={r["status"]} bets={len(bets)}')
+        print(f'[rolls] restored round {rid} status={r["status"]} bets={len(bets)} winner={r.get("winner_id")}')
     except Exception as e:
         print('[rolls] restore error:', e)
 
@@ -1482,6 +1489,19 @@ def _finish_round(rid):
         for old_rid in [k for k, v in _rolls_rounds.items()
                         if v['status'] == 'done' and v.get('started_at', 0) < cutoff and k != rid]:
             del _rolls_rounds[old_rid]
+
+
+@app.route('/internal/rolls/reset', methods=['POST'])
+def rolls_reset():
+    """Вызывается ботом после замены базы данных — сбрасывает состояние rolls в памяти."""
+    secret = request.json.get('secret') if request.json else None
+    if secret != BOT_TOKEN:
+        return jsonify({'error': 'forbidden'}), 403
+    global _rolls_rounds
+    with _rolls_lock:
+        _rolls_rounds.clear()
+    print('[rolls] state reset by bot (DB swap)')
+    return jsonify({'ok': True})
 
 
 @app.route('/api/rolls/state', methods=['POST'])
