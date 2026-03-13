@@ -1359,8 +1359,10 @@ def _get_or_create_round():
         # Если есть spinning/finishing/done — возвращаем его пока свежий
         for rid, r in sorted(_rolls_rounds.items(), reverse=True):
             if r['status'] in ('spinning', 'finishing', 'done'):
-                age = now - r.get('started_at', 0)
-                if age < 30:   # даём 30с клиентам увидеть результат
+                # Считаем возраст от момента завершения, не начала
+                finished = r.get('finished_at') or r.get('started_at', 0)
+                age = now - finished
+                if age < 60:   # даём 60с клиентам увидеть результат
                     return rid, r
 
         # Создаём новый раунд
