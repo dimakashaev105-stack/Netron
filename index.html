@@ -3280,7 +3280,7 @@ function _rollsLoadAva(uid, url){
   img.src=url;
 }
 
-function rollsDrawWheel(bets, names, winIdx=-1, rotation=0){
+function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, sortedEntries=null){
   const canvas=document.getElementById('rolls-canvas');
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
@@ -3293,7 +3293,8 @@ function rollsDrawWheel(bets, names, winIdx=-1, rotation=0){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const S=CSS, cx=150, cy=150, R=138, Ri=22;
   ctx.clearRect(0,0,S,S);
-  const entries=Object.entries(bets||{});
+  // Сортировка по user_id — одинаковый порядок у всех клиентов
+  const entries=sortedEntries||Object.entries(bets||{}).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const isLight=document.body.classList.contains('light');
 
@@ -3474,7 +3475,8 @@ function _rollsDrawRim(ctx,cx,cy,R){
 
 function rollsSpinWheel(bets, names, winnerUid, cb){
   if(rollsSpinning)return;rollsSpinning=true;
-  const entries=Object.entries(bets||{});
+  // ВАЖНО: сортируем по user_id чтобы порядок секторов был одинаков у всех клиентов
+  const entries=Object.entries(bets||{}).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
   if(winIdx<0){console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));rollsSpinning=false;cb&&cb();return;}
@@ -3482,16 +3484,19 @@ function rollsSpinWheel(bets, names, winnerUid, cb){
   for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
   cumFrac+=entries[winIdx][1]/total/2;
   const targetAngle=-cumFrac*Math.PI*2;
-  const totalRot=(6+Math.random()*4)*Math.PI*2+targetAngle;
-  const dur=5500,start=performance.now();
-  // Easing: быстрый старт, плавное торможение
-  function ease(t){const c4=2*Math.PI/3;return t===0?0:t===1?1:Math.pow(2,-8*t)*Math.sin((t*10-0.75)*c4)+1;}
-  function easeOut(t){return 1-Math.pow(1-t,4);}
+  // 6-8 полных оборотов
+  const totalRot=(6+Math.random()*2)*Math.PI*2+targetAngle;
+  const dur=8000,start=performance.now();
+  // Быстрый старт, очень долгое плавное торможение в конце (интрига)
+  function easeOut(t){
+    // Первые 40% — разгон, последние 60% — очень плавное торможение
+    if(t<0.15) return t*(t/0.15)*2.5;
+    return 1-Math.pow(1-t,6);
+  }
   const glow=document.getElementById('rolls-glow');
   function frame(now){
     const t=Math.min((now-start)/dur,1),rot=easeOut(t)*totalRot;
-    rollsDrawWheel(bets,names,t>=1?winIdx:-1,rot);
-    // Пульсация свечения во время вращения
+    rollsDrawWheel(bets,names,t>=1?winIdx:-1,rot,entries);
     if(glow && t<1){
       const pulse=0.5+0.5*Math.sin(t*40);
       glow.style.opacity=0.7+pulse*0.3+'';
@@ -3638,7 +3643,8 @@ async function rollsPoll(){
     if(!d.ok)return;
     rollsState=d;
     rollsUpdateUI(d);
-    const betsObj=d.bets.reduce((o,b)=>({...o,[b.user_id]:b.amount}),{});
+    // Сортируем ставки по user_id — одинаковый порядок секторов у всех
+    const betsObj=Object.fromEntries(d.bets.map(b=>[b.user_id,b.amount]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
     // Предзагрузка аватарок — после загрузки перерисовываем колесо
     let anyNewPhoto=false;
     Object.entries(d.names||{}).forEach(([uid,info])=>{
@@ -4218,4 +4224,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-              </html>
+          </html>
