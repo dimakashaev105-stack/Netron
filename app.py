@@ -1394,31 +1394,28 @@ def _get_or_create_round():
     """Возвращает активный раунд или создаёт новый."""
     now = int(time.time())
     with _rolls_lock:
-        # Сначала ищем открытый раунд
-        for rid, r in list(_rolls_rounds.items()):
-            if r['status'] == 'open':
+        # Сначала проверяем finishing/done — они приоритетнее нового раунда
+        for rid, r in sorted(_rolls_rounds.items(), reverse=True):
+            if r['status'] in ('finishing', 'done'):
+                finished = r.get('finished_at') or r.get('ended_at') or now
+                age = now - finished
+                if age < 60:
+                    return rid, r
+            elif r['status'] == 'open':
                 if r['ends_at'] is None:
                     return rid, r
                 elif now < r['ends_at']:
                     return rid, r
                 else:
-                    # Таймер истёк — финишируем один раз
+                    # Таймер истёк — финишируем ОДИН раз
                     r['status'] = 'finishing'
+                    r['ended_at'] = now
                     _save_active_round(r, rid)
                     print(f'[ROUND] {rid} timer expired, launching _finish_round')
                     threading.Thread(target=_finish_round, args=(rid,), daemon=True).start()
                     return rid, r
 
-        # Если есть spinning/finishing/done — возвращаем его пока свежий
-        for rid, r in sorted(_rolls_rounds.items(), reverse=True):
-            if r['status'] in ('spinning', 'finishing', 'done'):
-                # Считаем возраст от момента завершения, не начала
-                finished = r.get('finished_at') or r.get('started_at', 0)
-                age = now - finished
-                if age < 60:   # даём 60с клиентам увидеть результат
-                    return rid, r
-
-        # Создаём новый раунд
+        # Создаём новый раунд только если нет ничего активного
         rid = now
         _rolls_rounds[rid] = {
             'status':     'open',
@@ -1427,6 +1424,7 @@ def _get_or_create_round():
             'bets':       {},
             'pot':        0,
         }
+        print(f'[ROUND] new round created {rid}')
         return rid, _rolls_rounds[rid]
 
 def _finish_round(rid):
@@ -1581,10 +1579,11 @@ def rolls_bet():
     with _rolls_lock:
         r['bets'][user_id] = r['bets'].get(user_id, 0) + bet
         r['pot'] += bet
-        # Запускаем таймер когда зашли 2 уникальных участника
         if r['ends_at'] is None and len(r['bets']) >= 2:
             r['ends_at'] = now2 + ROLLS_TIMER
+            print(f'[BET] Timer started! ends_at={r["ends_at"]} players={len(r["bets"])}')
         _save_active_round(r, rid)
+        print(f'[BET] user={user_id} bet={bet} total_players={len(r["bets"])} pot={r["pot"]} ends_at={r["ends_at"]}')
 
     return jsonify({'ok': True, 'my_bet': r['bets'][user_id], 'pot': r['pot'], 'new_balance': new_balance})
 
