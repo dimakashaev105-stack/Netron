@@ -782,30 +782,86 @@ body.light .ref-share-btn{color:#0a0d00}
 .lb-title-sm{font-size:10px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .lb-val{font-size:12px;font-weight:900;flex-shrink:0;font-family:var(--mono,'Space Mono',monospace);color:var(--acc);text-align:right;max-width:90px;white-space:nowrap}
 
-/* ── ROLLS ── */
-.rolls-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:.04em}
-.rolls-badge.open{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.22);color:#34d399}
-.rolls-badge.spinning{background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);color:var(--acc2)}
+/* ══ ROLLS — полный редизайн ══ */
+
+/* Arena */
+.rolls-arena{display:flex;flex-direction:column;align-items:center;padding:22px 0 18px;position:relative}
+.rolls-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-56%) scale(1);border-radius:50%;border:1px solid rgba(124,92,252,.1);pointer-events:none}
+.rolls-ring.r1{width:330px;height:330px;animation:rRing 3s ease-in-out infinite}
+.rolls-ring.r2{width:370px;height:370px;animation:rRing 3s ease-in-out infinite .6s;border-color:rgba(124,92,252,.05)}
+@keyframes rRing{0%,100%{opacity:.6;transform:translate(-50%,-56%) scale(1)}50%{opacity:1;transform:translate(-50%,-56%) scale(1.02)}}
+
+.rolls-glow-layer{position:absolute;top:50%;left:50%;transform:translate(-50%,-56%);width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,252,.16),transparent 68%);pointer-events:none;transition:background .8s ease,opacity .8s ease}
+
+/* Hub */
+.rolls-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#252838,#0d0f14);border:2px solid rgba(124,92,252,.55);box-shadow:0 0 24px rgba(124,92,252,.3),inset 0 1px 0 rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;z-index:5;font-size:20px;animation:hubFloat 3s ease-in-out infinite}
+@keyframes hubFloat{0%,100%{box-shadow:0 0 24px rgba(124,92,252,.3),inset 0 1px 0 rgba(255,255,255,.1)}50%{box-shadow:0 0 36px rgba(124,92,252,.5),inset 0 1px 0 rgba(255,255,255,.1)}}
+
+/* Timer */
+.rolls-timer-wrap{width:260px;margin-top:16px}
+.rolls-timer-lbl{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em}
+.rolls-timer-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;color:var(--acc2)}
+.rolls-timer-track{height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.rolls-timer-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .9s linear;width:100%}
+
+/* Status row */
+.rolls-status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px}
+.rolls-pot-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;color:var(--acc2);letter-spacing:-.5px;line-height:1;transition:all .3s}
+.rolls-pot-sub{font-size:10px;color:rgba(255,255,255,.28);margin-top:2px}
+
+/* Badge */
+.rolls-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:.04em;transition:all .3s ease}
+.rolls-badge.open{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#34d399}
+.rolls-badge.spinning,.rolls-badge.finishing{background:rgba(124,92,252,.14);border:1px solid rgba(124,92,252,.3);color:var(--acc2)}
 .rolls-badge.done{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.22);color:#93c5fd}
-.rolls-dot{width:6px;height:6px;border-radius:50%;animation:rDot 1.4s ease-in-out infinite}
-.open .rolls-dot{background:#34d399;box-shadow:0 0 5px #34d399}
-.spinning .rolls-dot{background:var(--acc2);box-shadow:0 0 5px var(--acc2)}
-.done .rolls-dot{background:#93c5fd;animation:none}
-@keyframes rDot{0%,100%{opacity:1}50%{opacity:.3}}
-.rolls-qb{padding:5px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:30px;font-size:11px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;transition:all .14s}
-.rolls-qb:active{transform:scale(.91)}
-.rolls-qb:hover,.rolls-qb:active{background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.35);color:#a78bfa}
-.rolls-player{display:flex;align-items:center;gap:10px;padding:10px 13px;background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.07);border-radius:16px;margin-bottom:7px;transition:border-color .2s,background .2s}
-.rolls-player.me{border-color:rgba(124,92,252,.25);background:rgba(124,92,252,.07)}
-.rolls-player.winner{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);animation:rWin .6s ease-in-out 3}
-@keyframes rWin{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(16,185,129,.3)}}
-.rolls-ava{width:32px;height:32px;border-radius:9px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;overflow:hidden;position:relative}
+.rolls-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.rolls-badge.open .rolls-dot{background:#34d399;box-shadow:0 0 6px #34d399;animation:rDot 1.4s ease-in-out infinite}
+.rolls-badge.spinning .rolls-dot,.rolls-badge.finishing .rolls-dot{background:var(--acc2);box-shadow:0 0 6px var(--acc2);animation:rDotSpin .6s ease-in-out infinite}
+.rolls-badge.done .rolls-dot{background:#93c5fd;box-shadow:none}
+@keyframes rDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+@keyframes rDotSpin{0%,100%{opacity:1;transform:scale(1.2)}50%{opacity:.5;transform:scale(.7)}}
+
+/* My bet chip */
+.rolls-mybet-chip{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(124,92,252,.08);border:1px solid rgba(124,92,252,.2);border-radius:14px;margin-bottom:12px;animation:chipIn .35s cubic-bezier(.22,1,.36,1)}
+@keyframes chipIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+.rolls-mybet-num{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--acc2)}
+
+/* Bet card */
+.rolls-bet-card{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:15px 15px 13px;margin-bottom:16px;transition:border-color .2s,box-shadow .2s}
+.rolls-bet-lbl{font-size:10px;font-weight:800;color:rgba(255,255,255,.28);letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px}
+.rolls-input{flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:13px;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--text);outline:none;width:100%;transition:border-color .2s,box-shadow .2s}
+.rolls-input.focused{border-color:rgba(124,92,252,.55);box-shadow:0 0 0 3px rgba(124,92,252,.1)}
+.rolls-place-btn{padding:11px 20px;border-radius:13px;background:linear-gradient(135deg,#7c5cfc,#a78bfa);border:none;font-size:14px;font-weight:800;color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 4px 20px rgba(124,92,252,.4);transition:transform .14s cubic-bezier(.34,1.56,.64,1),box-shadow .14s;letter-spacing:.02em}
+.rolls-place-btn:active{transform:scale(.94)!important;box-shadow:0 2px 10px rgba(124,92,252,.3)}
+.rolls-place-btn:disabled{opacity:.35;cursor:not-allowed;background:rgba(255,255,255,.1);box-shadow:none}
+
+/* Quick bet buttons */
+.rolls-qb{padding:6px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:30px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);cursor:pointer;transition:all .14s cubic-bezier(.34,1.56,.64,1)}
+.rolls-qb:active{transform:scale(.88)!important}
+.rolls-qb:active,.rolls-qb:hover{background:rgba(124,92,252,.16);border-color:rgba(124,92,252,.38);color:#c4b5fd}
+
+/* Section label */
+.rolls-section-lbl{font-size:10px;font-weight:800;color:rgba(255,255,255,.28);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.rolls-section-line{flex:1;height:1px;background:rgba(255,255,255,.06);border-radius:1px}
+
+/* Players */
+.rolls-player{display:flex;align-items:center;gap:11px;padding:11px 14px;background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.07);border-radius:16px;margin-bottom:8px;transition:border-color .25s,background .25s}
+@keyframes playerIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.rolls-player.me{border-color:rgba(124,92,252,.28);background:rgba(124,92,252,.07)}
+.rolls-player.winner{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.07);animation:rWin .7s ease-in-out 3!important}
+@keyframes rWin{0%,100%{box-shadow:none;transform:none}50%{box-shadow:0 0 20px rgba(16,185,129,.35);transform:scale(1.01)}}
+.rolls-ava{width:34px;height:34px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;overflow:hidden;position:relative}
 .rolls-ava img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-/* RESULT */
-#rolls-result{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,15,20,.93);backdrop-filter:blur(14px)}
-#rolls-result.show{display:flex}
-.rolls-result-card{background:linear-gradient(145deg,var(--s2),var(--s1));border:1px solid rgba(124,92,252,.28);border-radius:var(--r3);padding:28px 24px;width:calc(100% - 40px);max-width:340px;text-align:center;box-shadow:0 0 50px rgba(124,92,252,.12);animation:rCardIn .45s cubic-bezier(.22,1,.36,1)}
-@keyframes rCardIn{from{opacity:0;transform:scale(.87) translateY(18px)}to{opacity:1;transform:none}}
+
+/* Result overlay */
+#rolls-result{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,10,16,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+#rolls-result.show{display:flex;animation:overlayIn .3s ease both}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.rolls-result-card{background:linear-gradient(160deg,#1a1d2e 0%,#111320 100%);border:1px solid rgba(124,92,252,.3);border-radius:28px;padding:32px 24px 24px;width:calc(100% - 36px);max-width:340px;text-align:center;box-shadow:0 0 60px rgba(124,92,252,.15),0 24px 60px rgba(0,0,0,.5);animation:rCardIn .5s cubic-bezier(.22,1,.36,1) both}
+.rolls-result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,92,252,.6),transparent);border-radius:28px 28px 0 0}
+@keyframes rCardIn{from{opacity:0;transform:scale(.88) translateY(24px)}to{opacity:1;transform:none}}
+
+/* Confetti */
 .rolls-confetti{position:fixed;pointer-events:none;z-index:600;animation:rConfetti linear forwards}
 @keyframes rConfetti{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
@@ -1300,66 +1356,71 @@ button:active:not(:disabled),
     </div>
 
     <!-- ROLLS -->
-    <div class="screen sp" id="s-rolls">
+    <div class="screen" id="s-rolls" style="overflow-y:auto;scrollbar-width:none">
       <div class="game-header">
         <div class="game-title" style="margin-left:4px">🎡 Wheel</div>
-        <div id="rolls-bal-pill" style="display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);border-radius:30px;font-size:12px">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);border-radius:30px;font-size:12px">
           <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--acc2)" id="rolls-bal">0</span>
           <span style="font-size:13px">🌸</span>
         </div>
       </div>
       <div style="padding:0 14px 100px">
 
-        <!-- WHEEL -->
-        <div style="display:flex;flex-direction:column;align-items:center;margin:16px 0 14px">
-          <div style="position:relative;width:300px;height:300px">
-            <!-- Внешнее свечение -->
-            <div id="rolls-glow" style="position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,252,.18),transparent 68%);pointer-events:none;transition:background .6s ease"></div>
-            <canvas id="rolls-canvas" style="display:block;border-radius:50%;width:300px;height:300px"></canvas>
-            <!-- Указатель -->
-            <div id="rolls-pointer" style="position:absolute;top:-4px;left:50%;transform:translateX(-50%);z-index:10;filter:drop-shadow(0 2px 8px rgba(124,92,252,.9))">
-              <svg width="22" height="28" viewBox="0 0 22 28"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#7c5cfc"/></linearGradient></defs><path d="M11 2 L20 14 Q11 28 11 28 Q11 28 2 14 Z" fill="url(#pg)" stroke="rgba(255,255,255,.3)" stroke-width="1"/><circle cx="11" cy="10" r="3" fill="rgba(255,255,255,.6)"/></svg>
+        <!-- WHEEL ARENA -->
+        <div class="rolls-arena">
+          <div class="rolls-ring r1"></div>
+          <div class="rolls-ring r2"></div>
+          <div id="rolls-glow" class="rolls-glow-layer"></div>
+          <div style="position:relative;width:280px;height:280px;flex-shrink:0">
+            <canvas id="rolls-canvas" style="display:block;width:280px;height:280px;border-radius:50%"></canvas>
+            <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:10;filter:drop-shadow(0 3px 10px rgba(124,92,252,1))">
+              <svg width="20" height="26" viewBox="0 0 20 26">
+                <defs><linearGradient id="pg2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#e0d4ff"/>
+                  <stop offset="100%" stop-color="#7c5cfc"/>
+                </linearGradient></defs>
+                <path d="M10 1 L19 13 Q10 26 10 26 Q10 26 1 13 Z" fill="url(#pg2)" stroke="rgba(255,255,255,.25)" stroke-width="1"/>
+                <circle cx="10" cy="9" r="2.5" fill="rgba(255,255,255,.7)"/>
+              </svg>
             </div>
-            <!-- Центральная шайба -->
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2a2d3e,#0d0f14);border:2px solid rgba(124,92,252,.5);box-shadow:0 0 20px rgba(124,92,252,.25),inset 0 1px 0 rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;z-index:5;font-size:22px">🎡</div>
+            <div class="rolls-hub">🎡</div>
           </div>
-
-          <!-- Таймер -->
-          <div style="width:260px;margin-top:14px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em">До броска</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--acc2)" id="rolls-timer">—</span>
+          <div class="rolls-timer-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+              <span class="rolls-timer-lbl">До броска</span>
+              <span class="rolls-timer-val" id="rolls-timer">—</span>
             </div>
-            <div style="height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">
-              <div id="rolls-timer-fill" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .9s linear;width:100%"></div>
+            <div class="rolls-timer-track">
+              <div id="rolls-timer-fill" class="rolls-timer-fill"></div>
             </div>
           </div>
         </div>
 
-        <!-- STATUS + POT — одна строка -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 2px">
-          <span id="rolls-status-badge" class="rolls-badge open"><span class="rolls-dot"></span><span id="rolls-status-text">Приём ставок</span></span>
+        <!-- STATUS ROW -->
+        <div class="rolls-status-row">
+          <span id="rolls-status-badge" class="rolls-badge open">
+            <span class="rolls-dot"></span>
+            <span id="rolls-status-text">Приём ставок</span>
+          </span>
           <div style="text-align:right">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:var(--acc2);letter-spacing:-.5px" id="rolls-pot">0 🌸</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:1px" id="rolls-pot-sub">0 ставок · 5% комиссия</div>
+            <div class="rolls-pot-val" id="rolls-pot">0 🌸</div>
+            <div class="rolls-pot-sub" id="rolls-pot-sub">0 ставок · комиссия 5%</div>
           </div>
         </div>
 
-        <!-- MY BET -->
-        <div id="rolls-mybet-row" style="display:none;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(124,92,252,.08);border:1px solid rgba(124,92,252,.18);border-radius:14px;margin-bottom:12px;backdrop-filter:blur(8px)">
-          <span style="font-size:12px;color:rgba(255,255,255,.5)">Моя ставка</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--acc2)" id="rolls-mybet-val">0 🌸</span>
+        <!-- MY BET CHIP -->
+        <div id="rolls-mybet-row" class="rolls-mybet-chip" style="display:none">
+          <span style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600">Моя ставка</span>
+          <span class="rolls-mybet-num" id="rolls-mybet-val">0 🌸</span>
         </div>
 
-        <!-- BET INPUT -->
-        <div id="rolls-bet-card" style="background:rgba(255,255,255,.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:14px 14px 12px;margin-bottom:14px">
-          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Сделать ставку</div>
+        <!-- BET CARD -->
+        <div id="rolls-bet-card" class="rolls-bet-card">
+          <div class="rolls-bet-lbl">Сделать ставку</div>
           <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input type="number" id="rolls-bet-input" placeholder="1 000" min="1000"
-              style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--text);outline:none;width:100%;transition:border-color .2s"
-              onfocus="this.style.borderColor='rgba(124,92,252,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-            <button id="rolls-bet-btn" onclick="rollsPlaceBet()"
-              style="padding:11px 18px;border-radius:12px;background:linear-gradient(135deg,#7c5cfc,#a78bfa);border:none;font-size:14px;font-weight:800;color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 4px 20px rgba(124,92,252,.35);transition:transform .14s,box-shadow .14s">Поставить</button>
+            <input type="number" id="rolls-bet-input" placeholder="1 000" min="1000" class="rolls-input"
+              onfocus="this.classList.add('focused')" onblur="this.classList.remove('focused')">
+            <button id="rolls-bet-btn" onclick="rollsPlaceBet()" class="rolls-place-btn">Поставить</button>
           </div>
           <div style="display:flex;gap:5px;flex-wrap:wrap">
             <div class="rolls-qb" onclick="rollsSetBet(1000)">1К</div>
@@ -1373,9 +1434,7 @@ button:active:not(:disabled),
         </div>
 
         <!-- PLAYERS -->
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-          Участники <span style="flex:1;height:1px;background:rgba(255,255,255,.06)"></span>
-        </div>
+        <div class="rolls-section-lbl">Участники <span class="rolls-section-line"></span></div>
         <div id="rolls-players"></div>
 
       </div>
@@ -3294,14 +3353,14 @@ function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, betsArr=null){
   const canvas=document.getElementById('rolls-canvas');
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
-  const CSS=300;
+  const CSS=280;
   if(canvas.width!==CSS*dpr){
     canvas.width=CSS*dpr;
     canvas.height=CSS*dpr;
   }
   const ctx=canvas.getContext('2d');
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  const S=CSS, cx=150, cy=150, R=138, Ri=22;
+  const S=CSS, cx=140, cy=140, R=128, Ri=22;
   ctx.clearRect(0,0,S,S);
   // betsArr — массив с гарантированным порядком от сервера
   const entries=betsArr||Object.entries(bets||{});
@@ -3485,10 +3544,10 @@ function _rollsDrawRim(ctx,cx,cy,R){
 
 function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
   if(rollsSpinning)return;rollsSpinning=true;
-  // betsArr — массив [[uid,amt],...] с гарантированным порядком от сервера
   const entries=betsArr||Object.entries(bets||{});
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
+  console.log('[SPIN] winnerUid='+winnerUid+' entries='+JSON.stringify(entries.map(e=>e[0]))+' winIdx='+winIdx);
   if(winIdx<0){console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));rollsSpinning=false;cb&&cb();return;}
   let cumFrac=0;
   for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
@@ -3671,7 +3730,7 @@ async function rollsPoll(){
         img.src=info.photo;
       }
     });
-    const isDone=d.status==='done';
+    const isDone=d.status==='done'||d.status==='finishing'||d.status==='spinning';
     const roundChanged=d.round_id!==rollsLastId;
     console.log('[ROLLS]', 'status='+d.status, 'winner='+d.winner_id, 'round='+d.round_id, 'lastId='+rollsLastId, 'lastStatus='+rollsLastStatus, 'spinning='+rollsSpinning, 'bets='+JSON.stringify(d.bets?.map(b=>b.user_id)));
     // Если раунд сменился — сбрасываем lastStatus чтобы новый done сработал
@@ -3680,6 +3739,7 @@ async function rollsPoll(){
       rollsSpinning=false;
     }
     const wasNotDone=rollsLastStatus!=='done';
+    // Для finishing/spinning — ждём пока придёт winner_id, потом крутим
     if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
@@ -3784,66 +3844,134 @@ function rollsUpdateUI(d){
   if(bc)bc.style.opacity=d.status!=='open'?'.4':'1';
   if(bb)bb.disabled=d.status!=='open';
 
-  // players
+  // players — умное обновление без перерисовки всего списка
   const pl=document.getElementById('rolls-players');
   if(!pl)return;
   if(!d.bets?.length){
-    pl.innerHTML='<div style="text-align:center;padding:24px;color:var(--sub);font-size:13px">👥 Первый в раунде!</div>';
+    if(pl.dataset.empty!=='1'){pl.innerHTML='<div style="text-align:center;padding:24px;color:var(--sub);font-size:13px">👥 Первый в раунде!</div>';pl.dataset.empty='1';}
     return;
   }
+  pl.dataset.empty='';
   const tot=d.pot||1;
-  pl.innerHTML=d.bets.map((b,i)=>{
+
+  // Строим map uid→данные
+  const newMap={};
+  d.bets.forEach((b,i)=>{
     const info=d.names?.[b.user_id]||{};
-    const name=info.name||String(b.user_id);
     const pct=((b.amount/tot)*100).toFixed(1);
-    const isMe=String(b.user_id)===String(UID);
     const isWin=String(d.winner_id)===String(b.user_id);
+    newMap[String(b.user_id)]={b,info,pct,i,isWin};
+  });
+
+  // Убираем ушедших игроков
+  const existing=pl.querySelectorAll('.rolls-player[data-uid]');
+  existing.forEach(el=>{if(!newMap[el.dataset.uid]){el.remove();}});
+
+  // Обновляем/добавляем
+  d.bets.forEach((b,i)=>{
+    const uid=String(b.user_id);
+    const {info,pct,isWin}=newMap[uid];
+    const isMe=uid===String(UID);
     const col=ROLLS_COLORS[i%ROLLS_COLORS.length];
-    const photo=info.photo?`<img src="${info.photo}" onerror="this.style.display='none'">`:(name[0]||'?').toUpperCase();
-    return `<div class="rolls-player${isMe?' me':''}${isWin?' winner':''}">
-      <div class="rolls-ava">${photo}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}${isMe?' <span style="font-size:9px;color:var(--acc2)">◀ Ты</span>':''}</div>
-        <div style="height:3px;border-radius:2px;margin:4px 0;background:${col};width:${pct}%"></div>
-        <div style="font-size:11px;color:var(--sub)">${pct}% шанс</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--acc2)">${rollsFmt(b.amount)} 🌸</div>
-        ${isWin?'<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#34d399;margin-top:3px">🏆 WIN</div>':''}
-      </div>
-    </div>`;
-  }).join('');
+    const photo=info.photo?`<img src="${info.photo}" onerror="this.style.display='none'">`:(info.name||uid)[0].toUpperCase();
+
+    let el=pl.querySelector(`.rolls-player[data-uid="${uid}"]`);
+    if(!el){
+      // Новый игрок — создаём с анимацией
+      el=document.createElement('div');
+      el.className='rolls-player'+(isMe?' me':'');
+      el.dataset.uid=uid;
+      el.innerHTML=`
+        <div class="rolls-ava" data-ava>${photo}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-name>${info.name||uid}${isMe?' <span style="font-size:9px;color:var(--acc2)">◀ Ты</span>':''}</div>
+          <div style="height:3px;border-radius:2px;margin:4px 0;background:${col};transition:width .6s ease" data-bar></div>
+          <div style="font-size:11px;color:var(--sub)" data-pct>${pct}% шанс</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--acc2)" data-amt>${rollsFmt(b.amount)} 🌸</div>
+          <div data-win style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#34d399;margin-top:3px;display:none">🏆 WIN</div>
+        </div>`;
+      el.style.animation='playerIn .4s cubic-bezier(.22,.36,1,.64,1) both';
+      pl.appendChild(el);
+      // Инициируем ширину бара с задержкой для плавного появления
+      const barEl=el.querySelector('[data-bar]');
+      if(barEl){barEl.style.width='0%';requestAnimationFrame(()=>requestAnimationFrame(()=>{barEl.style.width=pct+'%';barEl.style.background=col;}));}
+    } else {
+      // Существующий — обновляем только изменившиеся данные
+      const barEl=el.querySelector('[data-bar]');
+      const pctEl=el.querySelector('[data-pct]');
+      const amtEl=el.querySelector('[data-amt]');
+      const winEl=el.querySelector('[data-win]');
+      if(barEl&&barEl.style.width!==pct+'%'){barEl.style.width=pct+'%';barEl.style.background=col;}
+      if(pctEl&&pctEl.textContent!==pct+'% шанс')pctEl.textContent=pct+'% шанс';
+      if(amtEl){const v=rollsFmt(b.amount)+' 🌸';if(amtEl.textContent!==v)amtEl.textContent=v;}
+      if(winEl)winEl.style.display=isWin?'block':'none';
+      if(isWin&&!el.classList.contains('winner')){el.classList.add('winner');}
+    }
+  });
 }
 
 function rollsShowResult(d){
-  // Ensure overlay exists
   const overlay=document.getElementById('rolls-result');
-  const info=d.names?.[d.winner_id]||{};
+  const info=d.names?.[d.winner_id]||d.names?.[String(d.winner_id)]||{};
   const name=info.name||String(d.winner_id);
   const isMe=String(d.winner_id)===String(UID);
   const myBet=d.my_bet||0;
   const profit=isMe?(d.win_amount-myBet):-myBet;
+  const profitColor=profit>=0?'#34d399':'#f87171';
+  const profitSign=profit>=0?'+':'';
 
-  overlay.innerHTML=`<div class="rolls-result-card">
-    <div style="font-size:48px;margin-bottom:10px;animation:rCardIn .5s both .1s">${isMe?'🏆':'🎲'}</div>
-    <div style="font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:5px">${isMe?'Ты победил!':'Победитель'}</div>
-    <div style="font-size:15px;color:var(--acc2);font-weight:700;margin-bottom:16px">${name}</div>
-    <div style="font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:var(--acc2);margin-bottom:4px">+${rollsFmt(d.win_amount)} 🌸</div>
-    <div style="font-size:11px;color:var(--sub);margin-bottom:16px">Комиссия: ${rollsFmt(d.commission)} 🌸</div>
-    ${myBet>0?`<div style="padding:10px 14px;background:var(--s2);border-radius:var(--r);margin-bottom:16px;font-size:12px;color:var(--text2)">Ставка: <b style="color:var(--text)">${rollsFmt(myBet)} 🌸</b> &nbsp; Итог: <b style="color:${profit>=0?'#34d399':'#f87171'}">${profit>=0?'+':''}${rollsFmt(profit)} 🌸</b></div>`:''}
-    <button onclick="rollsCloseResult()" style="width:100%;padding:12px;background:var(--acc-g);border:none;border-radius:var(--r);font-size:14px;font-weight:800;color:#fff;cursor:pointer">Следующий раунд →</button>
-  </div>`;
+  overlay.innerHTML=`
+    <div class="rolls-result-card" style="position:relative;overflow:hidden">
+      <!-- top accent line -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${isMe?'linear-gradient(90deg,transparent,#10b981,transparent)':'linear-gradient(90deg,transparent,#7c5cfc,transparent)'};border-radius:28px 28px 0 0"></div>
+
+      <!-- emoji -->
+      <div style="font-size:52px;margin-bottom:12px;animation:rCardIn .5s both .05s;display:block">${isMe?'🏆':'🎲'}</div>
+
+      <!-- title -->
+      <div style="font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px;animation:rCardIn .5s both .1s">${isMe?'Ты победил!':'Победитель'}</div>
+      <div style="font-size:14px;color:var(--acc2);font-weight:700;margin-bottom:20px;animation:rCardIn .5s both .15s">${name}</div>
+
+      <!-- win amount -->
+      <div style="background:rgba(124,92,252,.08);border:1px solid rgba(124,92,252,.18);border-radius:16px;padding:14px 18px;margin-bottom:${myBet>0?'12px':'20px'};animation:rCardIn .5s both .2s">
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Банк раунда</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:900;color:var(--acc2);letter-spacing:-.5px">+${rollsFmt(d.win_amount)} 🌸</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:3px">комиссия ${rollsFmt(d.commission)} 🌸</div>
+      </div>
+
+      <!-- my result -->
+      ${myBet>0?`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:20px;animation:rCardIn .5s both .25s">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Моя ставка</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text)">${rollsFmt(myBet)} 🌸</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Итог</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:900;color:${profitColor}">${profitSign}${rollsFmt(profit)} 🌸</div>
+        </div>
+      </div>`:''}
+
+      <!-- button -->
+      <button onclick="rollsCloseResult()" style="width:100%;padding:14px;background:${isMe?'linear-gradient(135deg,#059669,#10b981)':'linear-gradient(135deg,#7c5cfc,#a78bfa)'};border:none;border-radius:16px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 6px 24px ${isMe?'rgba(16,185,129,.35)':'rgba(124,92,252,.35)'};transition:transform .14s;animation:rCardIn .5s both .3s;letter-spacing:.02em">
+        Следующий раунд →
+      </button>
+    </div>`;
+
   overlay.className='show';
   if(isMe)rollsConfetti();
-  // Баланс обновляем ПОСЛЕ показа результата (уже после прокрута колеса)
+
+  // Баланс только после просмотра
   setTimeout(()=>{
     if(isMe&&userData)userData.balance+=(d.win_amount-myBet);
-    else if(userData)userData.balance=Math.max(0,(userData.balance||0)-myBet);
+    else if(myBet>0&&userData)userData.balance=Math.max(0,(userData.balance||0)-myBet);
     if(userData)syncBal(userData.balance);
   }, 500);
-  // Автоматически переходим к следующему раунду через 6 секунд
+
   clearTimeout(window._rollsAutoClose);
-  window._rollsAutoClose=setTimeout(()=>rollsCloseResult(),6000);
+  window._rollsAutoClose=setTimeout(()=>rollsCloseResult(), 8000);
 }
 
 function rollsCloseResult(){
@@ -4252,4 +4380,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-          </html>
+        </html>
