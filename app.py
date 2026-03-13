@@ -1406,7 +1406,7 @@ def _get_or_create_round():
             if r['status'] in ('finishing', 'done'):
                 finished = r.get('finished_at') or r.get('ended_at') or now
                 age = now - finished
-                if age < 60:
+                if age < 8:
                     return rid, r
             elif r['status'] == 'open':
                 if r['ends_at'] is None:
