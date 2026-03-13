@@ -3362,8 +3362,9 @@ function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, betsArr=null){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const S=CSS, cx=140, cy=140, R=128, Ri=22;
   ctx.clearRect(0,0,S,S);
-  // betsArr — массив с гарантированным порядком от сервера
-  const entries=betsArr||Object.entries(bets||{});
+  // Сортируем по str(uid) — одинаково с бэкендом, чтобы сектора совпадали у всех клиентов
+  const rawE=betsArr||Object.entries(bets||{});
+  const entries=[...rawE].sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const isLight=document.body.classList.contains('light');
 
@@ -3544,7 +3545,9 @@ function _rollsDrawRim(ctx,cx,cy,R){
 
 function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
   if(rollsSpinning)return;rollsSpinning=true;
-  const entries=betsArr||Object.entries(bets||{});
+  // Сортируем по str(uid) — одинаково с бэкендом, чтобы у всех клиентов сектора совпадали
+  const rawEntries=betsArr||Object.entries(bets||{});
+  const entries=[...rawEntries].sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
   console.log('[SPIN] winnerUid='+winnerUid+' entries='+JSON.stringify(entries.map(e=>e[0]))+' winIdx='+winIdx);
@@ -3740,7 +3743,7 @@ async function rollsPoll(){
     }
     const wasNotDone=rollsLastStatus!=='done';
     // Для finishing/spinning — ждём пока придёт winner_id, потом крутим
-    if(isDone && wasNotDone && d.winner_id && !rollsSpinning){
+    if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
@@ -3978,9 +3981,8 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  // НЕ обнуляем rollsLastId — он нужен чтобы при следующем поллинге
-  // не перезапустить спин на том же done-раунде пока не придёт новый round_id
-  rollsLastStatus='done'; // явно помечаем что результат уже показан
+  rollsLastStatus=null;
+  rollsLastId=null;
   rollsSpinning=false;
   rollsState=null;
   rollsDrawWheel({},{});
@@ -4381,4 +4383,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-              </html>
+          </html>
