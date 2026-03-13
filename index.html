@@ -3837,14 +3837,21 @@ function rollsShowResult(d){
 }
 
 function rollsCloseResult(){
+  clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  rollsLastStatus='done'; // помечаем как уже обработанный
+  // Полный сброс состояния
+  rollsLastStatus=null;
+  rollsLastId=null;
   rollsSpinning=false;
+  rollsState=null;
+  // Рисуем пустое колесо сразу
+  rollsDrawWheel({},{});
   if(IS_DEMO){
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
   } else {
+    _rollsPollRunning=false;
     rollsPoll();
   }
 }
