@@ -1343,23 +1343,32 @@ def _get_or_create_round():
     """Возвращает активный раунд или создаёт новый."""
     now = int(time.time())
     with _rolls_lock:
+        # Сначала ищем открытый раунд
         for rid, r in list(_rolls_rounds.items()):
             if r['status'] == 'open':
                 if r['ends_at'] is None:
-                    # Ждём второго участника — таймер ещё не стартовал
                     return rid, r
                 elif now < r['ends_at']:
                     return rid, r
                 else:
-                    # Таймер истёк — закрываем
-                    r['status'] = 'spinning'
+                    # Таймер истёк — финишируем один раз
+                    r['status'] = 'finishing'
                     threading.Thread(target=_finish_round, args=(rid,), daemon=True).start()
-        # Создаём новый — таймер НЕ запускается пока не зайдёт второй участник
+                    return rid, r
+
+        # Если есть spinning/finishing/done — возвращаем его пока свежий
+        for rid, r in sorted(_rolls_rounds.items(), reverse=True):
+            if r['status'] in ('spinning', 'finishing', 'done'):
+                age = now - r.get('started_at', 0)
+                if age < 30:   # даём 30с клиентам увидеть результат
+                    return rid, r
+
+        # Создаём новый раунд
         rid = now
         _rolls_rounds[rid] = {
             'status':     'open',
             'started_at': now,
-            'ends_at':    None,   # None пока < 2 участников
+            'ends_at':    None,
             'bets':       {},
             'pot':        0,
         }
@@ -1370,9 +1379,8 @@ def _finish_round(rid):
     _time.sleep(1)  # дать клиентам забрать последние ставки
     with _rolls_lock:
         r = _rolls_rounds.get(rid)
-        if not r or r['status'] == 'done':
+        if not r or r['status'] in ('done', 'spinning'):
             return
-        r['status'] = 'spinning'
         bets   = dict(r['bets'])  # копия под lock
         pot    = r['pot']
         if not bets:
@@ -1403,11 +1411,12 @@ def _finish_round(rid):
             )
 
     with _rolls_lock:
-        r['status']    = 'done'
-        r['winner_id'] = winner
+        r['status']     = 'done'
+        r['winner_id']  = winner
         r['win_amount'] = win_amount
         r['commission'] = commission
-        r['db_rid']    = db_rid
+        r['db_rid']     = db_rid
+        r['finished_at']= int(time.time())
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
         cutoff = int(time.time()) - 120
         for old_rid in [k for k, v in _rolls_rounds.items()
@@ -1449,18 +1458,19 @@ def rolls_state():
                     }
 
     return jsonify({
-        'ok':        True,
-        'round_id':  rid,
-        'status':    r['status'],
-        'ends_at':   ends,
-        'time_left': max(0, ends - now) if ends else None,
-        'pot':       pot,
-        'bets':      bets_list,
-        'names':     names,
-        'my_bet':    r['bets'].get(int(user_id), 0) if user_id else 0,
-        'winner_id': r.get('winner_id'),
-        'win_amount': r.get('win_amount', 0),
-        'commission': r.get('commission', 0),
+        'ok':          True,
+        'round_id':    rid,
+        'status':      r['status'],
+        'ends_at':     ends,
+        'time_left':   max(0, ends - now) if ends else None,
+        'pot':         pot,
+        'bets':        bets_list,
+        'names':       names,
+        'my_bet':      r['bets'].get(int(user_id), 0) if user_id else 0,
+        'winner_id':   r.get('winner_id'),
+        'win_amount':  r.get('win_amount', 0),
+        'commission':  r.get('commission', 0),
+        'finished_at': r.get('finished_at'),
     })
 
 
