@@ -3632,15 +3632,53 @@ async function rollsPoll(){
         img.src=info.photo;
       }
     });
-    if(d.status==='done'&&rollsLastStatus!=='done'){
+    const isDone=d.status==='done';
+    const wasNotDone=rollsLastStatus!=='done';
+    if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
+      _rollsStopLocalTimer();
       rollsSpinWheel(betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
-    } else if(d.status!=='done'){
+    } else if(!isDone && !rollsSpinning){
       rollsLastStatus=d.status;
-      if(!rollsSpinning)rollsDrawWheel(betsObj,d.names);
+      rollsDrawWheel(betsObj,d.names);
     }
     rollsLastId=d.round_id;
   }catch(e){}finally{_rollsPollRunning=false;}
+}
+
+
+// ── Локальный плавный таймер колеса ──
+let _rollsLocalTimerRAF=null;
+let _rollsTimerEndsAt=null;
+const ROLLS_TIMER_MAX=45;
+
+function _rollsStartLocalTimer(endsAt){
+  if(_rollsTimerEndsAt===endsAt)return; // уже тикает для этого раунда
+  _rollsTimerEndsAt=endsAt;
+  _rollsStopLocalTimer();
+  function tick(){
+    const now=Math.floor(Date.now()/1000);
+    const left=Math.max(0,endsAt-now);
+    const tEl=document.getElementById('rolls-timer');
+    const fill=document.getElementById('rolls-timer-fill');
+    const stTxt=document.getElementById('rolls-status-text');
+    if(tEl)tEl.textContent=left>0?left+'с':'0с';
+    if(fill){
+      const pct=(left/ROLLS_TIMER_MAX)*100;
+      fill.style.width=Math.max(0,pct)+'%';
+      fill.style.background=pct>50
+        ?'linear-gradient(90deg,var(--acc),var(--acc2))'
+        :pct>20?'linear-gradient(90deg,#f59e0b,#ef4444)'
+        :'linear-gradient(90deg,#ef4444,#dc2626)';
+    }
+    if(stTxt&&left>0)stTxt.textContent='Приём ставок · '+left+'с';
+    if(left>0)_rollsLocalTimerRAF=setTimeout(tick,1000);
+  }
+  tick();
+}
+function _rollsStopLocalTimer(){
+  if(_rollsLocalTimerRAF){clearTimeout(_rollsLocalTimerRAF);_rollsLocalTimerRAF=null;}
+  _rollsTimerEndsAt=null;
 }
 
 function rollsUpdateUI(d){
@@ -3649,14 +3687,24 @@ function rollsUpdateUI(d){
   const balEl=document.getElementById('rolls-bal');
   if(balEl)balEl.textContent=rollsFmt(bal);
 
-  // timer
-  const tl=d.time_left; // null = ждём 2-го игрока
+  // timer — плавный локальный countdown
+  const tl=d.time_left;
   const waiting=tl===null||tl===undefined;
-  const tEl=document.getElementById('rolls-timer');
-  if(tEl)tEl.textContent=waiting?'ждём…':tl>0?tl+'с':'—';
-  const fill=document.getElementById('rolls-timer-fill');
-  if(fill)fill.style.width=waiting?'100%':((tl/45)*100)+'%';
-  if(fill)fill.style.background=waiting?'rgba(255,255,255,.1)':'linear-gradient(90deg,var(--acc),var(--acc2))';
+  if(!waiting && d.ends_at && d.status==='open'){
+    _rollsStartLocalTimer(d.ends_at);
+  } else if(d.status==='done'||d.status==='spinning'||d.status==='finishing'){
+    _rollsStopLocalTimer();
+    const tEl=document.getElementById('rolls-timer');
+    const fill=document.getElementById('rolls-timer-fill');
+    if(tEl)tEl.textContent='—';
+    if(fill){fill.style.width='0%';fill.style.background='linear-gradient(90deg,var(--acc),var(--acc2))';}
+  } else if(waiting){
+    _rollsStopLocalTimer();
+    const tEl=document.getElementById('rolls-timer');
+    const fill=document.getElementById('rolls-timer-fill');
+    if(tEl)tEl.textContent='ждём…';
+    if(fill){fill.style.width='100%';fill.style.background='rgba(255,255,255,.1)';}
+  }
 
   // badge
   const badge=document.getElementById('rolls-status-badge');
@@ -3664,8 +3712,8 @@ function rollsUpdateUI(d){
   if(badge){badge.className='rolls-badge '+(d.status||'open');}
   if(stTxt){
     if(waiting)stTxt.textContent='Ждём второго игрока…';
-    else if(d.status==='open')stTxt.textContent='Приём ставок · '+tl+'с';
-    else if(d.status==='spinning')stTxt.textContent='Крутим…';
+    else if(d.status==='open')stTxt.textContent='Приём ставок';
+    else if(d.status==='spinning'||d.status==='finishing')stTxt.textContent='Крутим…';
     else stTxt.textContent='Раунд завершён';
   }
 
