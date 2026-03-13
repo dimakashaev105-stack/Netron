@@ -27,8 +27,7 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 # БД на Persistent Disk — не теряется при деплое
-DB_NAME = os.environ.get("DB_PATH", "/data/game.db")
-os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
+DB_NAME = os.environ.get("DB_PATH", "game.db")
 
 # ══════════════════════════════════════════════
 #  DB
@@ -1537,3 +1536,4 @@ def rolls_history():
             ORDER BY rr.id DESC LIMIT 20
         ''', (user_id,)).fetchall()
     return jsonify({'ok': True, 'history': [dict(r) for r in rows]})
+
