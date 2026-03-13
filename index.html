@@ -1599,12 +1599,15 @@ function showResultOverlay(type, amount, bet, sub){
 
   if(isWin){spawnWinParticles(type==='jackpot');haptic('success');}
   else{haptic('error');}
-  // Обновить историю если мы на экране games
-  if(cur==='games') setTimeout(()=>loadHistory(true),800);
 }
 function closeResultOverlay(){
   const ov=document.getElementById('result-overlay');
   if(ov){ov.style.opacity='0';ov.style.transform='scale(.95)';ov.style.transition='opacity .2s ease,transform .2s ease';setTimeout(()=>{ov.className='';ov.style.cssText='';},220);}
+  // Применяем баланс только сейчас (после просмотра результата)
+  if(window._rouPendingBalance!==undefined){syncBal(window._rouPendingBalance);window._rouPendingBalance=undefined;}
+  else if(IS_DEMO&&userData){syncBal(userData.balance);}
+  // Обновляем историю только когда пользователь закрыл результат
+  if(cur==='games') setTimeout(()=>loadHistory(true),300);
 }
 function spawnWinParticles(isJackpot){
   const emojis=isJackpot?['🎉','💰','⭐','💎','🌸','🏆']:['🌸','⭐','💎','✨','🌸'];
@@ -2051,13 +2054,13 @@ async function spinRoule(){
     const mult=rouChoice==='green'?14:2;
     winAmt=won?bets.rou*mult:0;
     if(userData) userData.balance=Math.max(0,(userData.balance||0)-bets.rou+winAmt);
-    setTimeout(()=>syncBal(userData?.balance||0),3500);
+    // баланс синхронизируем только после закрытия оверлея
   } else try{
     const d=await apireq('/api/roulette/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.rou,bet_type:rouChoice})});
     resColor=d.color||d.result_color||d.result||'red';
     won=d.won;
     winAmt=d.win_amount||d.win||0;
-    setTimeout(()=>syncBal(d.new_balance),3500);
+    window._rouPendingBalance=d.new_balance; // применим после закрытия
   }catch(e){
     const el=Date.now()-spinStart;
     setTimeout(()=>{toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;},Math.max(0,dur+200-el));
@@ -3675,10 +3678,14 @@ async function rollsPoll(){
     if(roundChanged && rollsLastStatus==='done'){
       rollsLastStatus=null;
       rollsSpinning=false;
+      window._rollsShownRoundId=null; // новый раунд — разрешаем крутить
     }
     const wasNotDone=rollsLastStatus!=='done';
-    if(isDone && wasNotDone && d.winner_id){
+    // Не крутить раунд который уже показали
+    const alreadyShown=window._rollsShownRoundId&&String(window._rollsShownRoundId)===String(d.round_id);
+    if(isDone && wasNotDone && d.winner_id && !alreadyShown){
       rollsLastStatus='done';
+      window._rollsShownRoundId=d.round_id;
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
       rollsSpinWheel(betsArr,betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
@@ -3847,14 +3854,15 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  // Полный сброс состояния
-  rollsLastStatus=null;
-  rollsLastId=null;
+  // Полный сброс состояния — но НЕ сбрасываем _rollsShownRoundId
+  // чтобы поллинг не запустил то же самое колесо снова
+  rollsLastStatus='done'; // помечаем как уже обработанный
   rollsSpinning=false;
   rollsState=null;
   // Рисуем пустое колесо сразу
   rollsDrawWheel({},{});
   if(IS_DEMO){
+    window._rollsShownRoundId=null; // в демо сразу сбрасываем
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
   } else {
@@ -4251,4 +4259,4 @@ window.addEventListener('resize',movePill);
   </div>
 </div>
 </body>
-          </html>
+                                                         </html>
