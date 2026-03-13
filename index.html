@@ -2029,6 +2029,21 @@ async function spinRoule(){
   resDv.textContent='';
   haptic('medium');
 
+  const dur=3200;
+
+  // 1. СРАЗУ крутим колесо — не ждём API
+  const currentNorm=wheelAngle%360;
+  svg.style.transition='none';
+  svg.style.transform=`rotate(${currentNorm}deg)`;
+  wheelAngle=currentNorm;
+  svg.getBoundingClientRect();
+  const preSpinTarget=wheelAngle+4*360+Math.random()*360;
+  svg.style.transition=`transform ${dur}ms cubic-bezier(.35,.05,.2,.98)`;
+  svg.style.transform=`rotate(${preSpinTarget}deg)`;
+  shimmerBtn(btn);
+  const spinStart=Date.now();
+
+  // 2. Параллельно запрашиваем результат
   let resColor='red',won=false,winAmt=0;
   if(IS_DEMO){
     const roll=Math.random();
@@ -2045,31 +2060,34 @@ async function spinRoule(){
     winAmt=d.win_amount||d.win||0;
     setTimeout(()=>syncBal(d.new_balance),3500);
   }catch(e){
-    toast('❌ '+(e.message||'Ошибка сервера'));
-    btn.disabled=false;return;
+    const el=Date.now()-spinStart;
+    setTimeout(()=>{toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;},Math.max(0,dur+200-el));
+    wheelAngle=preSpinTarget%360;
+    return;
   }
 
-  // Find landing sector
+  // 3. Доворачиваем к нужному сектору
   const matching=WNUMS.map((n,i)=>({n,i})).filter(({n,i})=>resColor==='green'?n===0:resColor==='red'?WCOLS[i]==='#c0392b':WCOLS[i]==='#1a1a2e');
   const land=matching[~~(Math.random()*matching.length)]||{i:0};
   const sectorDeg=(land.i/WNUMS.length)*360;
-  // Wheel needs to rotate so that sectorDeg aligns at top (0 deg pointer)
-  const spinExtra=4*360; // 4 full rotations
-  const targetAngle=wheelAngle+spinExtra+(360-sectorDeg-wheelAngle%360);
-  const dur=3200;
-
-  svg.style.transition=`transform ${dur}ms cubic-bezier(.35,.05,.2,.98)`;
-  svg.style.transform=`rotate(${targetAngle}deg)`;
-  wheelAngle=targetAngle;
+  const elapsed=Date.now()-spinStart;
+  const remaining=Math.max(800,dur-elapsed);
+  const norm2=preSpinTarget%360;
+  const finalAngle=Math.ceil(preSpinTarget/360)*360+(360-sectorDeg);
+  svg.style.transition='none';
+  svg.style.transform=`rotate(${norm2}deg)`;
+  svg.getBoundingClientRect();
+  svg.style.transition=`transform ${remaining}ms cubic-bezier(.35,.05,.2,.98)`;
+  svg.style.transform=`rotate(${finalAngle}deg)`;
+  wheelAngle=finalAngle%360;
 
   setTimeout(()=>{
     const em=resColor==='red'?'🔴':resColor==='black'?'⚫':'🟢';
     resDv.textContent=em;resDv.classList.add('show');
     if(won){showResultOverlay('win',winAmt,bets.rou,`${em} Число ${WNUMS[land.i]}`);spawnCoins();}
-    else{showResultOverlay('loss',0,bets.rou,`${em} Число ${WNUMS[land.i]}`);}    
+    else{showResultOverlay('loss',0,bets.rou,`${em} Число ${WNUMS[land.i]}`);}
     btn.disabled=false;
-  },dur+200);
-  shimmerBtn(btn);
+  },remaining+200);
 }
 
 // ═══════════════════════════════
@@ -3633,6 +3651,12 @@ async function rollsPoll(){
       }
     });
     const isDone=d.status==='done';
+    const roundChanged=d.round_id!==rollsLastId;
+    // Если раунд сменился — сбрасываем lastStatus чтобы новый done сработал
+    if(roundChanged && rollsLastStatus==='done'){
+      rollsLastStatus=null;
+      rollsSpinning=false;
+    }
     const wasNotDone=rollsLastStatus!=='done';
     if(isDone && wasNotDone && d.winner_id){
       rollsLastStatus='done';
