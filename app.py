@@ -1474,6 +1474,7 @@ def _finish_round(rid):
         r['commission'] = commission
         r['db_rid']     = db_rid
         r['finished_at']= int(time.time())
+        r['spin_seed']  = random.randint(1000, 9999)  # одинаковый для всех клиентов
         _save_active_round(r, rid)
         print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
@@ -1531,6 +1532,7 @@ def rolls_state():
         'win_amount':  r.get('win_amount', 0),
         'commission':  r.get('commission', 0),
         'finished_at': r.get('finished_at'),
+        'spin_seed':   r.get('spin_seed', 42),
     })
 
 
