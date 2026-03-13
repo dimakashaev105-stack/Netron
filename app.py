@@ -1492,9 +1492,10 @@ def rolls_state():
     now    = int(time.time())
 
     with _rolls_lock:
+        # Сортируем по user_id — одинаковый порядок секторов у всех клиентов
         bets_list = [
             {'user_id': uid, 'amount': amt}
-            for uid, amt in r['bets'].items()
+            for uid, amt in sorted(r['bets'].items(), key=lambda x: str(x[0]))
         ]
         pot  = r['pot']
         ends = r['ends_at']
