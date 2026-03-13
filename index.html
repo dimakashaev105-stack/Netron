@@ -3484,8 +3484,11 @@ function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
   for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
   cumFrac+=entries[winIdx][1]/total/2;
   const targetAngle=-cumFrac*Math.PI*2;
-  // 6-8 полных оборотов
-  const totalRot=(6+Math.random()*2)*Math.PI*2+targetAngle;
+  // Детерминированный random из winner_id — одинаково у всех клиентов
+  const _seed = (typeof winnerUid==='number' ? winnerUid : parseInt(winnerUid)||0);
+  const _seededRand = ((_seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const extraSpins = 5 + (_seededRand * 3); // 5.0–8.0 оборотов, одинаково у всех
+  const totalRot = extraSpins * Math.PI * 2 + targetAngle;
   const dur=8000,start=performance.now();
   // Быстрый старт, очень долгое плавное торможение в конце (интрига)
   function easeOut(t){
@@ -3822,9 +3825,15 @@ function rollsShowResult(d){
   </div>`;
   overlay.className='show';
   if(isMe)rollsConfetti();
-  if(isMe&&userData)userData.balance+=(d.win_amount-myBet);
-  else if(userData)userData.balance=Math.max(0,userData.balance-myBet);
-  if(userData)syncBal(userData.balance);
+  // Баланс обновляем ПОСЛЕ показа результата (уже после прокрута колеса)
+  setTimeout(()=>{
+    if(isMe&&userData)userData.balance+=(d.win_amount-myBet);
+    else if(userData)userData.balance=Math.max(0,(userData.balance||0)-myBet);
+    if(userData)syncBal(userData.balance);
+  }, 500);
+  // Автоматически переходим к следующему раунду через 6 секунд
+  clearTimeout(window._rollsAutoClose);
+  window._rollsAutoClose=setTimeout(()=>rollsCloseResult(),6000);
 }
 
 function rollsCloseResult(){
