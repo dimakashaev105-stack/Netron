@@ -3489,7 +3489,7 @@ function shareRefLink(){
 // ROLLS
 // ═══════════════════════════════
 const ROLLS_COLORS=['#7c5cfc','#ef4444','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#a855f7','#f97316','#22c55e','#6366f1','#fbbf24','#84cc16','#0ea5e9','#d946ef'];
-let rollsState=null, rollsTimer=null, rollsSpinning=false, rollsLastId=null, rollsLastStatus=null;
+let rollsState=null, rollsTimer=null, rollsSpinning=false, rollsLastId=null, rollsLastStatus=null, rollsShownRoundId=null;
 function rollsStopPoll(){if(rollsTimer){clearInterval(rollsTimer);rollsTimer=null;}}
 let rollsDemoBets=null, rollsDemoPot=0, rollsDemoTimer=45;
 
@@ -3917,9 +3917,15 @@ async function rollsPoll(){
       rollsLastStatus=null;
       rollsSpinning=false;
     }
+    // Если пришёл новый раунд (не тот что уже показали) — сбрасываем shownRoundId
+    if(rollsShownRoundId && String(d.round_id)!==String(rollsShownRoundId)){
+      rollsShownRoundId=null;
+    }
     const wasNotDone=rollsLastStatus!=='done';
+    // Не крутим раунд который уже показали (сервер держит done 60с)
+    const alreadyShown=rollsShownRoundId && String(d.round_id)===String(rollsShownRoundId);
     // Для finishing/spinning — ждём пока придёт winner_id, потом крутим
-    if(isDone && wasNotDone && d.winner_id){
+    if(isDone && wasNotDone && d.winner_id && !alreadyShown){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
@@ -4144,6 +4150,8 @@ function rollsShowResult(d){
 
   overlay.className='show';
   if(isMe)rollsConfetti();
+  // Останавливаем poll пока показывается результат — незачем слать запросы
+  rollsStopPoll();
 
   // Баланс уже обновлён на сервере — просто тянем актуальный после результата
   // (не трогаем вручную чтобы избежать двойного списания/начисления)
@@ -4161,11 +4169,9 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
-  // Запоминаем round_id как "уже показанный" чтобы повторный poll не запустил спин снова
-  // (сервер держит done-раунд ещё 60с)
-  const _shownId = rollsLastId;
   rollsLastStatus=null;
   rollsLastId=null;
+  rollsShownRoundId=null;
   rollsSpinning=false;
   rollsState=null;
   rollsDrawWheel({},{});
@@ -4173,11 +4179,11 @@ function rollsCloseResult(){
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
   } else {
-    // Ждём 1.5с — за это время сервер должен создать новый раунд
-    // и мы не попадём на старый done снова
+    // Возобновляем poll — сервер за это время создаст новый раунд
     setTimeout(()=>{
       _rollsPollRunning=false;
       rollsPoll();
+      rollsTimer=setInterval(rollsPoll,2000);
     }, 1500);
   }
 }
@@ -4729,4 +4735,4 @@ function closeProfile(){
   </div>
 </div>
 </body>
-  </html>
+          </html>
