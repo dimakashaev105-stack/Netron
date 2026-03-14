@@ -108,6 +108,8 @@ def ensure_ratings_table():
     except Exception as e:
         print(f"⚠️ user_ratings index error: {e}")
 
+ensure_ratings_table()
+
 def migrate_db():
     """Безопасная миграция — добавляет колонки не трогая существующие данные"""
     COLUMNS = [
@@ -140,7 +142,6 @@ def migrate_db():
                 print(f"ℹ️ Колонка {col} уже существует")
         print("✅ Миграция завершена")
 
-ensure_ratings_table()
 migrate_db()
 
 # ══════════════════════════════════════════════
@@ -1385,16 +1386,22 @@ def _save_active_round(r, rid):
                 ends_at INTEGER, pot INTEGER DEFAULT 0,
                 bets_json TEXT DEFAULT '{}',
                 winner_id INTEGER, win_amount INTEGER DEFAULT 0,
-                commission INTEGER DEFAULT 0, finished_at INTEGER
+                commission INTEGER DEFAULT 0, finished_at INTEGER,
+                spin_seed INTEGER DEFAULT 0, spin_started_at INTEGER DEFAULT 0
             )''')
+            # безопасная миграция: добавляем колонки если их нет (старая БД)
+            for _col, _def in [("spin_seed","INTEGER DEFAULT 0"),("spin_started_at","INTEGER DEFAULT 0")]:
+                try: conn.execute(f"ALTER TABLE rolls_active ADD COLUMN {_col} {_def}")
+                except: pass
             conn.execute('''INSERT OR REPLACE INTO rolls_active
-                (id,round_id,status,started_at,ends_at,pot,bets_json,winner_id,win_amount,commission,finished_at)
-                VALUES (1,?,?,?,?,?,?,?,?,?,?)''',
+                (id,round_id,status,started_at,ends_at,pot,bets_json,winner_id,win_amount,commission,finished_at,spin_seed,spin_started_at)
+                VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (rid, r.get('status','open'), r.get('started_at',0),
                  r.get('ends_at'), r.get('pot',0),
                  _json.dumps({str(k):v for k,v in r.get('bets',{}).items()}),
                  r.get('winner_id'), r.get('win_amount',0),
-                 r.get('commission',0), r.get('finished_at')))
+                 r.get('commission',0), r.get('finished_at'),
+                 r.get('spin_seed',0), r.get('spin_started_at',0)))
     except Exception as e:
         print('[rolls] save error:', e)
 
@@ -1408,8 +1415,13 @@ def _load_and_restore_round():
                 ends_at INTEGER, pot INTEGER DEFAULT 0,
                 bets_json TEXT DEFAULT '{}',
                 winner_id INTEGER, win_amount INTEGER DEFAULT 0,
-                commission INTEGER DEFAULT 0, finished_at INTEGER
+                commission INTEGER DEFAULT 0, finished_at INTEGER,
+                spin_seed INTEGER DEFAULT 0, spin_started_at INTEGER DEFAULT 0
             )''')
+            # безопасная миграция: добавляем колонки если их нет (старая БД)
+            for _col, _def in [("spin_seed","INTEGER DEFAULT 0"),("spin_started_at","INTEGER DEFAULT 0")]:
+                try: conn.execute(f"ALTER TABLE rolls_active ADD COLUMN {_col} {_def}")
+                except: pass
             row = conn.execute('SELECT * FROM rolls_active WHERE id=1').fetchone()
         if not row or not row['round_id']: return
         rid = row['round_id']
@@ -1424,7 +1436,9 @@ def _load_and_restore_round():
         r = {'status':row['status'],'started_at':row['started_at'],
              'ends_at':row['ends_at'],'pot':row['pot'],'bets':bets,
              'winner_id':row['winner_id'],'win_amount':row['win_amount'],
-             'commission':row['commission'],'finished_at':row['finished_at']}
+             'commission':row['commission'],'finished_at':row['finished_at'],
+             'spin_seed':row['spin_seed'] if 'spin_seed' in row.keys() else 0,
+             'spin_started_at':row['spin_started_at'] if 'spin_started_at' in row.keys() else 0}
         _rolls_rounds[rid] = r
         print(f'[rolls] restored round {rid} status={r["status"]} bets={len(bets)} winner={r.get("winner_id")}')
     except Exception as e:
@@ -1453,6 +1467,7 @@ def _get_or_create_round():
                     # Таймер истёк — финишируем ОДИН раз
                     r['status'] = 'finishing'
                     r['ended_at'] = now
+                    r['spin_started_at'] = now  # клиенты начнут анимацию с этого момента
                     _save_active_round(r, rid)
                     print(f'[ROUND] {rid} timer expired, launching _finish_round')
                     threading.Thread(target=_finish_round, args=(rid,), daemon=True).start()
@@ -1493,8 +1508,13 @@ def _finish_round(rid):
     weights = [bets[u] for u in users]
     winner  = random.choices(users, weights=weights, k=1)[0]
 
-    commission  = int(pot * ROLLS_COMMISSION)
-    win_amount  = pot - commission
+    # Если игрок один — возвращаем ему ставку без комиссии (не с кем играть)
+    if len(users) == 1:
+        commission = 0
+        win_amount = pot
+    else:
+        commission  = int(pot * ROLLS_COMMISSION)
+        win_amount  = pot - commission
 
     with get_db() as conn:
         # Победителю зачисляем выигрыш
@@ -1510,14 +1530,17 @@ def _finish_round(rid):
                 (db_rid, uid, amt, r['started_at'])
             )
 
+    finish_ts   = int(time.time())
+    spin_seed_v = random.randint(1000, 9999)
     with _rolls_lock:
-        r['status']     = 'done'
-        r['winner_id']  = winner
-        r['win_amount'] = win_amount
-        r['commission'] = commission
-        r['db_rid']     = db_rid
-        r['finished_at']= int(time.time())
-        r['spin_seed']  = random.randint(1000, 9999)  # одинаковый для всех клиентов
+        r['status']          = 'done'
+        r['winner_id']       = winner
+        r['win_amount']      = win_amount
+        r['commission']      = commission
+        r['db_rid']          = db_rid
+        r['finished_at']     = finish_ts
+        r['spin_started_at'] = finish_ts  # момент старта спина — для синхронизации клиентов
+        r['spin_seed']       = spin_seed_v  # одинаковый для всех клиентов
         _save_active_round(r, rid)
         print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
@@ -1589,6 +1612,7 @@ def rolls_state():
         'commission':  r.get('commission', 0),
         'finished_at': r.get('finished_at'),
         'spin_seed':   r.get('spin_seed', 42),
+        'spin_started_at': r.get('spin_started_at'),  # unix timestamp старта анимации
     })
 
 
