@@ -85,8 +85,6 @@ def init_db():
 
 init_db()
 
-def migrate_db()
-
 def ensure_ratings_table():
     """Создаём таблицу рейтингов отдельно — безопасно для существующих БД"""
     try:
@@ -110,7 +108,7 @@ def ensure_ratings_table():
     except Exception as e:
         print(f"⚠️ user_ratings index error: {e}")
 
-ensure_ratings_table():
+def migrate_db():
     """Безопасная миграция — добавляет колонки не трогая существующие данные"""
     COLUMNS = [
         ('photo_url',       'TEXT DEFAULT NULL'),
@@ -142,6 +140,7 @@ ensure_ratings_table():
                 print(f"ℹ️ Колонка {col} уже существует")
         print("✅ Миграция завершена")
 
+ensure_ratings_table()
 migrate_db()
 
 # ══════════════════════════════════════════════
