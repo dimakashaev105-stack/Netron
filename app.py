@@ -1457,7 +1457,7 @@ def _get_or_create_round():
             if r['status'] in ('finishing', 'done'):
                 finished = r.get('finished_at') or r.get('ended_at') or now
                 age = now - finished
-                if age < 60:
+                if age < 13:
                     return rid, r
             elif r['status'] == 'open':
                 if r['ends_at'] is None:
@@ -1545,7 +1545,7 @@ def _finish_round(rid):
         _save_active_round(r, rid)
         print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
-        cutoff = int(time.time()) - 120
+        cutoff = int(time.time()) - 20
         for old_rid in [k for k, v in _rolls_rounds.items()
                         if v['status'] == 'done' and v.get('started_at', 0) < cutoff and k != rid]:
             del _rolls_rounds[old_rid]
