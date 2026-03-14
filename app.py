@@ -393,6 +393,7 @@ def get_user(user_id):
 @app.route('/api/profile/<int:user_id>')
 def get_profile(user_id):
     """Расширенный профиль: статистика + история игр + ранг"""
+    ensure_ratings_table()  # гарантируем таблицу при новой БД
     with get_db() as conn:
         row = conn.execute(
             '''SELECT user_id,username,first_name,custom_name,balance,experience,
@@ -1687,6 +1688,7 @@ def vote_profile():
         to_uid   = int(to_uid)
     except:
         return jsonify({'error': 'bad ids'}), 400
+    ensure_ratings_table()  # гарантируем таблицу при новой БД
     with get_db() as conn:
         voter = conn.execute('SELECT experience FROM users WHERE user_id=?', (from_uid,)).fetchone()
         if not voter or (voter['experience'] or 0) < 500:
@@ -1722,6 +1724,7 @@ def get_my_vote():
     try:
         from_uid = int(data.get('from_user_id', 0))
         to_uid   = int(data.get('to_user_id', 0))
+        ensure_ratings_table()
         with get_db() as conn:
             row = conn.execute('SELECT vote FROM user_ratings WHERE from_user_id=? AND to_user_id=?',
                                (from_uid, to_uid)).fetchone()
