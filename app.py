@@ -1406,7 +1406,7 @@ def _get_or_create_round():
             if r['status'] in ('finishing', 'done'):
                 finished = r.get('finished_at') or r.get('ended_at') or now
                 age = now - finished
-                if age < 8:
+                if age < 60:
                     return rid, r
             elif r['status'] == 'open':
                 if r['ends_at'] is None:
@@ -1452,10 +1452,25 @@ def _finish_round(rid):
             print(f'[FINISH] round {rid} no bets, done')
             return
 
-    # Выбираем победителя пропорционально ставке
-    users   = list(bets.keys())
+    # Генерируем spin_seed и выбираем победителя детерминированно из него
+    # Сортируем пользователей по str(uid) — такой же порядок как на фронте
+    users   = sorted(bets.keys(), key=lambda x: str(x))
     weights = [bets[u] for u in users]
-    winner  = random.choices(users, weights=weights, k=1)[0]
+    total   = sum(weights)
+
+    # Детерминированный LCG из spin_seed — такой же как на фронте
+    spin_seed = random.randint(10000, 99999)
+    lcg = ((spin_seed * 1664525 + 1013904223) & 0xFFFFFFFF)
+    spin_val = lcg / 4294967296.0  # 0.0 .. 1.0
+
+    # Выбираем победителя пропорционально ставке через spin_val
+    cumulative = 0.0
+    winner = users[-1]  # fallback
+    for u, w in zip(users, weights):
+        cumulative += w / total
+        if spin_val <= cumulative:
+            winner = u
+            break
 
     commission  = int(pot * ROLLS_COMMISSION)
     win_amount  = pot - commission
@@ -1481,7 +1496,7 @@ def _finish_round(rid):
         r['commission'] = commission
         r['db_rid']     = db_rid
         r['finished_at']= int(time.time())
-        r['spin_seed']  = random.randint(1000, 9999)  # одинаковый для всех клиентов
+        r['spin_seed']  = spin_seed  # детерминированный — определяет и победителя и вращение
         _save_active_round(r, rid)
         print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
