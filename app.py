@@ -81,12 +81,6 @@ def init_db():
         ''')
         # Индекс для быстрого поиска истории по юзеру
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
-        print("✅ БД инициализирована (users + game_history)")
-
-init_db()
-
-def init_likes_db():
-    with get_db() as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS user_ratings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,8 +92,9 @@ def init_likes_db():
             )
         ''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)')
+        print("✅ БД инициализирована (users + game_history)")
 
-init_likes_db()
+init_db()
 
 def migrate_db():
     """Безопасная миграция — добавляет колонки не трогая существующие данные"""
@@ -120,6 +115,17 @@ def migrate_db():
             )
         ''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_ratings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_user_id INTEGER NOT NULL,
+                to_user_id INTEGER NOT NULL,
+                vote INTEGER NOT NULL,
+                created_at INTEGER DEFAULT 0,
+                UNIQUE(from_user_id, to_user_id)
+            )
+        ''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)')
         # Проверяем какие колонки уже есть
         existing = {row[1] for row in conn.execute('PRAGMA table_info(users)').fetchall()}
         for col, typedef in COLUMNS:
@@ -1652,13 +1658,10 @@ def vote_profile():
         to_uid   = int(to_uid)
     except:
         return jsonify({'error': 'bad ids'}), 400
-
     with get_db() as conn:
-        # Проверяем что у голосующего >= 500 XP
         voter = conn.execute('SELECT experience FROM users WHERE user_id=?', (from_uid,)).fetchone()
         if not voter or (voter['experience'] or 0) < 500:
             return jsonify({'error': 'not_enough_xp', 'need': 500}), 403
-
         existing = conn.execute(
             'SELECT vote FROM user_ratings WHERE from_user_id=? AND to_user_id=?',
             (from_uid, to_uid)
@@ -1688,8 +1691,8 @@ def vote_profile():
 def get_my_vote():
     data = request.json or {}
     try:
-        from_uid = int(data.get('from_user_id',0))
-        to_uid   = int(data.get('to_user_id',0))
+        from_uid = int(data.get('from_user_id', 0))
+        to_uid   = int(data.get('to_user_id', 0))
         with get_db() as conn:
             row = conn.execute('SELECT vote FROM user_ratings WHERE from_user_id=? AND to_user_id=?',
                                (from_uid, to_uid)).fetchone()
