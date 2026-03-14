@@ -81,22 +81,36 @@ def init_db():
         ''')
         # Индекс для быстрого поиска истории по юзеру
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS user_ratings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_user_id INTEGER NOT NULL,
-                to_user_id INTEGER NOT NULL,
-                vote INTEGER NOT NULL,
-                created_at INTEGER DEFAULT 0,
-                UNIQUE(from_user_id, to_user_id)
-            )
-        ''')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)')
         print("✅ БД инициализирована (users + game_history)")
 
 init_db()
 
-def migrate_db():
+def migrate_db()
+
+def ensure_ratings_table():
+    """Создаём таблицу рейтингов отдельно — безопасно для существующих БД"""
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_ratings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    from_user_id INTEGER NOT NULL,
+                    to_user_id INTEGER NOT NULL,
+                    vote INTEGER NOT NULL,
+                    created_at INTEGER DEFAULT 0,
+                    UNIQUE(from_user_id, to_user_id)
+                )
+            """)
+        print("✅ user_ratings table ready")
+    except Exception as e:
+        print(f"⚠️ user_ratings table error: {e}")
+    try:
+        with get_db() as conn:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)")
+    except Exception as e:
+        print(f"⚠️ user_ratings index error: {e}")
+
+ensure_ratings_table():
     """Безопасная миграция — добавляет колонки не трогая существующие данные"""
     COLUMNS = [
         ('photo_url',       'TEXT DEFAULT NULL'),
@@ -115,17 +129,6 @@ def migrate_db():
             )
         ''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id)')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS user_ratings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_user_id INTEGER NOT NULL,
-                to_user_id INTEGER NOT NULL,
-                vote INTEGER NOT NULL,
-                created_at INTEGER DEFAULT 0,
-                UNIQUE(from_user_id, to_user_id)
-            )
-        ''')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)')
         # Проверяем какие колонки уже есть
         existing = {row[1] for row in conn.execute('PRAGMA table_info(users)').fetchall()}
         for col, typedef in COLUMNS:
@@ -439,14 +442,17 @@ def get_profile(user_id):
         ).fetchall()
         d['history'] = [dict(h) for h in history]
 
-        likes_row = conn.execute(
-            'SELECT SUM(CASE WHEN vote=1 THEN 1 ELSE 0 END) as likes, '
-            'SUM(CASE WHEN vote=-1 THEN 1 ELSE 0 END) as dislikes '
-            'FROM user_ratings WHERE to_user_id=?', (user_id,)
-        ).fetchone()
-        d['likes']    = likes_row['likes'] or 0
-        d['dislikes'] = likes_row['dislikes'] or 0
-        d['rating']   = d['likes'] - d['dislikes']
+        try:
+            likes_row = conn.execute(
+                'SELECT SUM(CASE WHEN vote=1 THEN 1 ELSE 0 END) as likes, '
+                'SUM(CASE WHEN vote=-1 THEN 1 ELSE 0 END) as dislikes '
+                'FROM user_ratings WHERE to_user_id=?', (user_id,)
+            ).fetchone()
+            d['likes']    = likes_row['likes'] or 0
+            d['dislikes'] = likes_row['dislikes'] or 0
+            d['rating']   = d['likes'] - d['dislikes']
+        except Exception:
+            d['likes'] = d['dislikes'] = d['rating'] = 0
 
         # Следующий уровень
         if lv < 50:
