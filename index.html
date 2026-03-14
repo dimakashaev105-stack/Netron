@@ -4162,7 +4162,7 @@ function rollsShowResult(d){
   }
 
   clearTimeout(window._rollsAutoClose);
-  window._rollsAutoClose=setTimeout(()=>rollsCloseResult(), 8000);
+  window._rollsAutoClose=setTimeout(()=>rollsCloseResult(), 3000);
 }
 
 function rollsCloseResult(){
@@ -4182,6 +4182,8 @@ function rollsCloseResult(){
     // Возобновляем poll — сервер за это время создаст новый раунд
     setTimeout(()=>{
       _rollsPollRunning=false;
+      // Защита от двойного интервала
+      if(rollsTimer){clearInterval(rollsTimer);rollsTimer=null;}
       rollsPoll();
       rollsTimer=setInterval(rollsPoll,2000);
     }, 1500);
