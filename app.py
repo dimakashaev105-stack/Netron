@@ -85,6 +85,22 @@ def init_db():
 
 init_db()
 
+def init_likes_db():
+    with get_db() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_ratings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_user_id INTEGER NOT NULL,
+                to_user_id INTEGER NOT NULL,
+                vote INTEGER NOT NULL,
+                created_at INTEGER DEFAULT 0,
+                UNIQUE(from_user_id, to_user_id)
+            )
+        ''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_ratings_to ON user_ratings(to_user_id)')
+
+init_likes_db()
+
 def migrate_db():
     """Безопасная миграция — добавляет колонки не трогая существующие данные"""
     COLUMNS = [
@@ -416,6 +432,15 @@ def get_profile(user_id):
             (user_id,)
         ).fetchall()
         d['history'] = [dict(h) for h in history]
+
+        likes_row = conn.execute(
+            'SELECT SUM(CASE WHEN vote=1 THEN 1 ELSE 0 END) as likes, '
+            'SUM(CASE WHEN vote=-1 THEN 1 ELSE 0 END) as dislikes '
+            'FROM user_ratings WHERE to_user_id=?', (user_id,)
+        ).fetchone()
+        d['likes']    = likes_row['likes'] or 0
+        d['dislikes'] = likes_row['dislikes'] or 0
+        d['rating']   = d['likes'] - d['dislikes']
 
         # Следующий уровень
         if lv < 50:
@@ -1452,25 +1477,10 @@ def _finish_round(rid):
             print(f'[FINISH] round {rid} no bets, done')
             return
 
-    # Генерируем spin_seed и выбираем победителя детерминированно из него
-    # Сортируем пользователей по str(uid) — такой же порядок как на фронте
-    users   = sorted(bets.keys(), key=lambda x: str(x))
+    # Выбираем победителя пропорционально ставке
+    users   = list(bets.keys())
     weights = [bets[u] for u in users]
-    total   = sum(weights)
-
-    # Детерминированный LCG из spin_seed — такой же как на фронте
-    spin_seed = random.randint(10000, 99999)
-    lcg = ((spin_seed * 1664525 + 1013904223) & 0xFFFFFFFF)
-    spin_val = lcg / 4294967296.0  # 0.0 .. 1.0
-
-    # Выбираем победителя пропорционально ставке через spin_val
-    cumulative = 0.0
-    winner = users[-1]  # fallback
-    for u, w in zip(users, weights):
-        cumulative += w / total
-        if spin_val <= cumulative:
-            winner = u
-            break
+    winner  = random.choices(users, weights=weights, k=1)[0]
 
     commission  = int(pot * ROLLS_COMMISSION)
     win_amount  = pot - commission
@@ -1496,7 +1506,7 @@ def _finish_round(rid):
         r['commission'] = commission
         r['db_rid']     = db_rid
         r['finished_at']= int(time.time())
-        r['spin_seed']  = spin_seed  # детерминированный — определяет и победителя и вращение
+        r['spin_seed']  = random.randint(1000, 9999)  # одинаковый для всех клиентов
         _save_active_round(r, rid)
         print(f'[FINISH] round {rid} DONE winner={winner} win={win_amount}')
         # Чистим старые done-раунды кроме текущего (оставляем на 60с для last-state)
@@ -1625,6 +1635,67 @@ def rolls_bet():
 
     return jsonify({'ok': True, 'my_bet': r['bets'][user_id], 'pot': r['pot'], 'new_balance': new_balance})
 
+
+
+@app.route('/api/profile/vote', methods=['POST'])
+def vote_profile():
+    data     = request.json or {}
+    from_uid = data.get('from_user_id')
+    to_uid   = data.get('to_user_id')
+    vote     = data.get('vote')
+    if not from_uid or not to_uid or vote not in (1, -1):
+        return jsonify({'error': 'bad params'}), 400
+    if str(from_uid) == str(to_uid):
+        return jsonify({'error': 'self vote'}), 400
+    try:
+        from_uid = int(from_uid)
+        to_uid   = int(to_uid)
+    except:
+        return jsonify({'error': 'bad ids'}), 400
+
+    with get_db() as conn:
+        # Проверяем что у голосующего >= 500 XP
+        voter = conn.execute('SELECT experience FROM users WHERE user_id=?', (from_uid,)).fetchone()
+        if not voter or (voter['experience'] or 0) < 500:
+            return jsonify({'error': 'not_enough_xp', 'need': 500}), 403
+
+        existing = conn.execute(
+            'SELECT vote FROM user_ratings WHERE from_user_id=? AND to_user_id=?',
+            (from_uid, to_uid)
+        ).fetchone()
+        if existing:
+            if existing['vote'] == vote:
+                conn.execute('DELETE FROM user_ratings WHERE from_user_id=? AND to_user_id=?', (from_uid, to_uid))
+                my_vote = 0
+            else:
+                conn.execute('UPDATE user_ratings SET vote=?,created_at=? WHERE from_user_id=? AND to_user_id=?',
+                             (vote, int(time.time()), from_uid, to_uid))
+                my_vote = vote
+        else:
+            conn.execute('INSERT INTO user_ratings (from_user_id,to_user_id,vote,created_at) VALUES (?,?,?,?)',
+                         (from_uid, to_uid, vote, int(time.time())))
+            my_vote = vote
+        row = conn.execute(
+            'SELECT SUM(CASE WHEN vote=1 THEN 1 ELSE 0 END) as likes, '
+            'SUM(CASE WHEN vote=-1 THEN 1 ELSE 0 END) as dislikes '
+            'FROM user_ratings WHERE to_user_id=?', (to_uid,)
+        ).fetchone()
+    return jsonify({'ok':True,'likes':row['likes'] or 0,'dislikes':row['dislikes'] or 0,
+                    'rating':(row['likes'] or 0)-(row['dislikes'] or 0),'my_vote':my_vote})
+
+
+@app.route('/api/profile/my_vote', methods=['POST'])
+def get_my_vote():
+    data = request.json or {}
+    try:
+        from_uid = int(data.get('from_user_id',0))
+        to_uid   = int(data.get('to_user_id',0))
+        with get_db() as conn:
+            row = conn.execute('SELECT vote FROM user_ratings WHERE from_user_id=? AND to_user_id=?',
+                               (from_uid, to_uid)).fetchone()
+        return jsonify({'my_vote': row['vote'] if row else 0})
+    except:
+        return jsonify({'my_vote': 0})
 
 @app.route('/api/rolls/history', methods=['POST'])
 def rolls_history():
