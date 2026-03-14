@@ -25,25 +25,36 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 #bg-mesh{position:fixed;inset:0;pointer-events:none;z-index:0}
 /* SCREENS */
 .screens{flex:1;overflow:hidden;position:relative;min-height:0;z-index:1}
-.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;display:none;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+.screen{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease, transform .28s cubic-bezier(.4,0,.2,1);
+  transform:translateX(10px);
+  will-change:opacity,transform;
+}
 .screen::-webkit-scrollbar{display:none}
-.screen.active{display:block}
-.screen.anim-r{animation:slideR .3s cubic-bezier(.22,1,.36,1) both}
-.screen.anim-l{animation:slideL .3s cubic-bezier(.22,1,.36,1) both}
-@keyframes slideR{from{opacity:0;transform:translateX(32px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes slideL{from{opacity:0;transform:translateX(-32px) scale(.98)}to{opacity:1;transform:none}}
+.screen.active{
+  opacity:1;pointer-events:auto;
+  transform:translateX(0) !important;
+}
+.screen.exit{
+  opacity:0;
+  transform:translateX(-10px);
+  pointer-events:none;
+}
 .sp{padding:14px 14px 100px}
-@keyframes cardIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
-.ci{animation:cardIn .45s cubic-bezier(.22,1,.36,1) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.ci{animation:cardIn .45s cubic-bezier(.22,1,.36,1) both;will-change:transform,opacity}
 .ci-1{animation-delay:.04s}.ci-2{animation-delay:.10s}.ci-3{animation-delay:.17s}.ci-4{animation-delay:.24s}.ci-5{animation-delay:.31s}
 /* NAV */
 .nav-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:8px 16px calc(14px + env(safe-area-inset-bottom,0px));z-index:100;pointer-events:none}
 .nav{height:64px;background:rgba(13,15,20,.97);border:1px solid rgba(255,255,255,.09);border-radius:32px;display:flex;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden;pointer-events:all;backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px)}
-.nav-pill{position:absolute;top:9px;bottom:9px;border-radius:22px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.28);box-shadow:0 0 20px rgba(124,92,252,.1);transition:left .42s cubic-bezier(.34,1.56,.64,1),width .42s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:0}
+.nav-pill{position:absolute;top:9px;bottom:9px;border-radius:22px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.28);box-shadow:0 0 20px rgba(124,92,252,.1);transition:left .42s cubic-bezier(.34,1.56,.64,1),width .42s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:0;will-change:left,width}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative;z-index:1;user-select:none}
 .nav-item:active{opacity:.55}
 .nav-ico{width:28px;height:26px;display:flex;align-items:center;justify-content:center}
-.nav-ico svg{width:21px;height:21px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .22s,transform .35s cubic-bezier(.34,1.56,.64,1)}
+.nav-ico svg{width:21px;height:21px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .22s,transform .35s cubic-bezier(.34,1.56,.64,1);will-change:transform}
 .nav-item.active .nav-ico svg{stroke:var(--acc2);transform:scale(1.15)}
 .nav-item:active .nav-ico svg{transform:scale(.84)}
 .nav-lbl{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--muted);transition:color .22s;text-transform:uppercase}
@@ -67,7 +78,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .xp-left{font-size:12px;font-weight:700;color:var(--text2)}
 .xp-right{font-size:11px;color:var(--sub);font-family:'JetBrains Mono',monospace}
 .xp-track{height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
-.xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width 1.4s cubic-bezier(.4,0,.2,1);position:relative}
+.xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width 1.4s cubic-bezier(.4,0,.2,1);position:relative;will-change:width}
 .xp-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);animation:xpShimmer 2s ease-in-out infinite}
 @keyframes xpShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
 /* STATS */
@@ -92,8 +103,9 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .game-tile{
   padding:0;border-radius:20px;cursor:pointer;position:relative;overflow:hidden;
-  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s ease;
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .22s ease,filter .18s ease;
   -webkit-tap-highlight-color:transparent;
+  will-change:transform;
 }
 .game-tile:active{transform:scale(.93)!important;filter:brightness(.88)}
 .game-tile-inner{padding:18px 16px 16px;position:relative;z-index:1;height:100%}
@@ -313,7 +325,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .bp{padding:7px 14px;border-radius:10px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--sub);cursor:pointer;transition:all .16s}
 .bp:active{transform:scale(.9);background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.35);color:var(--acc3)}
 /* ACTION BTN */
-.act-btn{width:100%;height:54px;border-radius:18px;border:none;color:#fff;font-size:15px;font-weight:800;letter-spacing:.03em;cursor:pointer;position:relative;overflow:hidden;font-family:'Outfit',sans-serif;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+.act-btn{width:100%;height:54px;border-radius:18px;border:none;color:#fff;font-size:15px;font-weight:800;letter-spacing:.03em;cursor:pointer;position:relative;overflow:hidden;font-family:'Outfit',sans-serif;transition:transform .18s cubic-bezier(.34,1.56,.64,1);will-change:transform}
 .act-btn:active:not(:disabled){transform:scale(.96)}
 .act-btn:disabled{opacity:.32;cursor:not-allowed}
 .act-btn.slots-btn{background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 6px 28px rgba(245,158,11,.28)}
@@ -329,15 +341,16 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 
 /* ── GAME TOAST ── */
 #game-toast{
-  position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-120px) scale(.85);
+  position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-120px) scale(.88);
   z-index:9999;pointer-events:none;
   min-width:180px;max-width:290px;
   padding:11px 22px;border-radius:50px;
   text-align:center;font-size:15px;font-weight:800;
   font-family:'Outfit',sans-serif;white-space:nowrap;
   opacity:0;
-  transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .28s ease;
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .22s ease;
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  will-change:transform,opacity;
 }
 #game-toast.show{transform:translateX(-50%) translateY(0) scale(1);opacity:1}
 #game-toast.t-win{background:rgba(16,185,129,.22);border:1.5px solid rgba(16,185,129,.5);color:#34d399;box-shadow:0 0 0 4px rgba(16,185,129,.08),0 12px 40px rgba(16,185,129,.25)}
@@ -362,7 +375,8 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
   position:fixed;inset:0;z-index:10100;
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;opacity:0;
-  transition:opacity .22s ease;
+  transition:opacity .18s ease;
+  will-change:opacity;
 }
 #result-overlay.show{opacity:1;pointer-events:auto}
 #result-overlay .ro-backdrop{
@@ -513,7 +527,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 }
 .hist-row:active{transform:scale(.985)}
 @keyframes histRowIn{
-  from{opacity:0;transform:translateY(10px) scale(.98)}
+  from{opacity:0;transform:translateY(8px)}
   to{opacity:1;transform:none}
 }
 /* Боковая полоска результата */
@@ -735,6 +749,30 @@ body.light .machine{background:var(--s1)}
 /* ══ THEME TOGGLE ══════════════════════════════ */
 .theme-btn{width:36px;height:36px;border-radius:11px;background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:17px;flex-shrink:0}
 .theme-btn:active{transform:scale(.86)}
+.settings-btn{width:36px;height:36px;border-radius:11px;background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:17px;flex-shrink:0;margin-left:6px}
+.settings-btn:active{transform:scale(.86)}
+/* Панель настроек */
+#settings-panel{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s ease, margin .35s cubic-bezier(.4,0,.2,1);
+  margin-bottom:0;
+}
+#settings-panel.open{
+  max-height:200px;
+  opacity:1;
+  margin-bottom:10px;
+}
+.settings-inner{
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r2);
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px;
+}
+.settings-row{display:flex;align-items:center;justify-content:space-between}
+.settings-lbl{font-size:13px;font-weight:700;color:var(--text2)}
+.settings-lbl span{font-size:11px;color:var(--sub);display:block;font-weight:500;margin-top:1px}
+.stg-toggle{height:32px;padding:0 14px;border-radius:10px;border:1px solid;font-size:12px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .18s cubic-bezier(.34,1.56,.64,1);will-change:transform}
+.stg-toggle:active{transform:scale(.91)}
 /* ══ REFERRAL SCREEN ══════════════════════════ */
 .ref-hero{border-radius:var(--r3);padding:20px;margin-bottom:10px;background:linear-gradient(135deg,var(--acc-dim),rgba(0,0,0,0));border:1px solid rgba(228,255,71,.15);position:relative;overflow:hidden}
 body.light .ref-hero{border-color:rgba(92,138,0,.2)}
@@ -912,10 +950,10 @@ button:active:not(:disabled),
   pointer-events: none; z-index: 10;
 }
 
-#profile-modal{position:fixed;inset:0;z-index:600;display:none;align-items:flex-end;justify-content:center;background:rgba(8,10,16,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#profile-modal{position:fixed;inset:0;z-index:600;display:none;align-items:flex-end;justify-content:center;background:rgba(8,10,16,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);will-change:opacity}
 #profile-modal.show{display:flex;animation:overlayFadeIn .22s ease both}
 @keyframes overlayFadeIn{from{opacity:0}to{opacity:1}}
-.profile-sheet{background:linear-gradient(180deg,#1a1d2e 0%,#111320 100%);border-radius:28px 28px 0 0;width:100%;max-width:480px;padding:0 0 32px;overflow:hidden;animation:sheetUp .32s cubic-bezier(.22,1,.36,1) both;max-height:88vh;overflow-y:auto}
+.profile-sheet{background:linear-gradient(180deg,#1a1d2e 0%,#111320 100%);border-radius:28px 28px 0 0;width:100%;max-width:480px;padding:0 0 32px;overflow:hidden;animation:sheetUp .32s cubic-bezier(.22,1,.36,1) both;max-height:88vh;overflow-y:auto;will-change:transform}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 body.light .profile-sheet{background:linear-gradient(180deg,#e8e8f2 0%,#dcdcec 100%)}
 .profile-sheet-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:12px auto 0}
@@ -952,7 +990,7 @@ body.light .profile-hist-row{background:rgba(255,255,255,.6)}
 body.light .profile-close{background:rgba(80,80,140,.1);border-color:rgba(80,80,140,.18)}
 .profile-rating{display:flex;align-items:center;gap:10px;justify-content:center;margin:16px 16px 0;padding:14px;background:var(--s2);border:1px solid var(--border);border-radius:18px}
 body.light .profile-rating{background:rgba(255,255,255,.6)}
-.rating-btn{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:14px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--sub);transition:all .18s cubic-bezier(.34,1.3,.64,1);flex:1;justify-content:center}
+.rating-btn{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:14px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--sub);transition:all .2s cubic-bezier(.34,1.56,.64,1);flex:1;justify-content:center;will-change:transform}
 .rating-btn:active{transform:scale(.93)}
 .rating-btn.like{border-color:rgba(16,185,129,.3);color:rgba(16,185,129,.7)}
 .rating-btn.like.active{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.6);color:#10b981;box-shadow:0 0 16px rgba(16,185,129,.2)}
@@ -997,6 +1035,7 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
             <div class="hero-rank" id="h-title">🥉 Bronze I</div>
           </div>
           <div class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️</div>
+          <div class="settings-btn" onclick="toggleSettings()">⚙️</div>
         </div>
         <div class="bal-block">
           <div class="bal-num" id="h-bal">0</div>
@@ -1011,6 +1050,17 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
           <div class="xp-track"><div class="xp-fill" id="h-xp-fill" style="width:0%"></div></div>
         </div>
       </div>
+
+      <!-- НАСТРОЙКИ -->
+      <div id="settings-panel">
+        <div class="settings-inner">
+          <div class="settings-row">
+            <div class="settings-lbl">Тактильный отклик<span>Вибрация при действиях</span></div>
+            <button class="stg-toggle" id="haptic-toggle-btn" onclick="toggleHaptic()"></button>
+          </div>
+        </div>
+      </div>
+
       <div class="stat-row ci ci-2">
         <div class="stat-box g"><div class="val" id="h-wins">0</div><div class="lbl">Победы</div></div>
         <div class="stat-box r"><div class="val" id="h-loss">0</div><div class="lbl">Поражения</div></div>
@@ -1603,11 +1653,23 @@ let cur='home';
 function nav(to){
   if(to===cur)return;
   cur=to;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','anim-r','anim-l'));
+  // Плавный переход: старый → exit, новый → active
+  document.querySelectorAll('.screen').forEach(s=>{
+    if(s.classList.contains('active')){
+      s.classList.remove('active');
+      s.classList.add('exit');
+      // Убираем exit после завершения transition
+      setTimeout(()=>s.classList.remove('exit'), 300);
+    } else {
+      s.classList.remove('exit');
+    }
+  });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const el=document.getElementById(smap[to]);
-  el.classList.add('active','anim-r');
   el.scrollTop=0;
+  el.classList.remove('exit');
+  // Небольшой rAF чтобы браузер успел применить начальное состояние перед transition
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('active')));
   const ni=document.getElementById(nmap[to]);
   if(ni) ni.classList.add('active');
   movePill();
@@ -1637,6 +1699,7 @@ function nav(to){
       }
     }
   }
+  if(to!=='rolls') rollsStopPoll();
   if(to==='taxi') onTaxiOpen();
   if(to==='crash') onCrashOpen();
   else onCrashClose();
@@ -1656,10 +1719,18 @@ function movePill(){
 // ═══════════════════════════════
 // UTILS
 // ═══════════════════════════════
+let _hapticOn=(()=>{try{return localStorage.getItem('haptic')!=='off';}catch(_){return true;}})();
 function haptic(t){
+  if(!_hapticOn)return;
   const h=TG?.HapticFeedback;if(!h)return;
   if(t==='success')h.notificationOccurred('success');
   else if(['heavy','medium','light'].includes(t))h.impactOccurred(t);
+}
+function toggleHaptic(){
+  _hapticOn=!_hapticOn;
+  try{localStorage.setItem('haptic',_hapticOn?'on':'off');}catch(_){}
+  _updateHapticBtn();
+  haptic('light');
 }
 let ttmr;
 function toast(msg){
@@ -1746,11 +1817,33 @@ function spawnWinParticles(isJackpot){
   }
 }
 function shimmerBtn(btn){btn.classList.add('shimmer');setTimeout(()=>btn.classList.remove('shimmer'),800);}
+let _syncBalRAF=null, _syncBalFrom=null, _syncBalTo=null;
 function syncBal(n){
   if(n===undefined||n===null)return;
   n=parseInt(n)||0;
   if(userData)userData.balance=n;
-  document.getElementById('h-bal').textContent=fmt(n);
+  // Анимированный счётчик только для главного баланса
+  const el=document.getElementById('h-bal');
+  if(!el){updateBadge(cur);return;}
+  const prev=parseInt(el.dataset.raw||'0')||0;
+  el.dataset.raw=n;
+  if(Math.abs(n-prev)<100||prev===0){
+    // Маленькое изменение или первый рендер — без анимации
+    el.textContent=fmt(n);
+  } else {
+    // Анимируем за 600мс
+    if(_syncBalRAF)cancelAnimationFrame(_syncBalRAF);
+    _syncBalFrom=prev; _syncBalTo=n;
+    const dur=600, start=performance.now();
+    function tick(now){
+      const t=Math.min((now-start)/dur,1);
+      const ease=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // easeInOutQuad
+      el.textContent=fmt(Math.round(_syncBalFrom+(_syncBalTo-_syncBalFrom)*ease));
+      if(t<1)_syncBalRAF=requestAnimationFrame(tick);
+      else el.textContent=fmt(_syncBalTo);
+    }
+    _syncBalRAF=requestAnimationFrame(tick);
+  }
   const rb=document.getElementById('rolls-bal');if(rb)rb.textContent=rollsFmt(n);
   updateBadge(cur);
 }
@@ -1912,10 +2005,10 @@ function renderHome(d){
   document.getElementById('h-title').textContent=`${d.title_emoji||'🥉'} ${d.title_name||'Bronze I'}`;
   document.getElementById('h-title').style.color=d.title_color||'#cd7f32';
   document.getElementById('h-bal').textContent=fmt(d.balance);
-  document.getElementById('h-wins').textContent=fmt(d.wins||0);
-  document.getElementById('h-loss').textContent=fmt(d.losses||0);
-  document.getElementById('h-won').textContent=fmt(d.total_won||0);
-  document.getElementById('h-lost').textContent=fmt(d.total_lost||0);
+  document.getElementById('h-wins').textContent=fmt(d.wins||d.games_won||0);
+  document.getElementById('h-loss').textContent=fmt(d.losses||d.games_lost||0);
+  document.getElementById('h-won').textContent=fmt(d.total_won||d.total_won_amount||0);
+  document.getElementById('h-lost').textContent=fmt(d.total_lost||d.total_lost_amount||0);
   document.getElementById('h-lv').textContent='Уровень '+(d.level||1);
   const _lv=d.level||1;
   // Та же формула что в боте: 1000 + (level-1)*500
@@ -2655,7 +2748,7 @@ function renderLb(data){
   const pod=document.getElementById('podium');pod.innerHTML='';
   order.forEach((idx,pos)=>{
     const u=top3[idx];if(!u){pod.innerHTML+='<div></div>';return;}
-    const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.experience)+' XP';
+    const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.exp||u.experience||0)+' XP';
     const avatarSrc = (API||'') + '/api/avatar/' + u.user_id;
     const avaHtml='<div class="p-ava-wrap lb-ava-wrap" data-src="'+avatarSrc+'" data-fb="'+u.title_emoji+'"><div class="p-ava-fb">'+u.title_emoji+'</div></div>';
     pod.innerHTML+='<div class="p-item '+pc[pos]+'" onclick="openProfile('+u.user_id+')" style="cursor:pointer"><div class="p-crown">'+cr[pos]+'</div>'+avaHtml+'<div class="p-name">'+u.name+'</div><div class="p-val">'+val+'</div><div class="p-badge">'+u.title_emoji+' '+u.title_name+'</div></div>';
@@ -2663,7 +2756,7 @@ function renderLb(data){
   const list=document.getElementById('lb-rows');list.innerHTML='';
   rest.forEach((u,i)=>{
     const me=String(u.user_id)===String(UID);
-    const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.experience)+' XP';
+    const val=lbMode==='balance'?fmt(u.balance)+' 🌸':fmt(u.exp||u.experience||0)+' XP';
     const rankCls=u.rank===1?'top1':u.rank===2?'top2':u.rank===3?'top3':'';
     const row=document.createElement('div');
     row.className='lb-row'+(me?' me':'');row.style.animationDelay=(i*.05)+'s';
@@ -3296,6 +3389,22 @@ function toggleTheme(){
   applyTheme(next);
   haptic('light');
 }
+function toggleSettings(){
+  const p=document.getElementById('settings-panel');
+  if(!p)return;
+  p.classList.toggle('open');
+  haptic('light');
+  // Обновляем кнопку тактильного отклика при открытии
+  _updateHapticBtn();
+}
+function _updateHapticBtn(){
+  const btn=document.getElementById('haptic-toggle-btn');
+  if(!btn)return;
+  btn.textContent=_hapticOn?'🔔 Вкл':'🔕 Выкл';
+  btn.style.background=_hapticOn?'rgba(16,185,129,.15)':'rgba(255,255,255,.05)';
+  btn.style.borderColor=_hapticOn?'rgba(16,185,129,.4)':'rgba(255,255,255,.12)';
+  btn.style.color=_hapticOn?'#10b981':'var(--sub)';
+}
 
 // ══════════════════════════════════════════════
 //  РЕФЕРАЛЬНАЯ СИСТЕМА
@@ -3381,6 +3490,7 @@ function shareRefLink(){
 // ═══════════════════════════════
 const ROLLS_COLORS=['#7c5cfc','#ef4444','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#a855f7','#f97316','#22c55e','#6366f1','#fbbf24','#84cc16','#0ea5e9','#d946ef'];
 let rollsState=null, rollsTimer=null, rollsSpinning=false, rollsLastId=null, rollsLastStatus=null;
+function rollsStopPoll(){if(rollsTimer){clearInterval(rollsTimer);rollsTimer=null;}}
 let rollsDemoBets=null, rollsDemoPot=0, rollsDemoTimer=45;
 
 function rollsFmt(n){
@@ -3595,23 +3705,39 @@ function _rollsDrawRim(ctx,cx,cy,R){
   ctx.strokeStyle=innerGlow;ctx.lineWidth=12;ctx.stroke();
 }
 
-function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
+function rollsSpinWheel(betsArr, bets, names, winnerUid, cb, spinSeed, spinStartedAt){
   if(rollsSpinning)return;rollsSpinning=true;
   const entries=betsArr||Object.entries(bets||{});
   const total=entries.reduce((s,[,v])=>s+v,0)||1;
+  // Ищем победителя сравнивая строки — сервер может слать int или string
   const winIdx=entries.findIndex(([uid])=>String(uid)===String(winnerUid));
   console.log('[SPIN] winnerUid='+winnerUid+' entries='+JSON.stringify(entries.map(e=>e[0]))+' winIdx='+winIdx);
-  if(winIdx<0){console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));rollsSpinning=false;cb&&cb();return;}
+  if(winIdx<0){
+    console.log("[ROLLS] winIdx<0! winnerUid="+winnerUid+" entries="+JSON.stringify(entries.map(e=>e[0])));
+    rollsSpinning=false;cb&&cb();return;
+  }
+  // Страховочный таймер — если анимация зависнет, сбросим флаг через 15с
+  const _safetyTimer=setTimeout(()=>{rollsSpinning=false;cb&&cb();},15000);
+  // rollsDrawWheel рисует угол с: rotation - PI/2.
+  // Чтобы стрелка (12 часов) попала на центр победного сектора нужно:
+  // rotation - PI/2 + cumFrac*2PI = -PI/2  =>  rotation = -cumFrac*2PI
+  // (смещение -PI/2 внутри drawWheel уже компенсирует начало отсчёта)
   let cumFrac=0;
-  for(let i=0;i<winIdx;i++)cumFrac+=entries[i][1]/total;
-  cumFrac+=entries[winIdx][1]/total/2;
-  const targetAngle=-cumFrac*Math.PI*2;
-  // Детерминированный random из winner_id — одинаково у всех клиентов
-  const _seed = (typeof winnerUid==='number' ? winnerUid : parseInt(winnerUid)||0);
+  for(let i=0;i<winIdx;i++) cumFrac+=entries[i][1]/total;
+  cumFrac+=entries[winIdx][1]/total/2; // середина победного сектора
+  const targetAngle = -cumFrac * Math.PI * 2;
+  // spinSeed с сервера — одинаков у всех клиентов раунда (гарантирует идентичный экстраспин)
+  const _seed = spinSeed || (typeof winnerUid==='number' ? winnerUid : parseInt(winnerUid)||0);
   const _seededRand = ((_seed * 1664525 + 1013904223) >>> 0) / 4294967296;
-  const extraSpins = 5 + (_seededRand * 3); // 5.0–8.0 оборотов, одинаково у всех
+  const extraSpins = 5 + Math.floor(_seededRand * 4); // 5–8 целых оборотов, одинаково у всех
+  // Финальный угол = N полных оборотов + точный целевой угол
   const totalRot = extraSpins * Math.PI * 2 + targetAngle;
-  const dur=8000,start=performance.now();
+  const dur=8000;
+  // Синхронизация по серверному времени: если сервер уже начал спин раньше нас,
+  // стартуем анимацию с нужного смещения — у всех клиентов одна и та же позиция
+  const serverNowMs = spinStartedAt ? spinStartedAt * 1000 : Date.now();
+  const alreadyElapsedMs = Math.max(0, Math.min(Date.now() - serverNowMs, dur - 100));
+  const start = performance.now() - alreadyElapsedMs;
   // Быстрый старт, очень долгое плавное торможение в конце (интрига)
   function easeOut(t){
     // Первые 40% — разгон, последние 60% — очень плавное торможение
@@ -3635,7 +3761,7 @@ function rollsSpinWheel(betsArr, bets, names, winnerUid, cb){
         glow.style.opacity='1';
         setTimeout(()=>{glow.style.background='radial-gradient(circle,rgba(124,92,252,.18),transparent 68%)';glow.style.opacity='1';},1800);
       }
-      setTimeout(()=>{rollsSpinning=false;cb&&cb();},600);
+      setTimeout(()=>{clearTimeout(_safetyTimer);rollsSpinning=false;cb&&cb();},600);
     }
   }
   requestAnimationFrame(frame);
@@ -3797,7 +3923,7 @@ async function rollsPoll(){
       rollsLastStatus='done';
       _rollsStopLocalTimer();
       console.log('[ROLLS] SPINNING — winnerUid='+d.winner_id, 'betsObj='+JSON.stringify(betsObj));
-      rollsSpinWheel(betsArr,betsObj,d.names,d.winner_id,()=>rollsShowResult(d));
+      rollsSpinWheel(betsArr,betsObj,d.names,d.winner_id,()=>rollsShowResult(d),d.spin_seed,d.spin_started_at);
     } else if(!isDone && !rollsSpinning){
       rollsLastStatus=d.status;
       console.log('[ROLLS DRAW] betsArr='+JSON.stringify(betsArr)+' spinning='+rollsSpinning);
@@ -4019,12 +4145,13 @@ function rollsShowResult(d){
   overlay.className='show';
   if(isMe)rollsConfetti();
 
-  // Баланс только после просмотра
-  setTimeout(()=>{
-    if(isMe&&userData)userData.balance+=(d.win_amount-myBet);
-    else if(myBet>0&&userData)userData.balance=Math.max(0,(userData.balance||0)-myBet);
-    if(userData)syncBal(userData.balance);
-  }, 500);
+  // Баланс уже обновлён на сервере — просто тянем актуальный после результата
+  // (не трогаем вручную чтобы избежать двойного списания/начисления)
+  if(isMe){
+    setTimeout(()=>{
+      apireq('/api/user/'+UID).then(u=>{if(u&&u.balance!==undefined){if(userData)userData.balance=u.balance;syncBal(u.balance);}}).catch(()=>{});
+    }, 600);
+  }
 
   clearTimeout(window._rollsAutoClose);
   window._rollsAutoClose=setTimeout(()=>rollsCloseResult(), 8000);
@@ -4034,6 +4161,9 @@ function rollsCloseResult(){
   clearTimeout(window._rollsAutoClose);
   const o=document.getElementById('rolls-result');
   if(o)o.className='';
+  // Запоминаем round_id как "уже показанный" чтобы повторный poll не запустил спин снова
+  // (сервер держит done-раунд ещё 60с)
+  const _shownId = rollsLastId;
   rollsLastStatus=null;
   rollsLastId=null;
   rollsSpinning=false;
@@ -4043,8 +4173,12 @@ function rollsCloseResult(){
     rollsDemoBets=null;rollsDemoPot=0;rollsDemoTimer=45;
     rollsInitDemoUI();
   } else {
-    _rollsPollRunning=false;
-    rollsPoll();
+    // Ждём 1.5с — за это время сервер должен создать новый раунд
+    // и мы не попадём на старый done снова
+    setTimeout(()=>{
+      _rollsPollRunning=false;
+      rollsPoll();
+    }, 1500);
   }
 }
 
@@ -4484,6 +4618,26 @@ async function openProfile(uid){
     // Блок рейтинга — проверяем свой XP
     const myXp=(userData&&userData.experience)||0;
     let ratingHtml='';
+    // Кнопка тактильного отклика — только в своём профиле
+    const hapticBtnHtml=isMeP?`
+      <div style="padding:0 16px;margin-top:14px">
+        <div style="font-size:9.5px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Настройки</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:16px">
+          <span style="font-size:13px;font-weight:700;color:var(--text2)">Тактильный отклик</span>
+          <button id="haptic-toggle-btn" onclick="toggleHaptic()" style="padding:7px 16px;border-radius:10px;border:1px solid;font-size:12px;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .18s"></button>
+        </div>
+      </div>`:'';
+    // Инициализируем кнопку после рендера
+    if(isMeP) setTimeout(()=>{
+      const btn=document.getElementById('haptic-toggle-btn');
+      if(btn){
+        btn.textContent=_hapticOn?'🔔 Вкл':'🔕 Выкл';
+        btn.style.background=_hapticOn?'rgba(16,185,129,.15)':'rgba(255,255,255,.05)';
+        btn.style.borderColor=_hapticOn?'rgba(16,185,129,.4)':'rgba(255,255,255,.12)';
+        btn.style.color=_hapticOn?'#10b981':'var(--sub)';
+      }
+    },50);
+
     if(!isMeP){
       if(myXp>=500){
         ratingHtml=`<div class="profile-rating">
@@ -4516,6 +4670,7 @@ async function openProfile(uid){
         <div class="profile-xp-top"><span class="profile-xp-lbl">Опыт · Уровень ${d.level}</span><span class="profile-xp-val">${fmt(d.exp_current)} / ${fmt(d.exp_needed)} XP</span></div>
         <div class="profile-xp-track"><div class="profile-xp-fill" style="width:0%" id="pxf"></div></div>
       </div>
+      ${hapticBtnHtml}
       <div class="profile-history"><div class="profile-hist-lbl">Последние игры</div>${histHtml}</div>`;
     setTimeout(()=>{const f=document.getElementById('pxf');if(f)f.style.width=(d.exp_pct||0)+'%';},100);
   }catch(e){pc.innerHTML='<div style="padding:40px;text-align:center;color:var(--sub)">⚠️ Ошибка загрузки</div>';}
@@ -4574,4 +4729,4 @@ function closeProfile(){
   </div>
 </div>
 </body>
-          </html>
+  </html>
