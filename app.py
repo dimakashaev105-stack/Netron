@@ -1720,7 +1720,8 @@ def set_hide_rank():
         return jsonify({'error': 'no user_id'}), 400
     try:
         user_id = int(user_id)
-        # Только для премиум
+        # Гарантируем колонку перед записью
+        ensure_hide_rank()
         with get_db() as conn:
             prem = conn.execute('SELECT 1 FROM premium WHERE user_id=? AND expires_at>?',
                                 (user_id, int(time.time()))).fetchone()
