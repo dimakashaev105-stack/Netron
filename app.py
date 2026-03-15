@@ -145,6 +145,17 @@ def migrate_db():
 
 migrate_db()
 
+def ensure_hide_rank():
+    """Гарантирует колонку hide_rank — на случай если миграция не сработала"""
+    try:
+        with get_db() as conn:
+            conn.execute('ALTER TABLE users ADD COLUMN hide_rank INTEGER DEFAULT 0')
+            print('✅ hide_rank колонка добавлена')
+    except Exception:
+        pass  # уже существует — норма
+
+ensure_hide_rank()
+
 # ══════════════════════════════════════════════
 #  RATE LIMITING
 # ══════════════════════════════════════════════
