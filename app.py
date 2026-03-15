@@ -115,6 +115,7 @@ def migrate_db():
     COLUMNS = [
         ('photo_url',       'TEXT DEFAULT NULL'),
         ('referral_earned', 'INTEGER DEFAULT 0'),
+        ('hide_rank',       'INTEGER DEFAULT 0'),
     ]
     with get_db() as conn:
         conn.execute('''
@@ -370,7 +371,8 @@ def get_user(user_id):
         row = conn.execute(
             '''SELECT user_id,username,first_name,custom_name,balance,experience,
                       games_won,games_lost,total_won_amount,total_lost_amount,
-                      last_activity,total_clicks,daily_streak,last_daily_bonus
+                      last_activity,total_clicks,daily_streak,last_daily_bonus,
+                      COALESCE(hide_rank,0) as hide_rank
                FROM users WHERE user_id=?''', (user_id,)
         ).fetchone()
         if not row: return jsonify({'error': 'not found'}), 404
@@ -388,6 +390,14 @@ def get_user(user_id):
         d['exp_needed']  = 1000 + (lv-1)*500
         d['total_won']   = d.get('total_won_amount', 0)
         d['total_lost']  = d.get('total_lost_amount', 0)
+        # Премиум
+        try:
+            prem = conn.execute('SELECT 1 FROM premium WHERE user_id=? AND expires_at>?',
+                                (user_id, int(time.time()))).fetchone()
+            d['is_premium'] = prem is not None
+        except Exception:
+            d['is_premium'] = False
+        d['hide_rank'] = bool(d.get('hide_rank', 0))
         return jsonify(d)
 
 @app.route('/api/profile/<int:user_id>')
@@ -791,7 +801,7 @@ def leaderboard():
         rows = conn.execute(f'''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
-            FROM users ORDER BY {col} DESC LIMIT 50''').fetchall()
+            FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY {col} DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set(cache_key, result, ttl=30)
     return jsonify(result)
@@ -804,7 +814,7 @@ def leaderboard_exp():
         rows = conn.execute('''
             SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
                    username, photo_url, balance, experience as exp, games_won as wins
-            FROM users ORDER BY experience DESC LIMIT 50''').fetchall()
+            FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY experience DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set('lb_exp', result, ttl=30)
     return jsonify(result)
@@ -1672,6 +1682,27 @@ def rolls_bet():
     return jsonify({'ok': True, 'my_bet': r['bets'][user_id], 'pot': r['pot'], 'new_balance': new_balance})
 
 
+
+@app.route('/api/settings/hide_rank', methods=['POST'])
+def set_hide_rank():
+    data    = request.json or {}
+    user_id = data.get('user_id')
+    value   = data.get('hide_rank', False)
+    if not user_id:
+        return jsonify({'error': 'no user_id'}), 400
+    try:
+        user_id = int(user_id)
+        # Только для премиум
+        with get_db() as conn:
+            prem = conn.execute('SELECT 1 FROM premium WHERE user_id=? AND expires_at>?',
+                                (user_id, int(time.time()))).fetchone()
+            if not prem:
+                return jsonify({'error': 'premium_required'}), 403
+            conn.execute('UPDATE users SET hide_rank=? WHERE user_id=?',
+                         (1 if value else 0, user_id))
+        return jsonify({'ok': True, 'hide_rank': bool(value)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/profile/vote', methods=['POST'])
 def vote_profile():
