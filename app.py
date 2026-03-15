@@ -382,12 +382,17 @@ def get_user(user_id):
         row = conn.execute(
             '''SELECT user_id,username,first_name,custom_name,balance,experience,
                       games_won,games_lost,total_won_amount,total_lost_amount,
-                      last_activity,total_clicks,daily_streak,last_daily_bonus,
-                      COALESCE(hide_rank,0) as hide_rank
+                      last_activity,total_clicks,daily_streak,last_daily_bonus
                FROM users WHERE user_id=?''', (user_id,)
         ).fetchone()
         if not row: return jsonify({'error': 'not found'}), 404
         d = dict(row)
+        # hide_rank читаем отдельно — безопасно если колонки нет
+        try:
+            hr = conn.execute('SELECT COALESCE(hide_rank,0) FROM users WHERE user_id=?', (user_id,)).fetchone()
+            d['hide_rank'] = bool(hr[0]) if hr else False
+        except Exception:
+            d['hide_rank'] = False
         lv = get_level_from_exp(d.get('experience', 0))
         emoji, tname, tcolor = build_user_title(lv)
         d['level']       = lv
@@ -408,7 +413,6 @@ def get_user(user_id):
             d['is_premium'] = prem is not None
         except Exception:
             d['is_premium'] = False
-        d['hide_rank'] = bool(d.get('hide_rank', 0))
         return jsonify(d)
 
 @app.route('/api/profile/<int:user_id>')
@@ -809,10 +813,17 @@ def leaderboard():
     cached = cache_get(cache_key)
     if cached: return jsonify(cached)
     with get_db() as conn:
-        rows = conn.execute(f'''
-            SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
-                   username, photo_url, balance, experience as exp, games_won as wins
-            FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY {col} DESC LIMIT 50''').fetchall()
+        try:
+            rows = conn.execute(f'''
+                SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                       username, photo_url, balance, experience as exp, games_won as wins
+                FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY {col} DESC LIMIT 50''').fetchall()
+        except Exception:
+            # hide_rank колонки нет — показываем всех
+            rows = conn.execute(f'''
+                SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                       username, photo_url, balance, experience as exp, games_won as wins
+                FROM users ORDER BY {col} DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set(cache_key, result, ttl=30)
     return jsonify(result)
@@ -822,10 +833,16 @@ def leaderboard_exp():
     cached = cache_get('lb_exp')
     if cached: return jsonify(cached)
     with get_db() as conn:
-        rows = conn.execute('''
-            SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
-                   username, photo_url, balance, experience as exp, games_won as wins
-            FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY experience DESC LIMIT 50''').fetchall()
+        try:
+            rows = conn.execute('''
+                SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                       username, photo_url, balance, experience as exp, games_won as wins
+                FROM users WHERE COALESCE(hide_rank,0)=0 ORDER BY experience DESC LIMIT 50''').fetchall()
+        except Exception:
+            rows = conn.execute('''
+                SELECT user_id, COALESCE(custom_name,first_name,username,'Аноним') as name,
+                       username, photo_url, balance, experience as exp, games_won as wins
+                FROM users ORDER BY experience DESC LIMIT 50''').fetchall()
         result = build_lb(rows)
     cache_set('lb_exp', result, ttl=30)
     return jsonify(result)
