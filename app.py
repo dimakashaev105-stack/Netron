@@ -1331,23 +1331,20 @@ def _fetch_tg_photo(user_id):
 
 @app.route('/api/avatar/<int:user_id>')
 def get_avatar(user_id):
-    """Прокси аватарки: отдаёт фото или 404."""
+    """Прокси аватарки: скачивает фото и отдаёт байты с CORS-заголовками для canvas."""
     now = time.time()
     cached = _photo_cache.get(user_id)
     if cached and now - cached[1] < _PHOTO_TTL:
         photo_url = cached[0]
     else:
-        # Сначала смотрим в БД (сохранённое самим юзером)
         try:
             with get_db() as conn:
                 row = conn.execute('SELECT photo_url FROM users WHERE user_id=?', (user_id,)).fetchone()
                 photo_url = row['photo_url'] if row and row['photo_url'] else None
         except Exception:
             photo_url = None
-        # Если нет — запрашиваем через Bot API
         if not photo_url:
             photo_url = _fetch_tg_photo(user_id)
-            # Сохраняем в БД чтобы не запрашивать каждый раз
             if photo_url:
                 try:
                     with get_db() as conn:
@@ -1359,9 +1356,20 @@ def get_avatar(user_id):
     if not photo_url:
         return jsonify({'error': 'no photo'}), 404
 
-    # Редиректим на реальный URL (браузер сам скачает)
-    from flask import redirect
-    return redirect(photo_url, code=302)
+    # Скачиваем байты и отдаём напрямую — чтобы canvas мог использовать без CORS-блокировки
+    try:
+        from flask import Response
+        req = urllib.request.Request(photo_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = r.read()
+            content_type = r.headers.get('Content-Type', 'image/jpeg')
+        resp = Response(data, status=200, mimetype=content_type)
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp
+    except Exception as e:
+        print(f"⚠️ avatar proxy error uid={user_id}: {e}")
+        return jsonify({'error': 'fetch failed'}), 502
 
 # ══════════════════════════════════════════════
 
