@@ -18,7 +18,7 @@
   --text:#eef0f6;--text2:#b0b8cc;--sub:#5c6880;--muted:#2e3548;
   --r:14px;--r2:20px;--r3:28px;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-overflow-scrolling:touch}
 body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.5}
 #app{height:100dvh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
 /* BG CANVAS */
@@ -29,9 +29,12 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
   position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
   overscroll-behavior-y:contain;
   opacity:0;pointer-events:none;
-  transition:opacity .2s cubic-bezier(.4,0,.2,1), transform .2s cubic-bezier(.4,0,.2,1);
+  transition:opacity .18s cubic-bezier(.4,0,.2,1), transform .18s cubic-bezier(.4,0,.2,1);
   transform:translateX(6px);
   will-change:opacity,transform;
+  -webkit-overflow-scrolling:touch;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
 }
 .screen::-webkit-scrollbar{display:none}
 .screen.active{
@@ -44,17 +47,17 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
   pointer-events:none;
 }
 .sp{padding:14px 14px 100px}
-@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.ci{animation:cardIn .32s cubic-bezier(.4,0,.2,1) both;will-change:transform,opacity}
-.ci-1{animation-delay:.03s}.ci-2{animation-delay:.07s}.ci-3{animation-delay:.12s}.ci-4{animation-delay:.17s}.ci-5{animation-delay:.22s}
+@keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ci{animation:cardIn .26s cubic-bezier(.4,0,.2,1) both;will-change:transform,opacity}
+.ci-1{animation-delay:.02s}.ci-2{animation-delay:.05s}.ci-3{animation-delay:.09s}.ci-4{animation-delay:.13s}.ci-5{animation-delay:.17s}
 /* NAV */
 .nav-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:8px 16px calc(14px + env(safe-area-inset-bottom,0px));z-index:100;pointer-events:none}
 .nav{height:64px;background:rgba(13,15,20,.97);border:1px solid rgba(255,255,255,.09);border-radius:32px;display:flex;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden;pointer-events:all;backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px)}
-.nav-pill{position:absolute;top:9px;bottom:9px;border-radius:22px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.28);box-shadow:0 0 20px rgba(124,92,252,.1);transition:left .35s cubic-bezier(.34,1.4,.64,1),width .35s cubic-bezier(.34,1.4,.64,1);pointer-events:none;z-index:0;will-change:left,width}
+.nav-pill{position:absolute;top:9px;bottom:9px;border-radius:22px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.28);box-shadow:0 0 20px rgba(124,92,252,.1);transition:left .28s cubic-bezier(.34,1.3,.64,1),width .28s cubic-bezier(.34,1.3,.64,1);pointer-events:none;z-index:0;will-change:left,width;backface-visibility:hidden}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative;z-index:1;user-select:none}
 .nav-item:active{opacity:.6;transition:opacity .06s ease}
 .nav-ico{width:28px;height:26px;display:flex;align-items:center;justify-content:center}
-.nav-ico svg{width:21px;height:21px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .22s,transform .35s cubic-bezier(.34,1.56,.64,1);will-change:transform}
+.nav-ico svg{width:21px;height:21px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s,transform .28s cubic-bezier(.34,1.56,.64,1);will-change:transform}
 .nav-item.active .nav-ico svg{stroke:var(--acc2);transform:scale(1.15)}
 .nav-item:active .nav-ico svg{transform:scale(.84)}
 .nav-lbl{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--muted);transition:color .22s;text-transform:uppercase}
@@ -83,7 +86,7 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 @keyframes xpShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
 /* STATS */
 .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.stat-box{padding:15px;border-radius:var(--r2);position:relative;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.stat-box{padding:15px;border-radius:var(--r2);position:relative;overflow:hidden;transition:transform .16s cubic-bezier(.34,1.56,.64,1);will-change:transform}
 .stat-box:active{transform:scale(.96);transition:transform .06s cubic-bezier(.4,0,.2,1)}
 .stat-box::before{content:'';position:absolute;top:-16px;right:-16px;width:64px;height:64px;border-radius:50%;opacity:.15;background:currentColor;pointer-events:none}
 .stat-box .val{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
@@ -103,9 +106,11 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .game-tile{
   padding:0;border-radius:22px;cursor:pointer;position:relative;overflow:hidden;
-  transition:transform .22s cubic-bezier(.34,1.4,.64,1),box-shadow .3s ease;
+  transition:transform .18s cubic-bezier(.34,1.4,.64,1),box-shadow .22s ease;
   -webkit-tap-highlight-color:transparent;
   will-change:transform;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
 }
 .game-tile:active{transform:scale(.94)!important;transition:transform .06s cubic-bezier(.4,0,.2,1)}
 .game-tile-inner{padding:20px 16px 18px;position:relative;z-index:1;height:100%}
@@ -200,6 +205,15 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .t-coin .gt-badge{background:rgba(59,130,246,.14);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
 .t-taxi .gt-badge{background:rgba(249,115,22,.14);color:#fdba74;border:1px solid rgba(249,115,22,.25)}
 .t-crash .gt-badge{background:rgba(16,185,129,.14);color:#6ee7b7;border:1px solid rgba(16,185,129,.25)}
+
+/* Онлайн на карточках игр */
+.gt-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.gt-online{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.03em;transition:color .4s ease}
+.gt-online-dot{width:5px;height:5px;border-radius:50%;background:#10b981;flex-shrink:0;animation:pulse-dot 2s ease-in-out infinite}
+.gt-online.loaded{color:rgba(255,255,255,.55)}
+/* Онлайн горизонтальная карточка (Краш) */
+.gt-online-inline{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.03em;margin-top:4px;transition:color .4s ease}
+.gt-online-inline.loaded{color:rgba(255,255,255,.6)}
 /* CRASH GAME */
 .crash-arena{background:linear-gradient(160deg,#050f0a,#071a10);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:0;margin-bottom:12px;position:relative;overflow:hidden}
 .crash-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.5),transparent)}
@@ -1141,7 +1155,10 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
               <div class="gt-ico-wrap"><span class="gt-ico">🎰</span></div>
               <div class="gt-name">Слоты</div>
               <div class="gt-sub">до ×25</div>
-              <div class="gt-badge">🔥 Популярное</div>
+              <div class="gt-footer">
+                <div class="gt-badge">🔥 Популярное</div>
+                <div class="gt-online" id="gt-online-slots"><div class="gt-online-dot"></div><span id="gt-cnt-slots">—</span></div>
+              </div>
             </div>
           </div>
           <div class="game-tile t-roulette ci ci-2" onclick="goGame('roulette')">
@@ -1150,7 +1167,10 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
               <div class="gt-ico-wrap"><span class="gt-ico">🎡</span></div>
               <div class="gt-name">Рулетка</div>
               <div class="gt-sub">×2 / ×14 / ×35</div>
-              <div class="gt-badge">🎯 Классика</div>
+              <div class="gt-footer">
+                <div class="gt-badge">🎯 Классика</div>
+                <div class="gt-online" id="gt-online-roulette"><div class="gt-online-dot"></div><span id="gt-cnt-roulette">—</span></div>
+              </div>
             </div>
           </div>
           <div class="game-tile t-hc ci ci-3" onclick="goGame('hc')">
@@ -1159,7 +1179,10 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
               <div class="gt-ico-wrap"><span class="gt-ico">🎴</span></div>
               <div class="gt-name">Высокая карта</div>
               <div class="gt-sub">vs Бот · ×2</div>
-              <div class="gt-badge">⚡ Быстрая</div>
+              <div class="gt-footer">
+                <div class="gt-badge">⚡ Быстрая</div>
+                <div class="gt-online" id="gt-online-hc"><div class="gt-online-dot"></div><span id="gt-cnt-hc">—</span></div>
+              </div>
             </div>
           </div>
           <div class="game-tile t-coin ci ci-4" onclick="goGame('coin')">
@@ -1168,7 +1191,10 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
               <div class="gt-ico-wrap"><span class="gt-ico">🪙</span></div>
               <div class="gt-name">Монетка</div>
               <div class="gt-sub">50/50 · ×2</div>
-              <div class="gt-badge">🎲 50/50</div>
+              <div class="gt-footer">
+                <div class="gt-badge">🎲 50/50</div>
+                <div class="gt-online" id="gt-online-coin"><div class="gt-online-dot"></div><span id="gt-cnt-coin">—</span></div>
+              </div>
             </div>
           </div>
           <div class="game-tile t-crash ci ci-5" onclick="goGame('crash')" style="grid-column:1/-1">
@@ -1178,7 +1204,10 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
               <div style="flex:1">
                 <div class="gt-name" style="font-size:15px">Краш</div>
                 <div class="gt-sub" style="margin-top:2px">Лети как можно дольше</div>
-                <div class="gt-badge" style="margin-top:6px">💰 до ×100</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                  <div class="gt-badge">💰 до ×100</div>
+                  <div class="gt-online-inline" id="gt-online-crash"><div class="gt-online-dot"></div><span id="gt-cnt-crash">—</span></div>
+                </div>
               </div>
               <div style="font-size:22px;opacity:.25">›</div>
             </div>
@@ -1711,7 +1740,7 @@ function nav(to){
   updateBadge(to);
   haptic('light');
   if(to==='lb') loadLb();
-  if(to==='games') loadHistory(true);
+  if(to==='games'){ loadHistory(true); updateOnlineCount(); }
   if(to==='ref') loadReferral();
   if(to==='rolls'){
     if(IS_DEMO){
@@ -1947,7 +1976,7 @@ async function init(){
   hideLdr();
   onbStart();
   updateOnlineCount();
-  setInterval(updateOnlineCount,30000);
+  setInterval(updateOnlineCount,20000);
   // Синхронизация баланса с сервером каждые 8 сек
   setInterval(async()=>{
     if(IS_DEMO||!UID||UID==='demo')return;
@@ -2819,13 +2848,47 @@ function renderLb(data){
 // ═══════════════════════════════
 // ОНЛАЙН ИГРОКИ
 // ═══════════════════════════════
+// Ключи игр для онлайн-счётчиков на карточках
+const GAME_ONLINE_IDS = ['slots','roulette','hc','coin','crash'];
+
+function _renderGameOnline(games){
+  GAME_ONLINE_IDS.forEach(g=>{
+    const cnt = games?.[g] ?? null;
+    const span = document.getElementById('gt-cnt-'+g);
+    const wrap = document.getElementById('gt-online-'+g);
+    if(!span) return;
+    if(cnt === null || cnt === undefined){
+      span.textContent = '—';
+      wrap?.classList.remove('loaded');
+    } else {
+      span.textContent = cnt > 0 ? cnt+' онлайн' : 'нет игроков';
+      wrap?.classList.add('loaded');
+    }
+  });
+}
+
 async function updateOnlineCount(){
-  if(IS_DEMO){ document.getElementById('online-count').textContent=Math.floor(Math.random()*15)+5; return; }
+  if(IS_DEMO){
+    // В демо-режиме: реалистичные числа, но случайные
+    const total = Math.floor(Math.random()*20)+8;
+    document.getElementById('online-count').textContent = total;
+    // Нет реальных данных — не показываем на карточках в демо
+    _renderGameOnline(null);
+    return;
+  }
   try{
-    const d=await apireq('/api/online');
-    document.getElementById('online-count').textContent=d.online||1;
+    // Параллельно запрашиваем общий онлайн и онлайн по играм
+    const [d, gd] = await Promise.all([
+      apireq('/api/online'),
+      apireq('/api/online/games').catch(()=>null)
+    ]);
+    document.getElementById('online-count').textContent = d.online || 1;
+    if(gd?.games){
+      _renderGameOnline(gd.games);
+    }
   }catch(e){
-    document.getElementById('online-count').textContent=Math.floor(Math.random()*15)+5;
+    document.getElementById('online-count').textContent = '—';
+    _renderGameOnline(null);
   }
 }
 
@@ -4821,4 +4884,4 @@ function closeProfile(){
   </div>
 </div>
 </body>
-                            </html>
+                                           </html>
