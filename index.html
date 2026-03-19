@@ -333,17 +333,161 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .color-btn.green-btn{background:rgba(16,185,129,.1);border:1.5px solid rgba(16,185,129,.3);color:#10b981;grid-column:1/-1}
 .color-btn.on{outline:2px solid currentColor;outline-offset:2px}
 /* COIN */
-.coin-visual{height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;perspective:500px}
-.coin-el{font-size:72px;display:inline-block;transform-style:preserve-3d}
-@keyframes coinFlip{0%{transform:rotateY(0) scale(1)}20%{transform:rotateY(360deg) scale(1.15) translateY(-14px)}50%{transform:rotateY(720deg) scale(1) translateY(-22px)}75%{transform:rotateY(1000deg) scale(1.1) translateY(-8px)}100%{transform:rotateY(1080deg) scale(1) translateY(0)}}
-.coin-el.flipping{animation:coinFlip .95s cubic-bezier(.4,0,.2,1) both}
-.coin-choice-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.coin-choice{height:52px;border-radius:16px;border:1.5px solid;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);font-family:'Outfit',sans-serif;background:transparent}
-.coin-choice.heads{border-color:rgba(251,191,36,.35);color:#fbbf24}
-.coin-choice.tails{border-color:rgba(107,114,128,.35);color:var(--text2)}
-.coin-choice.selected.heads{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.6);box-shadow:0 0 18px rgba(251,191,36,.2)}
-.coin-choice.selected.tails{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.22)}
-.coin-choice:active{transform:scale(.93)}
+/* ══ МОНЕТКА — красивая 3D монета ══ */
+.coin-visual{height:200px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;perspective:700px;position:relative}
+.coin-scene{position:relative;display:flex;flex-direction:column;align-items:center;gap:0}
+.coin-wrap{
+  position:relative;width:136px;height:136px;
+  transform-style:preserve-3d;
+  transform:rotateY(0deg);
+  will-change:transform;
+}
+.coin-face{
+  position:absolute;inset:0;border-radius:50%;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+/* ОРЁЛ — золото */
+.coin-heads{
+  background:
+    radial-gradient(ellipse at 35% 28%, #fff5a0 0%, #ffd700 22%, #e6a800 52%, #b8780a 78%, #7a4e00 100%);
+  box-shadow:
+    0 0 0 4px #b8780a,
+    0 0 0 6px rgba(255,215,0,.25),
+    inset 0 3px 10px rgba(255,255,255,.5),
+    inset 0 -4px 12px rgba(0,0,0,.25);
+}
+/* РЕШКА — серебро */
+.coin-tails{
+  transform:rotateY(180deg);
+  background:
+    radial-gradient(ellipse at 35% 28%, #ffffff 0%, #e2e8f0 22%, #b0bec5 52%, #78909c 78%, #455a64 100%);
+  box-shadow:
+    0 0 0 4px #78909c,
+    0 0 0 6px rgba(180,200,220,.25),
+    inset 0 3px 10px rgba(255,255,255,.6),
+    inset 0 -4px 12px rgba(0,0,0,.18);
+}
+/* Рифлёный ободок */
+.coin-edge{
+  position:absolute;inset:-4px;border-radius:50%;
+  background:repeating-conic-gradient(
+    rgba(255,255,255,.18) 0deg 5deg,
+    rgba(0,0,0,.08) 5deg 10deg
+  );
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  pointer-events:none;
+}
+.coin-tails .coin-edge{
+  background:repeating-conic-gradient(
+    rgba(255,255,255,.22) 0deg 5deg,
+    rgba(0,0,0,.06) 5deg 10deg
+  );
+}
+/* Внутренний круг — рельеф */
+.coin-inner{
+  position:absolute;inset:14px;border-radius:50%;
+  border:1.5px solid rgba(0,0,0,.12);
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  pointer-events:none;
+}
+.coin-heads .coin-inner{box-shadow:inset 0 1px 4px rgba(0,0,0,.2),0 1px 2px rgba(255,255,255,.4)}
+.coin-tails .coin-inner{box-shadow:inset 0 1px 4px rgba(0,0,0,.15),0 1px 2px rgba(255,255,255,.5)}
+/* Иконка на монете */
+.coin-icon{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  pointer-events:none;z-index:2;
+}
+.coin-icon svg{filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))}
+/* Блик (на обеих сторонах, скрыт при перевороте через родителя) */
+.coin-shine{
+  position:absolute;top:6%;left:12%;width:50%;height:42%;
+  background:radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.72) 0%, rgba(255,255,255,.0) 70%);
+  border-radius:50%;pointer-events:none;z-index:3;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+}
+/* Тень */
+.coin-shadow{
+  width:90px;height:14px;border-radius:50%;margin-top:6px;
+  background:radial-gradient(ellipse, rgba(0,0,0,.38) 0%, transparent 70%);
+}
+/* Частицы при победе */
+@keyframes coinGlow{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.18)}
+}
+/* Анимация броска — heads финиш на 0°/360° (кратно 360) */
+@keyframes coinTossHeads{
+  0%  {transform:rotateY(0deg)   translateY(0px)   scale(1)}
+  6%  {transform:rotateY(60deg)  translateY(-18px)  scale(1.05)}
+  20% {transform:rotateY(360deg) translateY(-65px)  scale(1.14)}
+  38% {transform:rotateY(792deg) translateY(-96px)  scale(1.2)}
+  55% {transform:rotateY(1188deg)translateY(-70px)  scale(1.14)}
+  72% {transform:rotateY(1548deg)translateY(-28px)  scale(1.06)}
+  84% {transform:rotateY(1692deg)translateY(-8px)   scale(1.02)}
+  92% {transform:rotateY(1728deg)translateY(-2px)   scale(1.005)}
+  97% {transform:rotateY(1746deg)translateY(0px)    scale(1.002)}
+  100%{transform:rotateY(1800deg)translateY(0px)    scale(1)}
+}
+/* Tails финиш на 180° (1980=1800+180) */
+@keyframes coinTossTails{
+  0%  {transform:rotateY(0deg)   translateY(0px)   scale(1)}
+  6%  {transform:rotateY(60deg)  translateY(-18px)  scale(1.05)}
+  20% {transform:rotateY(360deg) translateY(-65px)  scale(1.14)}
+  38% {transform:rotateY(900deg) translateY(-96px)  scale(1.2)}
+  55% {transform:rotateY(1260deg)translateY(-70px)  scale(1.14)}
+  72% {transform:rotateY(1620deg)translateY(-28px)  scale(1.06)}
+  84% {transform:rotateY(1800deg)translateY(-8px)   scale(1.02)}
+  92% {transform:rotateY(1908deg)translateY(-2px)   scale(1.005)}
+  97% {transform:rotateY(1962deg)translateY(0px)    scale(1.002)}
+  100%{transform:rotateY(1980deg)translateY(0px)    scale(1)}
+}
+@keyframes shadowToss{
+  0%  {width:90px;opacity:.38;transform:translateX(-50%) scaleX(1)}
+  38% {width:50px;opacity:.1; transform:translateX(-50%) scaleX(.6)}
+  55% {width:46px;opacity:.08;transform:translateX(-50%) scaleX(.55)}
+  84% {width:72px;opacity:.28;transform:translateX(-50%) scaleX(.88)}
+  100%{width:90px;opacity:.38;transform:translateX(-50%) scaleX(1)}
+}
+.coin-wrap.tossing-heads{animation:coinTossHeads 1.5s cubic-bezier(.15,.7,.3,1) forwards}
+.coin-wrap.tossing-tails{animation:coinTossTails 1.5s cubic-bezier(.15,.7,.3,1) forwards}
+
+/* Подсветка результата */
+.coin-wrap.result-heads .coin-heads{
+  box-shadow:0 0 0 4px #c8960c,0 0 0 8px rgba(255,215,0,.35),0 0 50px rgba(255,200,0,.6),inset 0 3px 10px rgba(255,255,255,.5);
+  animation:coinGlow 1.4s ease-in-out infinite;
+}
+.coin-wrap.result-tails .coin-tails{
+  box-shadow:0 0 0 4px #78909c,0 0 0 8px rgba(180,210,240,.35),0 0 50px rgba(150,190,220,.55),inset 0 3px 10px rgba(255,255,255,.6);
+  animation:coinGlow 1.4s ease-in-out infinite;
+}
+
+/* Кнопки выбора */
+.coin-choice-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.coin-choice{
+  height:58px;border-radius:18px;border:1.5px solid;font-size:13px;font-weight:800;
+  cursor:pointer;transition:all .22s cubic-bezier(.34,1.56,.64,1);
+  font-family:'Outfit',sans-serif;background:transparent;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  letter-spacing:.03em;
+}
+.coin-choice.heads{border-color:rgba(251,191,36,.3);color:#fbbf24}
+.coin-choice.tails{border-color:rgba(148,163,184,.3);color:#94a3b8}
+.coin-choice.selected.heads{
+  background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.06));
+  border-color:rgba(251,191,36,.65);
+  box-shadow:0 0 22px rgba(251,191,36,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transform:scale(1.02);
+}
+.coin-choice.selected.tails{
+  background:linear-gradient(135deg,rgba(148,163,184,.1),rgba(100,116,139,.05));
+  border-color:rgba(148,163,184,.5);
+  box-shadow:0 0 22px rgba(148,163,184,.15),inset 0 1px 0 rgba(255,255,255,.06);
+  transform:scale(1.02);
+}
+.coin-choice:active{transform:scale(.93)!important}
 /* BJ */
 .card-table{background:linear-gradient(160deg,#0a2218,#06150f);border:1px solid rgba(16,185,129,.2);border-radius:var(--r2);padding:20px;margin-bottom:12px;position:relative;overflow:hidden}
 .card-table::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(16,185,129,.5),transparent)}
@@ -382,6 +526,17 @@ body::after{content:'';position:fixed;inset:0;background:url("data:image/svg+xml
 .act-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s ease;border-radius:inherit}
 .act-btn:active::after{background:rgba(255,255,255,.08)}
 .act-btn .ripple{display:none}
+/* Loading state для кнопок */
+.act-btn.loading{cursor:not-allowed;opacity:.85}
+.act-btn.loading::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(90deg,transparent 25%,rgba(255,255,255,.18) 50%,transparent 75%);
+  background-size:200% 100%;
+  animation:btnShimmer .9s ease-in-out infinite;
+}
+@keyframes btnShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.btn-spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:7px;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* RESULT */
 .result-chip{display:none;margin-bottom:0}
 
@@ -1376,12 +1531,71 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
       </div>
       <div style="padding:12px 14px 100px">
         <div class="card ci ci-1" style="padding:24px 20px 20px;margin-bottom:10px;text-align:center">
-          <div class="coin-visual"><span class="coin-el" id="coin-el">🪙</span></div>
-          <div style="font-size:22px;font-weight:900;margin-bottom:8px;font-family:'JetBrains Mono',monospace;min-height:34px" id="coin-res-big"></div>
+          <div class="coin-visual">
+            <div class="coin-scene">
+              <div class="coin-wrap" id="coin-wrap">
+                <!-- ОРЁЛ — золотая сторона (front) -->
+                <div class="coin-face coin-heads">
+                  <div class="coin-edge"></div>
+                  <div class="coin-inner"></div>
+                  <div class="coin-icon">
+                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+                      <!-- Тело орла -->
+                      <ellipse cx="36" cy="42" rx="11" ry="13" fill="rgba(255,255,255,.28)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>
+                      <!-- Левое крыло -->
+                      <path d="M25 38 C18 32 8 36 5 28 C10 26 16 29 20 32 C15 24 12 14 18 10 C22 18 22 26 25 33 C24 28 26 18 32 15 C33 22 29 30 27 37 Z"
+                        fill="rgba(255,255,255,.32)" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-linejoin="round"/>
+                      <!-- Правое крыло (зеркало) -->
+                      <path d="M47 38 C54 32 64 36 67 28 C62 26 56 29 52 32 C57 24 60 14 54 10 C50 18 50 26 47 33 C48 28 46 18 40 15 C39 22 43 30 45 37 Z"
+                        fill="rgba(255,255,255,.32)" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-linejoin="round"/>
+                      <!-- Шея -->
+                      <ellipse cx="36" cy="30" rx="7" ry="8" fill="rgba(255,255,255,.3)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>
+                      <!-- Голова -->
+                      <circle cx="36" cy="21" r="8" fill="rgba(255,255,255,.35)" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/>
+                      <!-- Клюв -->
+                      <path d="M36 22 L44 25 L38 27 Z" fill="rgba(255,200,0,.85)" stroke="rgba(200,140,0,.6)" stroke-width=".8"/>
+                      <!-- Глаз -->
+                      <circle cx="39" cy="19" r="2.2" fill="rgba(0,0,0,.65)"/>
+                      <circle cx="39.7" cy="18.3" r=".7" fill="rgba(255,255,255,.9)"/>
+                      <!-- Хвост -->
+                      <path d="M29 54 C31 50 36 52 36 52 C36 52 41 50 43 54 C40 56 36 58 32 56 Z"
+                        fill="rgba(255,255,255,.28)" stroke="rgba(255,255,255,.45)" stroke-width="1"/>
+                      <!-- Лапы -->
+                      <path d="M30 54 L26 60 M32 55 L29 62 M34 55.5 L33 62" stroke="rgba(255,200,0,.8)" stroke-width="1.4" stroke-linecap="round"/>
+                      <path d="M42 54 L46 60 M40 55 L43 62 M38 55.5 L39 62" stroke="rgba(255,200,0,.8)" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="coin-shine"></div>
+                </div>
+                <!-- РЕШКА — серебряная сторона (back, повёрнута на 180°) -->
+                <div class="coin-face coin-tails">
+                  <div class="coin-edge"></div>
+                  <div class="coin-inner"></div>
+                  <div class="coin-icon">
+                    <svg width="62" height="62" viewBox="0 0 62 62" fill="none">
+                      <!-- Звезда -->
+                      <path d="M31 8 L35.5 22.5 L51 22.5 L38.5 31.5 L43 46 L31 37 L19 46 L23.5 31.5 L11 22.5 L26.5 22.5 Z" fill="rgba(255,255,255,.22)" stroke="rgba(255,255,255,.4)" stroke-width="1.2" stroke-linejoin="round"/>
+                      <circle cx="31" cy="31" r="7" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.2"/>
+                      <circle cx="31" cy="31" r="3" fill="rgba(255,255,255,.5)"/>
+                    </svg>
+                  </div>
+                  <div class="coin-shine"></div>
+                </div>
+              </div>
+              <div class="coin-shadow" id="coin-shadow"></div>
+            </div>
+          </div>
+          <div style="font-size:18px;font-weight:900;margin-bottom:8px;font-family:'Outfit',sans-serif;min-height:28px;text-align:center;transition:opacity .3s ease;opacity:0" id="coin-res-big"></div>
           <div class="result-chip" id="coin-res" style="margin-bottom:8px"></div>
           <div class="coin-choice-btns" style="margin-top:8px">
-            <button class="coin-choice heads" id="cc-heads" onclick="pickCoin('heads')">👑 Орёл</button>
-            <button class="coin-choice tails" id="cc-tails" onclick="pickCoin('tails')">🦅 Решка</button>
+            <button class="coin-choice heads" id="cc-heads" onclick="pickCoin('heads')">
+              <svg width="16" height="16" viewBox="0 0 62 62" fill="none"><path d="M10 42 L10 26 L19 34 L31 16 L43 34 L52 26 L52 42 Z" fill="currentColor" opacity=".8"/><rect x="10" y="42" width="42" height="6" rx="2" fill="currentColor" opacity=".6"/></svg>
+              Орёл
+            </button>
+            <button class="coin-choice tails" id="cc-tails" onclick="pickCoin('tails')">
+              <svg width="16" height="16" viewBox="0 0 62 62" fill="none"><path d="M31 8 L35.5 22.5 L51 22.5 L38.5 31.5 L43 46 L31 37 L19 46 L23.5 31.5 L11 22.5 L26.5 22.5 Z" fill="currentColor" opacity=".8"/></svg>
+              Решка
+            </button>
           </div>
         </div>
         <div class="card ci ci-2" style="padding:16px;margin-bottom:10px">
@@ -2181,14 +2395,14 @@ function showXpAnim(xp){
 async function spinSlots(){
   const btn=document.getElementById('slot-spin-btn');
   if(btn.disabled)return;
-  btn.disabled=true;
+  btnLoading(btn);
   const bet=bets.slots;
 
   // 1. Сначала получаем реальный баланс с сервера
   const curBal=await fetchFreshBalance();
   if(curBal<bet){
     toast(`❌ Недостаточно средств (баланс: ${fmt(curBal)} 🌸)`);
-    btn.disabled=false;return;
+    btnRestore(btn);return;
   }
 
   const flash=document.getElementById('slot-flash');
@@ -2213,7 +2427,7 @@ async function spinSlots(){
     apiData=await apireq('/api/slots/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
   }catch(err){
     toast('❌ '+(err.message||'Ошибка сервера'));
-    btn.disabled=false;if(autoSpinOn)toggleAutoSpin();return;
+    btnRestore(btn);if(autoSpinOn)toggleAutoSpin();return;
   }
 
   // 3. Анимация барабанов с реальными символами
@@ -2242,7 +2456,7 @@ async function spinSlots(){
   }
   setTimeout(()=>{['r1','r2','r3'].forEach(id=>document.getElementById(id).classList.remove('win-reel'));},3500);
   shimmerBtn(btn);
-  btn.disabled=false;
+  btnRestore(btn);
 }
 
 // ═══════════════════════════════
@@ -2292,8 +2506,9 @@ function pickColor(c){
 async function spinRoule(){
   if(!rouChoice){toast('❗ Выберите цвет');return;}
   const btn=document.getElementById('rou-spin-btn');
-  if(btn.disabled)return;btn.disabled=true;
-  if(!(await checkBalance(bets.rou))){btn.disabled=false;return;}
+  if(btn.disabled)return;
+  btnLoading(btn);
+  if(!(await checkBalance(bets.rou))){btnRestore(btn);return;}
   const svg=document.getElementById('wheel-svg');
   const resDv=document.getElementById('wheel-result');
   const res=document.getElementById('rou-res');
@@ -2324,16 +2539,15 @@ async function spinRoule(){
     const mult=rouChoice==='green'?14:2;
     winAmt=won?bets.rou*mult:0;
     if(userData) userData.balance=Math.max(0,(userData.balance||0)-bets.rou+winAmt);
-    // баланс синхронизируем только после закрытия оверлея
   } else try{
     const d=await apireq('/api/roulette/spin',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.rou,bet_type:rouChoice})});
     resColor=d.color||d.result_color||d.result||'red';
     won=d.won;
     winAmt=d.win_amount||d.win||0;
-    window._rouPendingBalance=d.new_balance; // применим после закрытия
+    window._rouPendingBalance=d.new_balance;
   }catch(e){
     const el=Date.now()-spinStart;
-    setTimeout(()=>{toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;},Math.max(0,dur+200-el));
+    setTimeout(()=>{toast('❌ '+(e.message||'Ошибка сервера'));btnRestore(btn);},Math.max(0,dur+200-el));
     wheelAngle=preSpinTarget%360;
     return;
   }
@@ -2342,7 +2556,6 @@ async function spinRoule(){
   const matching=WNUMS.map((n,i)=>({n,i})).filter(({n,i})=>resColor==='green'?n===0:resColor==='red'?WCOLS[i]==='#c0392b':WCOLS[i]==='#1a1a2e');
   const land=matching[~~(Math.random()*matching.length)]||{i:0};
   const sectorSize=360/WNUMS.length;
-  // Центр сектора = начало + полсектора → стрелка попадает точно в середину
   const sectorDeg=(land.i/WNUMS.length)*360 + sectorSize/2;
   const elapsed=Date.now()-spinStart;
   const remaining=Math.max(800,dur-elapsed);
@@ -2360,7 +2573,6 @@ async function spinRoule(){
     resDv.textContent=em;resDv.classList.add('show');
     if(won){showResultOverlay('win',winAmt,bets.rou,`${em} Число ${WNUMS[land.i]}`);spawnCoins();}
     else{showResultOverlay('loss',0,bets.rou,`${em} Число ${WNUMS[land.i]}`);}
-    // Сбрасываем колесо обратно в 0 без анимации — готово к следующему раунду
     setTimeout(()=>{
       svg.style.transition='none';
       svg.style.transform='rotate(0deg)';
@@ -2368,7 +2580,7 @@ async function spinRoule(){
       resDv.classList.remove('show');
       resDv.textContent='';
     },600);
-    btn.disabled=false;
+    btnRestore(btn);
   },remaining+200);
 }
 
@@ -2396,7 +2608,7 @@ function hcRenderCard(elId,cardStr,state){
 async function playHighCard(){
   const btn=document.getElementById('hc-play-btn');
   if(btn.disabled)return;
-  btn.disabled=true;
+  btnLoading(btn);
   hcRenderCard('hc-my-card','','back');
   hcRenderCard('hc-bot-card','','back');
   document.getElementById('hc-res').className='result-chip';
@@ -2415,7 +2627,7 @@ async function playHighCard(){
     d={player_card:myCard,bot_card:botCard,won,draw,bet:bets.hc,win_amount:winAmt,new_balance:userData?.balance||0};
   } else try{
     d=await apireq('/api/highcard/play',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.hc})});
-  }catch(e){toast('❌ '+(e.message||'Ошибка сервера'));btn.disabled=false;return;}
+  }catch(e){toast('❌ '+(e.message||'Ошибка сервера'));btnRestore(btn);return;}
   setTimeout(()=>{
     const myState=d.draw?'show':d.won?'win':'lose';
     const botState=d.draw?'show':d.won?'lose':'win';
@@ -2427,7 +2639,7 @@ async function playHighCard(){
     else if(d.won){showResultOverlay('win',d.bet,d.bet,'🎴 Ты побил карту бота!');spawnCoins();}
     else{showResultOverlay('loss',0,d.bet,'🎴 Карта бота оказалась выше');}
     if(d.new_balance!==undefined)syncBal(d.new_balance);
-    btn.disabled=false;
+    btnRestore(btn);
   },500);
 }
 
@@ -2443,38 +2655,74 @@ function pickCoin(c){
 async function flipCoin(){
   if(!coinChoice){toast('❗ Выберите орёл или решку');return;}
   const btn=document.getElementById('coin-flip-btn');
-  if(btn.disabled)return;btn.disabled=true;
+  if(btn.disabled)return;
+  btnLoading(btn);
   const curBal=await fetchFreshBalance();
-  if(curBal<bets.coin){toast(`❌ Недостаточно средств (баланс: ${fmt(curBal)} 🌸)`);btn.disabled=false;return;}
-  const ce=document.getElementById('coin-el');
+  if(curBal<bets.coin){toast(`❌ Недостаточно средств (баланс: ${fmt(curBal)} 🌸)`);btnRestore(btn);return;}
+
+  const wrap=document.getElementById('coin-wrap');
   const chip=document.getElementById('coin-res');
   const resB=document.getElementById('coin-res-big');
-  chip.className='result-chip';resB.textContent='';
-  ce.classList.add('flipping');haptic('medium');
+
+  // Сброс
+  chip.className='result-chip';
+  resB.style.opacity='0';
+  resB.textContent='';
+  wrap.className='coin-wrap';
+  wrap.style.transform='';
+  haptic('medium');
+
+  // Запрашиваем результат параллельно
   let result='heads',won=false,winAmt=0;
   if(IS_DEMO){
     result=Math.random()<0.5?'heads':'tails';
     won=result===coinChoice;
     winAmt=won?bets.coin:0;
     if(userData) userData.balance=Math.max(0,(userData.balance||0)-bets.coin+winAmt);
-    setTimeout(()=>syncBal(userData?.balance||0),1100);
   } else try{
     const d=await apireq('/api/coin/flip',{method:'POST',body:JSON.stringify({user_id:UID,bet:bets.coin,choice:coinChoice})});
     result=d.result;won=d.won;winAmt=d.win_amount||d.win||0;
-    setTimeout(()=>syncBal(d.new_balance),1100);
+    setTimeout(()=>syncBal(d.new_balance),1550);
   }catch(e){
     toast('❌ '+(e.message||'Ошибка сервера'));
-    ce.classList.remove('flipping');
-    btn.disabled=false;return;
+    btnRestore(btn);return;
   }
+
+  // Запускаем анимацию броска
+  // heads → финиш 1800° (=0° mod 360) → золотая сторона спереди
+  // tails → финиш 1980° (=180° mod 360) → серебряная сторона спереди
+  wrap.classList.add(result==='heads'?'tossing-heads':'tossing-tails');
+
+  const animDur=1500;
   setTimeout(()=>{
-    ce.classList.remove('flipping');
-    ce.textContent=result==='heads'?'👑':'🦅';
-    resB.textContent=result==='heads'?'👑 Орёл':'🦅 Решка';
-    if(won){showResultOverlay('win',winAmt,bets.coin,result==='heads'?'👑 Орёл':'🦅 Решка');spawnCoins();}
-    else{showResultOverlay('loss',0,bets.coin,result==='heads'?'👑 Орёл':'🦅 Решка');}
-    btn.disabled=false;shimmerBtn(btn);
-  },1000);
+    // Снимаем анимацию, жёстко фиксируем угол
+    wrap.classList.remove('tossing-heads','tossing-tails');
+    wrap.style.transform=result==='heads'?'rotateY(0deg)':'rotateY(180deg)';
+
+    // Подсветка выпавшей стороны
+    wrap.classList.add(result==='heads'?'result-heads':'result-tails');
+
+    // Текст результата
+    resB.textContent=result==='heads'?'👑 Орёл':'★ Решка';
+    resB.style.color=result==='heads'?'#fbbf24':'#94a3b8';
+    resB.style.letterSpacing='0.04em';
+    resB.style.opacity='1';
+
+    if(IS_DEMO) syncBal(userData?.balance||0);
+    haptic(won?'success':'error');
+    if(won){showResultOverlay('win',winAmt,bets.coin,result==='heads'?'👑 Орёл выиграл!':'★ Решка выиграла!');spawnCoins();}
+    else{showResultOverlay('loss',0,bets.coin,result==='heads'?'👑 Орёл':'★ Решка');}
+    btnRestore(btn);
+
+    // Через 3.5с — плавно сбрасываем в исходное (золотая сторона)
+    setTimeout(()=>{
+      wrap.classList.remove('result-heads','result-tails');
+      wrap.style.transition='transform .7s cubic-bezier(.34,1.2,.64,1)';
+      wrap.style.transform='rotateY(0deg)';
+      resB.style.opacity='0';
+      setTimeout(()=>{wrap.style.transition='';resB.textContent='';},720);
+    },3500);
+  },animDur);
 }
 
 // ═══════════════════════════════
@@ -2855,16 +3103,31 @@ function _renderGameOnline(games){
   GAME_ONLINE_IDS.forEach(g=>{
     const cnt = games?.[g] ?? null;
     const span = document.getElementById('gt-cnt-'+g);
-    const wrap = document.getElementById('gt-online-'+g);
+    const wrap = document.getElementById('gt-online-'+g) || document.getElementById('gt-online-'+g);
     if(!span) return;
     if(cnt === null || cnt === undefined){
-      span.textContent = '—';
+      span.textContent = '';
       wrap?.classList.remove('loaded');
     } else {
-      span.textContent = cnt > 0 ? cnt+' онлайн' : 'нет игроков';
+      span.textContent = cnt > 0 ? cnt : '0';
       wrap?.classList.add('loaded');
     }
   });
+}
+
+// ── Хелпер: loading-состояние кнопки ──
+function btnLoading(btn, origHTML){
+  if(!btn) return;
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn._origHTML = origHTML || btn.innerHTML;
+  btn.innerHTML = `<span class="btn-spinner"></span>${btn._origHTML.replace(/^[^\s<]+ /,'')}`;
+}
+function btnRestore(btn){
+  if(!btn) return;
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  if(btn._origHTML !== undefined) btn.innerHTML = btn._origHTML;
 }
 
 async function updateOnlineCount(){
@@ -3392,9 +3655,11 @@ async function placeCrashBet(){
   if(crash.betPlaced) return;
   if(crash.phase === 'flying'){ toast('❗ Ставки закрыты, ракета уже летит'); return; }
   if(crash.phase === 'crashed'){ toast('❗ Подожди следующего раунда'); return; }
+  const btn = document.getElementById('crash-bet-btn');
+  btnLoading(btn);
   const bet = bets.crash || bets.slots || 100;
   const bal = await fetchFreshBalance();
-  if(bal < bet){ toast(`❌ Недостаточно средств`); return; }
+  if(bal < bet){ toast(`❌ Недостаточно средств`); btnRestore(btn); return; }
   crash.betPlaced = true;
   crash.cashedOut = false;
   crash.betAmount = bet;
@@ -3402,12 +3667,12 @@ async function placeCrashBet(){
     if(userData) userData.balance = Math.max(0,(userData.balance||0)-bet);
     syncBal(userData?.balance||0);
     crashSetUI(crash.phase, crash.mult);
-    // Добавляем себя в список
     _demoCrashPlayers = _demoCrashPlayers.filter(p => String(p.user_id) !== String(UID));
     _demoCrashPlayers.unshift({user_id: UID, name: TG?.initDataUnsafe?.user?.first_name||'Ты', bet, cashed_out: false});
     renderCrashPlayers(_demoCrashPlayers);
     toast('✅ Ставка принята!');
     haptic('light');
+    btnRestore(btn);
     return;
   }
   try{
@@ -3420,6 +3685,7 @@ async function placeCrashBet(){
     crash.betPlaced = false;
     toast('❌ '+(e.message||'Ошибка'));
   }
+  btnRestore(btn);
 }
 
 async function crashCashout(){
@@ -3650,13 +3916,42 @@ function rollsFmt(n){
 
 // Кэш аватарок для колеса
 const _rollsAvaCache={};
-function _rollsLoadAva(uid, url){
-  if(!url||_rollsAvaCache[uid])return;
-  const img=new Image();
-  img.crossOrigin='anonymous';
-  img.onload=()=>{ _rollsAvaCache[uid]=img; };
-  img.onerror=()=>{ _rollsAvaCache[uid]=null; };
-  img.src=url;
+const _rollsAvaLoading={};
+
+function _rollsLoadAva(uid, url, onLoaded){
+  if(!url) return;
+  // Уже загружена
+  if(_rollsAvaCache[uid]) { onLoaded && onLoaded(); return; }
+  // Уже грузится — добавляем колбэк
+  if(_rollsAvaLoading[uid]) {
+    if(onLoaded) _rollsAvaLoading[uid].push(onLoaded);
+    return;
+  }
+  _rollsAvaLoading[uid] = onLoaded ? [onLoaded] : [];
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    _rollsAvaCache[uid] = img;
+    const cbs = _rollsAvaLoading[uid] || [];
+    delete _rollsAvaLoading[uid];
+    cbs.forEach(cb => { try{ cb(); }catch(_){} });
+  };
+  img.onerror = () => {
+    // Пробуем без crossOrigin (некоторые CDN не поддерживают CORS)
+    const img2 = new Image();
+    img2.onload = () => {
+      _rollsAvaCache[uid] = img2;
+      const cbs = _rollsAvaLoading[uid] || [];
+      delete _rollsAvaLoading[uid];
+      cbs.forEach(cb => { try{ cb(); }catch(_){} });
+    };
+    img2.onerror = () => {
+      _rollsAvaCache[uid] = null;
+      delete _rollsAvaLoading[uid];
+    };
+    img2.src = url;
+  };
+  img.src = url;
 }
 
 function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, betsArr=null){
@@ -3704,7 +3999,18 @@ function rollsDrawWheel(bets, names, winIdx=-1, rotation=0, betsArr=null){
     return;
   }
 
-  entries.forEach(([uid])=>{ const info=names[uid];if(info?.photo)_rollsLoadAva(uid,info.photo); });
+  // Загружаем аватарки через прокси (CORS); при каждой загрузке — перерисовываем колесо
+  entries.forEach(([uid])=>{
+    const info = names[uid];
+    if(info?.photo && _rollsAvaCache[uid] === undefined && !_rollsAvaLoading[uid]){
+      // Используем прокси /api/avatar/ чтобы обойти CORS Telegram CDN
+      const proxyUrl = API ? `${API}/api/avatar/${uid}` : null;
+      const srcUrl = proxyUrl || info.photo;
+      _rollsLoadAva(uid, srcUrl, ()=>{
+        if(!rollsSpinning) rollsDrawWheel(bets, names, winIdx, rotation, betsArr);
+      });
+    }
+  });
 
   // ── Тень колеса ──
   ctx.save();
@@ -4045,15 +4351,17 @@ async function rollsPoll(){
     // Порядок из сервера — уже отсортирован по user_id, храним как массив пар
     const betsObj=Object.fromEntries(d.bets.map(b=>[b.user_id,b.amount]));
     const betsArr=d.bets.map(b=>[b.user_id,b.amount]); // массив с гарантированным порядком
-    // Предзагрузка аватарок — после загрузки перерисовываем колесо
-    let anyNewPhoto=false;
+    // Предзагрузка аватарок через прокси — после загрузки перерисовываем колесо
     Object.entries(d.names||{}).forEach(([uid,info])=>{
-      if(info?.photo&&!_rollsAvaCache[uid]){
-        anyNewPhoto=true;
-        const img=new Image();img.crossOrigin='anonymous';
-        img.onload=()=>{_rollsAvaCache[uid]=img;if(!rollsSpinning)rollsDrawWheel(betsObj,d.names,-1,0,betsArr);};
-        img.onerror=()=>{_rollsAvaCache[uid]=null;};
-        img.src=info.photo;
+      if(info?.photo && _rollsAvaCache[uid] === undefined){
+        const proxyUrl = API ? `${API}/api/avatar/${uid}` : info.photo;
+        _rollsLoadAva(uid, proxyUrl, ()=>{
+          if(!rollsSpinning){
+            const bo=Object.fromEntries(d.bets.map(b=>[b.user_id,b.amount]));
+            const ba=d.bets.map(b=>[b.user_id,b.amount]);
+            rollsDrawWheel(bo,d.names,-1,0,ba);
+          }
+        });
       }
     });
     const isDone=d.status==='done'||d.status==='finishing'||d.status==='spinning';
@@ -4369,20 +4677,20 @@ async function rollsPlaceBet(){
     return;
   }
   const btn=document.getElementById('rolls-bet-btn');
-  if(btn){btn.disabled=true;btn.textContent='…';}
+  if(btn) btnLoading(btn);
   try{
     const d=await apireq('/api/rolls/bet',{method:'POST',body:JSON.stringify({user_id:UID,bet})});
     if(d.ok){
       if(input)input.value='';
       if(d.new_balance!==undefined)syncBal(d.new_balance);
       haptic('success');
-      _rollsPollRunning=false; // сбрасываем чтобы poll прошёл сразу
+      _rollsPollRunning=false;
       rollsPoll();
     } else {
       haptic('error');toast(d.error||'Ошибка');
     }
   }catch(e){haptic('error');toast('Ошибка соединения');}
-  finally{if(btn){btn.disabled=false;btn.textContent='Поставить';}}
+  finally{if(btn) btnRestore(btn);}
 }
 
 function rollsSetBet(n){const i=document.getElementById('rolls-bet-input');if(i)i.value=n;}
@@ -4884,4 +5192,4 @@ function closeProfile(){
   </div>
 </div>
 </body>
-                                           </html>
+                            </html>
