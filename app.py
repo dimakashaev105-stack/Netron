@@ -869,6 +869,24 @@ def online_count():
     cache_set('online_count', result, ttl=30)
     return jsonify(result)
 
+@app.route('/api/online/games')
+def online_games():
+    """Онлайн по играм: сколько уникальных игроков играло в каждую игру за последние 5 минут"""
+    cached = cache_get('online_games')
+    if cached: return jsonify(cached)
+    cutoff = int(time.time()) - 300  # 5 минут
+    games_list = ['slots', 'roulette', 'hc', 'coin', 'crash', 'taxi', 'rolls']
+    result = {'games': {}}
+    with get_db() as conn:
+        for game in games_list:
+            row = conn.execute(
+                'SELECT COUNT(DISTINCT user_id) as cnt FROM game_history WHERE game=? AND created_at>=?',
+                (game, cutoff)
+            ).fetchone()
+            result['games'][game] = row['cnt'] if row else 0
+    cache_set('online_games', result, ttl=30)
+    return jsonify(result)
+
 @app.route('/api/my_rank/<int:user_id>')
 def my_rank(user_id):
     with get_db() as conn:
