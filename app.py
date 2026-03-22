@@ -1210,7 +1210,7 @@ def crash_cashout():
         mult = _crash_current_mult()
         bet = _crash_state['bets'][user_id]
         win_amount = int(bet * mult)
-        xp_gain = max(10, int(win_amount * 0.01))
+        xp_gain = min(100, max(2, int(bet * 0.0005)))  # XP от ставки, макс 100 за игру
         _crash_state['cashed_out'][user_id] = mult
         with get_db() as conn:
             conn.execute(
