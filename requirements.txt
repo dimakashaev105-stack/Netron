@@ -1,8 +1,6 @@
-pyTelegramBotAPI
 telethon
+telebot
 Pillow
 schedule
 flask>=2.3.0
 python-dotenv
-psycopg2-binary
-pg8000
