@@ -30,6 +30,7 @@ active_crash_bets = {}
 pending_crash_decisions = {}
 REAL_ADMIN_IDS = list(ADMIN_IDS)
 disabled_admins = set()
+active_duels = {}
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=True, num_threads=4)
 
