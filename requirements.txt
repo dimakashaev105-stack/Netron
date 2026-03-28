@@ -4,3 +4,4 @@ Pillow
 schedule
 flask>=2.3.0
 gunicorn
+python-dotenv
