@@ -1832,13 +1832,8 @@ def rolls_history():
         ''', (user_id,)).fetchall()
     return jsonify({'ok': True, 'history': [dict(r) for r in rows]})
 
-# Запускается и при gunicorn и при python app.py
-def _startup():
+if __name__ == '__main__':
     threading.Thread(target=auto_ping, daemon=True, name="PingThread").start()
     setup_webhook()
     print("✅ Flask запущен (webhook mode)")
-
-_startup()
-
-if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001, debug=False)
