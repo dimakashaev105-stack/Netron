@@ -19324,7 +19324,6 @@ def handle_mine_menu(message):
     uid = message.from_user.id
     bot.send_message(message.chat.id, _mine_main_text(uid),
                      reply_markup=_mine_main_kb(uid), parse_mode="HTML")
-
 @bot.message_handler(func=lambda m: m.text and m.text.strip().lower() == "копать")
 def handle_mine_dig_text(message):
     uid = message.from_user.id
