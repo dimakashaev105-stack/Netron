@@ -1173,9 +1173,8 @@ def _fmt_num(n):
     return ("-" if neg else "") + s
 
 def format_balance(balance):
-    flower = "<tg-emoji emoji-id='5440354006335495210'>🌸</tg-emoji>"
-    return _fmt_num(balance) + " " + flower
-
+    flower = "<tg-emoji emoji-id=\'5440354006335495210\'>🌸</tg-emoji>"
+    return f"{_fmt_num(balance)} {flower}" 
 def plain_balance(balance):
     """Для кнопок и мест без parse_mode=HTML"""
     return _fmt_num(balance) + " 🌸"
@@ -19288,6 +19287,7 @@ MINE_RESOURCES = [
     {"id": "lapis",    "name": "Лазурит",  "emoji_id": 5458825788797231419, "chance": 1.5,"price": 30000},
     {"id": "emerald",  "name": "Изумруд",  "emoji_id": 5458517053663093203, "chance": 0.9,"price": 70000},
     {"id": "diamond",  "name": "Алмаз",   "emoji_id": 5458420940884942467, "chance": 0.6,"price": 140000},
+    {"id": "gold_ore", "name": "Золотая руда", "emoji_id": 5458617543012918174, "chance": 0.3,"price": 250000},
 ]
 
 MINE_COOLDOWN         = 10 * 60  # 10 минут — общая шахта (Лвл 1 кирки)
@@ -19398,11 +19398,11 @@ def _boost_left(uid):
 # ── Кирка ─────────────────────────────────────────────────────
 
 PICKAXE_LEVELS = {
-    1: {"stars": 0,  "bonus": 1.0, "cooldown": 5*60,  "label": "🪨 Базовая",     "rare_boost": 0.0, "res_qty": 1},
-    2: {"stars": 10, "bonus": 1.3, "cooldown": 4*60,  "label": "⚙️ Улучшенная", "rare_boost": 0.0, "res_qty": 1},
-    3: {"stars": 20, "bonus": 1.6, "cooldown": 3*60,  "label": "🔩 Прочная",     "rare_boost": 0.1, "res_qty": 2},
-    4: {"stars": 40, "bonus": 1.8, "cooldown": 2*60,  "label": "💎 Алмазная",    "rare_boost": 0.2, "res_qty": 2},
-    5: {"stars": 80, "bonus": 2.0, "cooldown": 1*60,  "label": "⭐ Легендарная", "rare_boost": 0.3, "res_qty": 3},
+    1: {"stars": 0,  "bonus": 1.0, "cooldown": 10*60, "label": "Деревянная", "emoji_id": 6278551946852831281, "rare_boost": 0.0, "res_qty": 1},
+    2: {"stars": 10, "bonus": 1.3, "cooldown": 4*60,  "label": "Каменная",   "emoji_id": 6280609481000750585, "rare_boost": 0.0, "res_qty": 1},
+    3: {"stars": 20, "bonus": 1.6, "cooldown": 3*60,  "label": "Железная",   "emoji_id": 6278187557532472415, "rare_boost": 0.1, "res_qty": 2},
+    4: {"stars": 40, "bonus": 1.8, "cooldown": 2*60,  "label": "Золотая",    "emoji_id": 6280722322676519252, "rare_boost": 0.2, "res_qty": 2},
+    5: {"stars": 80, "bonus": 2.0, "cooldown": 1*60,  "label": "Алмазная",   "emoji_id": 6280750854144266316, "rare_boost": 0.3, "res_qty": 3},
 }
 PICKAXE_MAX = 5
 
@@ -19641,26 +19641,27 @@ def handle_mine_dig_text(message):
                 best_streak=?
         """, (uid, max(0,reward), new_streak, new_best, max(0,reward), new_streak, new_best))
 
-    flower = "<tg-emoji emoji-id=\'5440354006335495210\'>🌸</tg-emoji>"
+    flower   = "<tg-emoji emoji-id=\'5440354006335495210\'>🌸</tg-emoji>"
+    pk_emoji = f"<tg-emoji emoji-id=\'{pk_info['emoji_id']}\'>⛏</tg-emoji>"
     if event["mult"] == 0.0:
-        bot.send_message(message.chat.id, f"⛏️ <b>{where}</b>\n{event['text']}", parse_mode="HTML")
+        bot.send_message(message.chat.id,
+            f"{pk_emoji} <b>{where}</b>\n<blockquote>{event['text']}</blockquote>",
+            parse_mode="HTML")
     else:
         qty_tag    = f" ×{total_qty}" if total_qty > 1 else ""
         streak_tag = f" 🔥×{new_streak}" if new_streak >= 10 else ""
-        pk_tag     = f" <i>(×{pk_bonus} кирка)</i>" if pk_bonus > 1.0 else ""
-        boost_tag  = " ⚡×2 буст" if boost_mult == 2 else ""
-        ev_tag     = f"\n{event['text']}" if event["text"] else ""
+        boost_tag  = " ⚡×2" if boost_mult == 2 else ""
+        ev_tag     = f"\n<i>{event['text']}</i>" if event["text"] else ""
         res_emoji  = f"<tg-emoji emoji-id=\'{resource['emoji_id']}\'>●</tg-emoji>"
         text_html  = (
-            f"⛏️ <b>{where}</b>{ev_tag}\n"
-            f"{res_emoji} <b>{resource['name']}</b>{qty_tag}{boost_tag}\n"
-            f"+{_fmt_num(reward)} {flower}{pk_tag}{streak_tag}"
+            f"{pk_emoji} <b>{where}</b>{ev_tag}\n"
+            f"<blockquote>{res_emoji}{qty_tag}{boost_tag}  +{_fmt_num(reward)} {flower}{streak_tag}</blockquote>"
         )
         try:
             bot.send_message(message.chat.id, text_html, parse_mode="HTML")
         except Exception:
             bot.send_message(message.chat.id,
-                f"⛏️ {where}\n{resource['name']}{qty_tag}\n+{_fmt_num(reward)} 🌸{streak_tag}")
+                f"{where}\n{resource['name']}{qty_tag}\n+{_fmt_num(reward)} 🌸{streak_tag}")
 @bot.message_handler(func=lambda m: m.text and len(m.text.strip().split()) == 2
     and m.text.strip().split()[0].lower() == "шахта"
     and m.text.strip().split()[1].isdigit())
@@ -19810,22 +19811,27 @@ def cb_mine_dig(call):
                 best_streak=?
         """, (uid, max(0,reward), new_streak, new_best, max(0,reward), new_streak, new_best))
 
-    flower = "<tg-emoji emoji-id=\'5440354006335495210\'>🌸</tg-emoji>"
+    flower   = "<tg-emoji emoji-id=\'5440354006335495210\'>🌸</tg-emoji>"
+    pk_emoji = f"<tg-emoji emoji-id=\'{pk_info['emoji_id']}\'>⛏</tg-emoji>"
     if event["mult"] == 0.0:
-        text = f"⛏️ <b>{where}</b>\n{event['text']}"
+        bot.send_message(message.chat.id,
+            f"{pk_emoji} <b>{where}</b>\n<blockquote>{event['text']}</blockquote>",
+            parse_mode="HTML")
     else:
         qty_tag    = f" ×{total_qty}" if total_qty > 1 else ""
         streak_tag = f" 🔥×{new_streak}" if new_streak >= 10 else ""
-        pk_tag     = f" <i>(×{pk_bonus} кирка)</i>" if pk_bonus > 1.0 else ""
-        boost_tag  = " ⚡×2 буст" if boost_mult == 2 else ""
-        ev_tag     = f"\n{event['text']}" if event["text"] else ""
+        boost_tag  = " ⚡×2" if boost_mult == 2 else ""
+        ev_tag     = f"\n<i>{event['text']}</i>" if event["text"] else ""
         res_emoji  = f"<tg-emoji emoji-id=\'{resource['emoji_id']}\'>●</tg-emoji>"
-        text = (
-            f"⛏️ <b>{where}</b>{ev_tag}\n"
-            f"{res_emoji} <b>{resource['name']}</b>{qty_tag}{boost_tag}\n"
-            f"+{_fmt_num(reward)} {flower}{pk_tag}{streak_tag}"
+        text_html  = (
+            f"{pk_emoji} <b>{where}</b>{ev_tag}\n"
+            f"<blockquote>{res_emoji}{qty_tag}{boost_tag}  +{_fmt_num(reward)} {flower}{streak_tag}</blockquote>"
         )
-
+        try:
+            bot.send_message(message.chat.id, text_html, parse_mode="HTML")
+        except Exception:
+            bot.send_message(message.chat.id,
+                f"{where}\n{resource['name']}{qty_tag}\n+{_fmt_num(reward)} 🌸{streak_tag}")
     bot.answer_callback_query(call.id)
     try:
         bot.send_message(call.message.chat.id, text, parse_mode="HTML")
