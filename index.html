@@ -1876,7 +1876,7 @@ body.light .rating-locked{background:rgba(255,255,255,.5)}
 // ═══════════════════════════════
 const TG = window.Telegram?.WebApp;
 if(TG){TG.ready();TG.expand();}
-const API = ''; // your backend URL
+const API = 'https://netron-jlwc.onrender.com'; // your backend URL
 let UID = TG?.initDataUnsafe?.user?.id || 'demo';
 const IS_DEMO = !TG?.initDataUnsafe?.user?.id;
 let userData = null;
