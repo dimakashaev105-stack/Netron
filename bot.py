@@ -24271,3 +24271,29 @@ def handle_ore_quick(message):
     bot.send_message(message.chat.id, _ore_chances_text(), parse_mode="HTML")
 
 print("⛏️ Управление шансами руд загружено")
+if __name__ == "__main__":
+    import traceback
+    
+    # Запускаем фоновые планировщики, если они не были запущены ранее
+    try:
+        start_event_scheduler()
+        start_meteor_scheduler()
+        start_bio_drop_scheduler()
+        start_alerts_scheduler()
+        start_stock_scheduler()
+    except Exception as e:
+        print(f"Ошибка запуска планировщиков: {e}")
+
+    # Запускаем бесконечный цикл работы бота
+    while True:
+        try:
+            print("[bot] polling запущен, бот слушает сообщения...")
+            bot.infinity_polling(
+                timeout=25, 
+                long_polling_timeout=20, 
+                allowed_updates=['message', 'callback_query', 'pre_checkout_query', 'successful_payment', 'inline_query']
+            )
+        except Exception as e:
+            err = traceback.format_exc()
+            print(f"[bot] Ошибка polling, перезапуск через 5 секунд:\n{err}")
+            time.sleep(5)
